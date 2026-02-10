@@ -1,13 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 using System.Text;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.Networking;
-using static NX10.NX10BackendManager;
 using Newtonsoft.Json;
 //using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 //using TouchPhase = UnityEngine.InputSystem.TouchPhase;
@@ -196,8 +192,6 @@ namespace NX10
 
         private void Awake()
         {
-            EnhancedTouchSupport.Enable();
-
             if(SystemInfo.supportsGyroscope)
                 Input.gyro.enabled = true;
         }

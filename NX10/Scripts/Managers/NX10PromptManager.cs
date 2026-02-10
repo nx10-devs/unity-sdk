@@ -59,13 +59,6 @@ namespace NX10
 
         public void ShowPrompt(PromptType type, string feelingModalType, string feelingContext, string feelingFor, Action<FeelingType> promptCompleteAction)
         {
-            if(ExperimentManager.Instance.experiment == ExperimentManager.Experiment.ExperimentA)
-            {
-                promptCompleteAction.Invoke(FeelingType.Neutral);
-                return;
-            }
-
-
             this.feelingModalType = feelingModalType;
             this.feelingContext = feelingContext;
             this.feelingFor = feelingFor;
