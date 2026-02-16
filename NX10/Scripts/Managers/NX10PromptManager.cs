@@ -28,10 +28,12 @@ namespace NX10
         private string feelingModalType = "modal2";
         private string feelingContext = "menu";
         private string feelingFor = "coins";
+        private string promptDisplayTimestamp = "";
+        private string promptAnswerTimestamp = "";
 
         private const string TOTAL_SAAQ_DONE = "TOTAL_SAAQ_DONE";
 
-        public FeelingType[] currentFeelingTypeToShow { get; private set; }
+        public FeelingType[] currentFeelingTypesToShow { get; private set; }
 
         private void Start()
         {
@@ -46,7 +48,8 @@ namespace NX10
 
         private void PromptUiController_onSAAQSubmitted(FeelingType feelingType)
         {
-            NX10Manager.Instance.SendSaaqPromptData(feelingType.ToString(), (int)feelingType, feelingModalType, feelingContext, feelingFor);
+            promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            NX10Manager.Instance.SendSaaqPromptData(feelingType.ToString(), (int)feelingType, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
 
             AddSaaqToTotalCount();
             promptCompleteAction.Invoke(feelingType);
@@ -59,6 +62,15 @@ namespace NX10
 
         public void ShowPrompt(PromptType type, string feelingModalType, string feelingContext, string feelingFor, Action<FeelingType> promptCompleteAction)
         {
+            promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+            if (ExperimentManager.Instance.experiment == ExperimentManager.Experiment.ExperimentA)
+            {
+                promptCompleteAction.Invoke(FeelingType.Neutral);
+                return;
+            }
+
+
             this.feelingModalType = feelingModalType;
             this.feelingContext = feelingContext;
             this.feelingFor = feelingFor;
@@ -67,22 +79,23 @@ namespace NX10
             uiController.ShowPrompt(type);
         }
 
-        public void ShowSlider(string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        public void ShowSlider(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
+            currentFeelingTypesToShow = typesToShow;
             ShowPrompt(PromptType.Slider, "modal2", feelingContext, feelingFor, completeAction);
         }
 
-        public void ShowButton(FeelingType[] typeToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        public void ShowButton(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
-            currentFeelingTypeToShow = typeToShow;
+            currentFeelingTypesToShow = typesToShow;
             ShowPrompt(PromptType.Button, "modal1", feelingContext, feelingFor, completeAction);
         }
 
-        public bool ShowSliderTimerDependant(string timerKey, int duration, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        public bool ShowSliderTimerDependant(FeelingType[] typesToShow, string timerKey, int duration, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
             bool Show()
             {
-                ShowSlider(feelingContext, feelingFor, completeAction);
+                ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);
                 PlayerPrefs.SetString(timerKey, DateTime.Now.ToString());
                 PlayerPrefs.SetInt(timerKey + "_duration", duration);
                 return true;

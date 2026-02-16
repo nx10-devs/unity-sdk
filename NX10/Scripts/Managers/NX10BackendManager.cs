@@ -1,10 +1,12 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.Networking;
-using Newtonsoft.Json;
 //using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 //using TouchPhase = UnityEngine.InputSystem.TouchPhase;
 
@@ -87,6 +89,87 @@ namespace NX10
             public NX10SerializableDictionary metaData;
         }
 
+        public interface IInputEvent
+        {
+            object[] ToArray();
+        }
+
+        [System.Serializable]
+        public class GyroEvent : IInputEvent
+        {
+            public string type => "gyro";
+            public double timestampOffsetMs { get; set; }
+            public float x;
+            public float y;
+            public float z;
+
+            public object[] ToArray()
+            {
+                return new object[]
+                {
+                    type,
+                    timestampOffsetMs,
+                    x,
+                    y,
+                    z,
+                };
+            }
+        }
+
+        [System.Serializable]
+        public class AccelerometerEvent : IInputEvent
+        {
+            public string type => "acc";
+            public double timestampOffsetMs { get; set; }
+            public float x;
+            public float y;
+            public float z;
+
+            public object[] ToArray()
+            {
+                return new object[]
+                {
+                    type,
+                    timestampOffsetMs,
+                    x,
+                    y,
+                    z,
+                };
+            }
+        }
+
+        [System.Serializable]
+        public class TouchInputEvent : IInputEvent
+        {
+            public string type => "touch";
+            public double timestampOffsetMs { get; set; }
+            public float x;
+            public float y;
+            public float velocityX;
+            public float velocityY;
+
+            public object[] ToArray()
+            {
+                return new object[]
+                {
+                    type,
+                    timestampOffsetMs,
+                    x,
+                    y,
+                    velocityX,
+                    velocityY
+                };
+            }
+        }
+
+        [System.Serializable]
+        public class NX10TelemetryPayload
+        {
+            public string bts;
+            public double ets;
+            public object[][] d;
+        }
+
         public class HeaderObject
         {
             public string headerName;
@@ -143,11 +226,20 @@ namespace NX10
         public class NX10SAAQResponse
         {
             public string deviceSendTimestamp;
+            public string promptDisplayTimestamp;
+            public string promptAnswerTimestamp;
             public string feeling;
             public string saaqType;
             public string feelingContext;
             public string feelingFor;
             public NX10SerializableDictionary metaData;
+        }
+
+        [Serializable] 
+        public class AttributesPayload
+        {
+            public string timeStamp;
+            public Dictionary<string, object> data;
         }
 
         [Serializable]
@@ -173,25 +265,30 @@ namespace NX10
             public string gameData; // Session data as JSON string
         }
 
-        [HideInInspector]
         public List<TouchEvent> touchEvents = new List<TouchEvent>();
-        [HideInInspector]
         public List<GyroDataPacket> gyroData = new List<GyroDataPacket>();
-        [HideInInspector]
         public List<AccelerometerDataPacket> accelerometerData = new List<AccelerometerDataPacket>();
 
-        [HideInInspector]
         public List<Nx10TouchEvent> nx10TouchEvents = new List<Nx10TouchEvent>();
-        [HideInInspector]
         public List<NX10VectorSamplePacket> nx10GyroData = new List<NX10VectorSamplePacket>();
-        [HideInInspector]
         public List<NX10VectorSamplePacket> nx10AccelerometerData = new List<NX10VectorSamplePacket>();
 
+        public List<IInputEvent> inputEvents = new List<IInputEvent>();
+
         private bool canCollectTelemetryData;
-        private Dictionary<string, string> currentGameMetaData = new Dictionary<string, string>();
+        private Dictionary<string, object> currentGameMetaData = new Dictionary<string, object>();
+
+        private DateTime telemetryWindowStartTimestamp; 
+        private string telemetryWindowStartTimestampISO => telemetryWindowStartTimestamp.ToString(("yyyy-MM-ddTHH:mm:ss.fffZ"));
+        private TimeSpan Offset()
+        {
+            return DateTime.UtcNow - telemetryWindowStartTimestamp;
+        } 
 
         private void Awake()
         {
+            EnhancedTouchSupport.Enable();
+
             if(SystemInfo.supportsGyroscope)
                 Input.gyro.enabled = true;
         }
@@ -199,15 +296,8 @@ namespace NX10
         // Start is called once before the first execution of Update after the MonoBehaviour is created
         void Start()
         {
-            deviceName = SystemInfo.deviceName;
-            deviceModel = SystemInfo.deviceModel;
-            deviceOsVersion = SystemInfo.operatingSystem;
-            deviceId = SystemInfo.deviceUniqueIdentifier;
-            appVersion = UnityEngine.Application.version;
-            buildId = UnityEngine.Application.buildGUID;
+            
             // nX10ApiKey = "rgS8CPbEHNaztIOoozy41IhoKIUH7FP2EVxDFoM0";
-
-            StartSession();
         }
 
         // Update is called once per frame
@@ -216,21 +306,84 @@ namespace NX10
             UpdateTelemetryCollection();
         }
 
-        public void UpdateNX10MetaData(string metaDataKey, string metaDataValue)
+        public void UpdateNX10MetaData(Dictionary<string, object> metaData)
         {
-            if(currentGameMetaData.ContainsKey(metaDataKey))
+            var changedValues = new Dictionary<string, object>();
+
+            foreach (var kvp in metaData)
             {
-                currentGameMetaData[metaDataKey] = metaDataValue;
+                if (!currentGameMetaData.TryGetValue(kvp.Key, out var existingValue))
+                {
+                    currentGameMetaData[kvp.Key] = kvp.Value;
+                    changedValues[kvp.Key] = kvp.Value;
+                }
+                else if (!Equals(existingValue, kvp.Value))
+                {
+                    currentGameMetaData[kvp.Key] = kvp.Value;
+                    changedValues[kvp.Key] = kvp.Value;
+                }
             }
-            else
+
+            if(changedValues.Count > 0)
             {
-                currentGameMetaData.Add(metaDataKey, metaDataValue);
+                SendAttributes(changedValues);
             }
+        }
+
+        private void SendAttributes(Dictionary<string, object> newAttributes)
+        {
+            string attributesEndPoint = currentSession.GetEndpoint("attributes", "v1");
+            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            AttributesPayload attributesPayload = new AttributesPayload()
+            {
+                timeStamp = timestamp,
+                data = newAttributes
+            };
+
+            string attributeJson = JsonConvert.SerializeObject(attributesPayload);
+            Debug.Log(attributeJson);
+            StartCoroutine(PostRequest(attributesEndPoint, attributeJson, (success, message) =>
+            {
+                if (success)
+                {
+                    Debug.Log("Attribute Success");
+                }
+                else
+                {
+
+                }
+            }));
         }
 
         public void SetTelemetryCollection(bool canCollect)
         {
             canCollectTelemetryData = canCollect;
+
+            if(canCollect)
+            {
+                StartTelemetryCollectionWindow();
+            }
+            else
+            {
+                EndTelemetryCollectionWindow();
+            }
+        }
+
+        private void StartTelemetryCollectionWindow()
+        {
+            telemetryWindowStartTimestamp = DateTime.UtcNow;
+        }
+
+        private void EndTelemetryCollectionWindow()
+        {
+            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            long timestampLong = (long)DateTime.UtcNow.Subtract(DateTime.UnixEpoch).TotalMilliseconds;
+            SendTelemetryData(telemetryWindowStartTimestampISO, timestampLong, timestamp);
+
+            touchEvents.Clear();
+            gyroData.Clear();
+            accelerometerData.Clear();
+            inputEvents.Clear();
         }
 
         private void UpdateTelemetryCollection()
@@ -246,71 +399,110 @@ namespace NX10
 
             if (timer > apiIntervalSeconds)
             {
-                SendTelemetryData(timestamp, timestampLong);
-
-                touchEvents.Clear();
-                gyroData.Clear();
-                accelerometerData.Clear();
+                EndTelemetryCollectionWindow();
+                StartTelemetryCollectionWindow();
             }
         }
 
         private void CollectTelemetryData(string timestamp, long timestampLong)
         {
-            GyroDataPacket gyro = new GyroDataPacket();
-            gyro.x = Input.gyro.rotationRate.x;
-            gyro.y = Input.gyro.rotationRate.y;
-            gyro.z = Input.gyro.rotationRate.z;
-            gyro.timestamp = timestampLong;
-            gyroData.Add(gyro);
+            if(SystemInfo.supportsGyroscope)
+            {
+                GyroDataPacket gyro = new GyroDataPacket();
+                gyro.x = Input.gyro.rotationRate.x;
+                gyro.y = Input.gyro.rotationRate.y;
+                gyro.z = Input.gyro.rotationRate.z;
+                gyro.timestamp = timestampLong;
+                gyroData.Add(gyro);
 
-            NX10VectorSamplePacket nX10Gyro = new NX10VectorSamplePacket();
-            nX10Gyro.x = Input.gyro.rotationRate.x;
-            nX10Gyro.y = Input.gyro.rotationRate.y;
-            nX10Gyro.z = Input.gyro.rotationRate.z;
-            nX10Gyro.timestamp = timestamp;
-            nx10GyroData.Add(nX10Gyro);
+                NX10VectorSamplePacket nX10Gyro = new NX10VectorSamplePacket();
+                nX10Gyro.x = Input.gyro.rotationRate.x;
+                nX10Gyro.y = Input.gyro.rotationRate.y;
+                nX10Gyro.z = Input.gyro.rotationRate.z;
+                nX10Gyro.timestamp = timestamp;
+                nx10GyroData.Add(nX10Gyro);
 
-            AccelerometerDataPacket accel = new AccelerometerDataPacket();
-            accel.x = Input.gyro.userAcceleration.x;
-            accel.y = Input.gyro.userAcceleration.y;
-            accel.z = Input.gyro.userAcceleration.z;
-            accel.timestamp = timestampLong;
-            accelerometerData.Add(accel);
+                GyroEvent gyroEvent = new GyroEvent();
+                gyroEvent.timestampOffsetMs = Offset().TotalMilliseconds;
+                gyroEvent.x = Input.gyro.rotationRate.x;
+                gyroEvent.y = Input.gyro.rotationRate.y;
+                gyroEvent.z = Input.gyro.rotationRate.z;
+                inputEvents.Add(gyroEvent);
+            }
+            
+            if(SystemInfo.supportsAccelerometer)
+            {
+                AccelerometerDataPacket accel = new AccelerometerDataPacket();
+                accel.x = Input.gyro.userAcceleration.x;
+                accel.y = Input.gyro.userAcceleration.y;
+                accel.z = Input.gyro.userAcceleration.z;
+                accel.timestamp = timestampLong;
+                accelerometerData.Add(accel);
 
-            NX10VectorSamplePacket nx10Accel = new NX10VectorSamplePacket();
-            nx10Accel.x = Input.gyro.userAcceleration.x;
-            nx10Accel.y = Input.gyro.userAcceleration.y;
-            nx10Accel.z = Input.gyro.userAcceleration.z;
-            nx10Accel.timestamp = timestamp;
-            nx10AccelerometerData.Add(nx10Accel);
+                NX10VectorSamplePacket nx10Accel = new NX10VectorSamplePacket();
+                nx10Accel.x = Input.gyro.userAcceleration.x;
+                nx10Accel.y = Input.gyro.userAcceleration.y;
+                nx10Accel.z = Input.gyro.userAcceleration.z;
+                nx10Accel.timestamp = timestamp;
+                nx10AccelerometerData.Add(nx10Accel);
 
+                AccelerometerEvent accelEvent = new AccelerometerEvent();
+                accelEvent.timestampOffsetMs = Offset().TotalMilliseconds;
+                accelEvent.x = Input.gyro.userAcceleration.x;
+                accelEvent.y = Input.gyro.userAcceleration.y;
+                accelEvent.z = Input.gyro.userAcceleration.z;
+                inputEvents.Add(accelEvent);
+            }
+            
             foreach (var touch in Input.touches)
             {
                 TouchEvent mTouch = new TouchEvent();
                 mTouch.x = touch.position.x;
                 mTouch.y = touch.position.y;
-                mTouch.velocityX = touch.deltaPosition.x / Time.deltaTime;
-                mTouch.velocityY = touch.deltaPosition.y / Time.deltaTime;
+                mTouch.velocityX = touch.deltaPosition.x / Time.unscaledDeltaTime;
+                mTouch.velocityY = touch.deltaPosition.y / Time.unscaledDeltaTime;
                 mTouch.timestamp = timestampLong;
                 touchEvents.Add(mTouch);
 
                 Nx10TouchEvent nx10Touch = new Nx10TouchEvent();
                 nx10Touch.x = touch.position.x;
                 nx10Touch.y = touch.position.y;
-                nx10Touch.velocityX = touch.deltaPosition.x / Time.deltaTime;
-                nx10Touch.velocityY = touch.deltaPosition.y / Time.deltaTime;
+                nx10Touch.velocityX = touch.deltaPosition.x / Time.unscaledDeltaTime;
+                nx10Touch.velocityY = touch.deltaPosition.y / Time.unscaledDeltaTime;
                 nx10Touch.timestamp = timestamp;
                 nx10TouchEvents.Add(nx10Touch);
+
+                TouchInputEvent touchInputEvent = new TouchInputEvent();
+                touchInputEvent.timestampOffsetMs = Offset().TotalMilliseconds;
+                touchInputEvent.x = touch.position.x;
+                touchInputEvent.y = touch.position.y;
+                touchInputEvent.velocityX = touch.deltaPosition.x / Time.unscaledDeltaTime;
+                touchInputEvent.velocityY = touch.deltaPosition.y / Time.unscaledDeltaTime;
+                inputEvents.Add(touchInputEvent);
             }
         }
 
-        private void SendTelemetryData(string timestamp, long timestampLong)
+        private void SendTelemetryData(string windowStartTimestamp, long currentTimestampLong, string currentTimeStamp)
         {
             // According to the docs, subtracting the time as below is more reliable than resetting to 0 across longer stretches of time.
+            string deviceNameOverride = deviceName;
+            if(LevelManager.Instance.CurrentLevel == -1)
+            {
+                deviceNameOverride = "practice_lvl";
+            }
+            else
+            {
+                deviceNameOverride = "lvl" + (LevelManager.Instance.CurrentLevel + 1);
+                if(LevelManager.Instance.isFromLevelSelect)
+                {
+                    deviceNameOverride += "_ls";
+                }
+            }
+
             timer = timer - apiIntervalSeconds;
             DataPacket apiData = new DataPacket()
             {
-                deviceName = deviceName,
+                deviceName = deviceNameOverride,
                 deviceToken = deviceId,
                 appVersion = appVersion,
                 appBuild = buildId,
@@ -319,7 +511,7 @@ namespace NX10
                 gyro = gyroData.ToArray(),
                 touch = touchEvents.ToArray(),
                 accelerometer = accelerometerData.ToArray(),
-                timestamp = timestampLong,
+                timestamp = currentTimestampLong,
                 deviceType = new DeviceType()
                 {
                     appVersion = appVersion,
@@ -332,7 +524,6 @@ namespace NX10
             };
 
             string jsonData = JsonConvert.SerializeObject(apiData);
-            Debug.Log($"JSON DATA: {jsonData}");
 
             StartCoroutine(PostRequest("https://ui88h87fs3.execute-api.eu-west-2.amazonaws.com/prod/telemetry", jsonData, (success, message) =>
             {
@@ -346,10 +537,15 @@ namespace NX10
                 }
             }));
 
-            string telemetryEndPoint = currentSession.GetEndpoint("telemetry");
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            string telemetryV1EndPoint = currentSession.GetEndpoint("telemetry", "1");
             NX10TelemetryData telemetryData = new NX10TelemetryData()
             {
-                deviceSendTimestamp = timestamp,
+                deviceSendTimestamp = currentTimeStamp,
                 gyro = nx10GyroData.ToArray(),
                 acc = nx10AccelerometerData.ToArray(),
                 touch = nx10TouchEvents.ToArray(),
@@ -357,13 +553,30 @@ namespace NX10
             };
 
             string nx10jsonData = NX10CustomTelemetrySerializer.Serialize(telemetryData);
+            Debug.Log(nx10jsonData);
 
-            List<HeaderObject> headers = new List<HeaderObject>()
+            StartCoroutine(NX10PostRequest(telemetryV1EndPoint, nx10jsonData, (success, message) =>
             {
-                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+                if (success)
+                {
+
+                }
+                else
+                {
+
+                }
+            }, headers));
+
+            string telemetryV2EndPoint = currentSession.GetEndpoint("telemetry", "v2");
+            NX10TelemetryPayload telemetryPayload = new NX10TelemetryPayload()
+            {
+                bts = windowStartTimestamp,
+                ets = Offset().TotalMilliseconds,
+                d = inputEvents.Select(e => e.ToArray()).ToArray(),
             };
 
-            StartCoroutine(NX10PostRequest(telemetryEndPoint, nx10jsonData, (success, message) =>
+            string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
+            StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payloadJson, (success, message) =>
             {
                 if (success)
                 {
@@ -412,6 +625,7 @@ namespace NX10
         {
             public DeviceInfo device;
             public string sdkVersion;
+            public string sdkType;
         }
 
         [Serializable]
@@ -435,7 +649,6 @@ namespace NX10
         [Serializable]
         public class SessionStartResponse
         {
-            public string status;
             public SessionStartData data;
         }
 
@@ -458,7 +671,9 @@ namespace NX10
 
         private string GetOSName()
         {
-#if UNITY_IOS
+#if UNITY_EDITOR
+            return "Editor";
+#elif UNITY_IOS
         return "iOS";
 #elif UNITY_ANDROID
             return "Android";
@@ -467,8 +682,20 @@ namespace NX10
 #endif
         }
 
-        public void StartSession()
+        private void SetupData()
         {
+            deviceName = SystemInfo.deviceName;
+            deviceModel = SystemInfo.deviceModel;
+            deviceOsVersion = SystemInfo.operatingSystem;
+            deviceId = SystemInfo.deviceUniqueIdentifier;
+            appVersion = UnityEngine.Application.version;
+            buildId = UnityEngine.Application.buildGUID;
+        }
+
+        public void StartSession(Action<bool> sessionStartSuccess)
+        {
+            SetupData();
+
             currentSession = new NX10SDKSession();
             string apiKey = nX10ApiKey;
 
@@ -479,7 +706,7 @@ namespace NX10
 
             DeviceInfo deviceInfo = new DeviceInfo
             {
-                type = "mobile",
+                type = SystemInfo.deviceType.ToString(),
                 os = GetOSName(),
                 osVersion = SystemInfo.operatingSystem,
                 deviceVersion = SystemInfo.deviceModel,
@@ -489,7 +716,8 @@ namespace NX10
             SDKData sdkData = new SDKData
             {
                 device = deviceInfo,
-                sdkVersion = "1.0.0"
+                sdkVersion = "1.0.0",
+                sdkType = "unity"
             };
 
             AppProvidedData appProvided = new AppProvidedData
@@ -509,13 +737,18 @@ namespace NX10
 
             string startSessionJson = NX10CustomStartSessionSerializer.Serialize(sessionStartPacket);
 
+            Debug.Log(startSessionJson);
+
             StartCoroutine(NX10PostRequest("https://control-plane.affectstack-stage.com/routes/sessions/start", startSessionJson, (success, message) =>
             {
-                if(success)
-                    HandleSessionStartSuccess(message);
-            }));
+                if (success)
+                {
 
-            Debug.Log(startSessionJson);
+                    HandleSessionStartSuccess(message);
+                }
+
+                sessionStartSuccess?.Invoke(success);
+            }));
         }
 
         public void HandleSessionStartSuccess(string sessionStartJson)
@@ -525,12 +758,6 @@ namespace NX10
             if (response == null)
             {
                 Debug.LogError("SessionInitResponse deserialized to null.");
-                return;
-            }
-
-            if (response.status != "success")
-            {
-                Debug.LogError($"Session failed with status: {response.status}");
                 return;
             }
 
@@ -544,6 +771,11 @@ namespace NX10
 
             Debug.Log("Session initialized successfully.");
             Debug.Log("Token: " + currentSession.Token);
+
+            foreach(EndpointInfo endpointInfo in currentSession.Endpoints)
+            {
+                Debug.Log("EndPoint: " + endpointInfo.type + ", version: " + endpointInfo.version);
+            }
         }
 
         IEnumerator GetRequest(string uri)
@@ -620,10 +852,10 @@ namespace NX10
 
         public IEnumerator PostRequest(string uri, string jsonBody, System.Action<bool, string> onComplete = null, string apiKey = null)
         {
-/*#if UNITY_EDITOR
+#if UNITY_EDITOR
             onComplete?.Invoke(true, "");
             yield break;
-#endif*/
+#endif
 
             if (string.IsNullOrEmpty(jsonBody))
             {
@@ -739,7 +971,7 @@ namespace NX10
             onComplete?.Invoke(success, responseMessage);
         }
 
-        public void SendSaaqPrompt(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor)
+        public void SendSaaqPrompt(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)
         {
             long timestampLong = (long)DateTime.UtcNow.Subtract(DateTime.UnixEpoch).TotalMilliseconds;
             SAAQResponse _saaq = new SAAQResponse()
@@ -777,10 +1009,12 @@ namespace NX10
             StartCoroutine(PostRequest("https://ui88h87fs3.execute-api.eu-west-2.amazonaws.com/prod/telemetry", jsonData));
 
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            string saaqEndpoint = currentSession.GetEndpoint("saaq");
+            string saaqEndpoint = currentSession.GetEndpoint("saaq", "v1");
             NX10SAAQResponse saaqResponse = new NX10SAAQResponse()
             {
                 deviceSendTimestamp = timeStamp,
+                promptDisplayTimestamp = promptDisplayTimestamp,
+                promptAnswerTimestamp = prompAnswerTimestamp,
                 feeling = feeling,
                 saaqType = feelingModalType,
                 feelingContext = feelingContext,
@@ -789,7 +1023,6 @@ namespace NX10
             };
 
             string nx10jsonData = NX10CustomSAAQSerializer.Serialize(saaqResponse);
-            Debug.Log($"JSON DATA: {jsonData}");
 
             List<HeaderObject> headers = new List<HeaderObject>()
             {

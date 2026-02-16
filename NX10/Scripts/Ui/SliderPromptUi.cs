@@ -11,6 +11,13 @@ namespace NX10
 
         private FeelingType currentFeelingType;
 
+        public override void OnOpen()
+        {
+            base.OnOpen();
+
+
+        }
+
         public void OnSliderChange(Slider slider)
         {
             switch (slider.value)

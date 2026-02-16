@@ -25,7 +25,7 @@ namespace NX10
                 if (!first)
                     sb.Append(",");
 
-                sb.Append($"\"{Escape(kvp.Key)}\":\"{Escape(kvp.Value)}\"");
+                sb.Append($"\"{Escape(kvp.Key)}\":\"{Escape(kvp.Value.ToString())}\"");
                 first = false;
             }
 

@@ -17,9 +17,9 @@ namespace NX10
             _endpoints = data.endpoints ?? new List<NX10BackendManager.EndpointInfo>();
         }
 
-        public string GetEndpoint(string type)
+        public string GetEndpoint(string type, string version)
         {
-            return _endpoints.FirstOrDefault(e => e.type == type)?.location;
+            return _endpoints.FindAll(e => e.type == type)?.FirstOrDefault(e => e.version == version)?.location;
         }
 
         public void Clear()

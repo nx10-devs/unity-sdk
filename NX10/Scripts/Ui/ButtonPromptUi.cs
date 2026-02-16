@@ -35,7 +35,7 @@ namespace NX10
 
             foreach (FeelingButton feelingButton in feelingButtons)
             {
-                feelingButton.button.gameObject.SetActive(_manager.currentFeelingTypeToShow.Contains(feelingButton.FeelingType));
+                feelingButton.button.gameObject.SetActive(_manager.currentFeelingTypesToShow.Contains(feelingButton.FeelingType));
             }
         }
 

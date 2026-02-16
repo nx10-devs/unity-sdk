@@ -10,19 +10,19 @@ namespace NX10
         public class Entry
         {
             public string key;
-            public string value;
+            public object value;
         }
 
         public List<Entry> entries = new List<Entry>();
 
         public NX10SerializableDictionary() { }
 
-        public NX10SerializableDictionary(Dictionary<string, string> dictionary)
+        public NX10SerializableDictionary(Dictionary<string, object> dictionary)
         {
             FromDictionary(dictionary);
         }
 
-        public void FromDictionary(Dictionary<string, string> dictionary)
+        public void FromDictionary(Dictionary<string, object> dictionary)
         {
             entries.Clear();
 
@@ -39,9 +39,9 @@ namespace NX10
             }
         }
 
-        public Dictionary<string, string> ToDictionary()
+        public Dictionary<string, object> ToDictionary()
         {
-            var dict = new Dictionary<string, string>();
+            var dict = new Dictionary<string, object>();
 
             foreach (var entry in entries)
             {

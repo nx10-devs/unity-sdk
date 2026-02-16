@@ -13,6 +13,8 @@ namespace NX10
         [SerializeField] private List<FeelingWithSprite> feelingWithSprites;
         public Dictionary<FeelingType, Sprite> feelingSpriteDict = new Dictionary<FeelingType, Sprite>();
 
+        public bool Initialised { get; private set; }
+
         protected override void Awake()
         {
             base.Awake();
@@ -24,6 +26,14 @@ namespace NX10
             {
                 feelingSpriteDict.Add(feelingWithSprite.Type, feelingWithSprite.sprite);
             }
+        }
+
+        public void StartSession()
+        {
+            backendManager.StartSession((sessionStartSuccess) =>
+            {
+                Initialised = true;
+            });
         }
 
         public Sprite GetSprite(FeelingType feelingType)
@@ -39,9 +49,9 @@ namespace NX10
             promptManager.ForceClosePrompt();
         }
 
-        public void UpdateNX10MetaData(string metaDataKey, string metaDataValue)
+        public void UpdateNX10MetaData(Dictionary<string, object> metaData)
         {
-            backendManager.UpdateNX10MetaData(metaDataKey, metaDataValue);
+            backendManager.UpdateNX10MetaData(metaData);
         }
 
         public void SetTelemetryCollection(bool canCollect)
@@ -54,9 +64,9 @@ namespace NX10
             backendManager.SetOverrideDeviceId(overrideDeviceId);
         }
 
-        public void ShowSlider(string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        public void ShowSlider(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
-            promptManager.ShowSlider(feelingContext, feelingFor, completeAction);
+            promptManager.ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);
         }
 
         public void ShowButton(FeelingType[] typeToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
@@ -64,9 +74,9 @@ namespace NX10
             promptManager.ShowButton(typeToShow, feelingContext, feelingFor, completeAction);
         }
 
-        public bool ShowSliderTimerDependant(string timerKey, int duration, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        public bool ShowSliderTimerDependant(FeelingType[] typesToShow, string timerKey, int duration, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
-            return promptManager.ShowSliderTimerDependant(timerKey, duration, feelingContext, feelingFor, completeAction);
+            return promptManager.ShowSliderTimerDependant(typesToShow, timerKey, duration, feelingContext, feelingFor, completeAction);
         }
 
         public float GetRemainingCooldownTimeMinutes(string timerKey)
@@ -89,9 +99,9 @@ namespace NX10
             backendManager.OnGameEnd(win);
         }
 
-        public void SendSaaqPromptData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor)
+        public void SendSaaqPromptData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
         {
-            backendManager.SendSaaqPrompt(feeling, ranking, feelingModalType, feelingContext, feelingFor);
+            backendManager.SendSaaqPrompt(feeling, ranking, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
         }
     }
 }
