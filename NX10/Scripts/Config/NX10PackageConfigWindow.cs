@@ -56,8 +56,8 @@ namespace NX10
         }
         void Apply()
         {
-            ApplyToPrefab("Assets/NX10/Prefabs/prefab_sliderPrompt.prefab");
-            ApplyToPrefab("Assets/NX10/Prefabs/prefab_TwoButtonPrompt.prefab");
+            ApplyToPrefab("Packages/com.nx10.sdk/NX10/Prefabs/prefab_SliderPrompt.prefab");
+            ApplyToPrefab("Packages/com.nx10.sdk/NX10/Prefabs/prefab_TwoButtonPrompt.prefab");
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

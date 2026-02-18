@@ -12,7 +12,7 @@ namespace NX10
     public enum FeelingType
     {
         VeryFrustrated = 0,
-        Frustated = 1,
+        Frustrated = 1,
         Neutral = 2,
         Enjoyment = 3,
         Ecstatic = 4
@@ -63,13 +63,6 @@ namespace NX10
         public void ShowPrompt(PromptType type, string feelingModalType, string feelingContext, string feelingFor, Action<FeelingType> promptCompleteAction)
         {
             promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-            if (ExperimentManager.Instance.experiment == ExperimentManager.Experiment.ExperimentA)
-            {
-                promptCompleteAction.Invoke(FeelingType.Neutral);
-                return;
-            }
-
 
             this.feelingModalType = feelingModalType;
             this.feelingContext = feelingContext;

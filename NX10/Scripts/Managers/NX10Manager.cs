@@ -64,6 +64,19 @@ namespace NX10
             backendManager.SetOverrideDeviceId(overrideDeviceId);
         }
 
+        public void ShowPrompt(PromptType promptType, FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        {
+            switch(promptType)
+            {
+                case PromptType.Slider:
+                    ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);
+                    break;
+                    case PromptType.Button:
+                    ShowButton(typesToShow, feelingContext, feelingFor, completeAction);
+                    break;
+            }
+        }
+
         public void ShowSlider(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
             promptManager.ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);

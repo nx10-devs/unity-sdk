@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.Networking;
 //using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 //using TouchPhase = UnityEngine.InputSystem.TouchPhase;
@@ -232,7 +231,7 @@ namespace NX10
             public string saaqType;
             public string feelingContext;
             public string feelingFor;
-            public NX10SerializableDictionary metaData;
+            public Dictionary<string, object> metaData = new Dictionary<string, object>();
         }
 
         [Serializable] 
@@ -287,8 +286,6 @@ namespace NX10
 
         private void Awake()
         {
-            EnhancedTouchSupport.Enable();
-
             if(SystemInfo.supportsGyroscope)
                 Input.gyro.enabled = true;
         }
@@ -484,25 +481,11 @@ namespace NX10
 
         private void SendTelemetryData(string windowStartTimestamp, long currentTimestampLong, string currentTimeStamp)
         {
-            // According to the docs, subtracting the time as below is more reliable than resetting to 0 across longer stretches of time.
-            string deviceNameOverride = deviceName;
-            if(LevelManager.Instance.CurrentLevel == -1)
-            {
-                deviceNameOverride = "practice_lvl";
-            }
-            else
-            {
-                deviceNameOverride = "lvl" + (LevelManager.Instance.CurrentLevel + 1);
-                if(LevelManager.Instance.isFromLevelSelect)
-                {
-                    deviceNameOverride += "_ls";
-                }
-            }
-
+          
             timer = timer - apiIntervalSeconds;
             DataPacket apiData = new DataPacket()
             {
-                deviceName = deviceNameOverride,
+                deviceName = deviceName,
                 deviceToken = deviceId,
                 appVersion = appVersion,
                 appBuild = buildId,
@@ -1019,11 +1002,11 @@ namespace NX10
                 saaqType = feelingModalType,
                 feelingContext = feelingContext,
                 feelingFor = feelingFor,
-                metaData = new NX10SerializableDictionary(currentGameMetaData)
+                metaData = new Dictionary<string, object>(currentGameMetaData)
             };
 
-            string nx10jsonData = NX10CustomSAAQSerializer.Serialize(saaqResponse);
-
+            string nx10jsonData = JsonConvert.SerializeObject(saaqResponse);
+            Debug.Log(nx10jsonData);
             List<HeaderObject> headers = new List<HeaderObject>()
             {
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)

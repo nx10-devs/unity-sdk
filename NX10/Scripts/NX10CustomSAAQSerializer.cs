@@ -9,12 +9,12 @@ namespace NX10
         {
             string json = JsonUtility.ToJson(request);
 
-            if (request.metaData == null || request.metaData.IsEmpty())
+            if (request.metaData == null)
             {
                 return ReplaceMetaData(json, "{}");
             }
 
-            var dict = request.metaData.ToDictionary();
+            var dict = request.metaData;
             var sb = new StringBuilder();
             sb.Append("{");
 
@@ -24,7 +24,7 @@ namespace NX10
                 if (!first)
                     sb.Append(",");
 
-                sb.Append($"\"{Escape(kvp.Key)}\":\"{Escape(kvp.Value.ToString())}\"");
+                sb.Append($"\"{Escape(kvp.Key.ToString())}\":\"{Escape(kvp.Value.ToString())}\"");
                 first = false;
             }
 
