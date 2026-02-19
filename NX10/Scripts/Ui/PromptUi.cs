@@ -16,11 +16,6 @@ namespace NX10
             }
         }
 
-        public void ForceClose()
-        {
-            Submit(FeelingType.Neutral);
-        }
-
         public virtual void OnOpen()
         {
             gameObject.SetActive(true);

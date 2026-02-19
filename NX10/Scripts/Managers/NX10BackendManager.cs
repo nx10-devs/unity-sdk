@@ -130,12 +130,6 @@ namespace NX10
         private Dictionary<string, object> currentGameMetaData = new Dictionary<string, object>();
         private NX10SDKSession currentSession;
 
-        private void Awake()
-        {
-            if(SystemInfo.supportsGyroscope)
-                Input.gyro.enabled = true;
-        }
-
         public void UpdateNX10MetaData(Dictionary<string, object> metaData)
         {
             var changedValues = new Dictionary<string, object>();
@@ -178,10 +172,6 @@ namespace NX10
                 {
                     Debug.Log("Attribute Success");
                 }
-                else
-                {
-
-                }
             }));
         }
 
@@ -201,17 +191,9 @@ namespace NX10
             };
 
             string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
-            Debug.Log(payloadJson);
             StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payloadJson, (success, message) =>
             {
-                if (success)
-                {
-
-                }
-                else
-                {
-
-                }
+                
             }, headers));
         }
 

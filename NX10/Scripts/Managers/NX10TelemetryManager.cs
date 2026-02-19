@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace NX10
 {
@@ -12,7 +11,13 @@ namespace NX10
         public float apiIntervalSeconds;
         private float timer = 0.0f;
 
-        void Update()
+        private void Awake()
+        {
+            if (SystemInfo.supportsGyroscope)
+                Input.gyro.enabled = true;
+        }
+
+        private void Update()
         {
             UpdateTelemetryCollection();
         }
@@ -23,18 +28,15 @@ namespace NX10
                 return;
 
             timer += Time.deltaTime;
-            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-            CollectTelemetryData(timestamp);
+            CollectTelemetryData();
 
             if (timer > apiIntervalSeconds)
             {
-                EndTelemetryCollectionWindow();
                 StartTelemetryCollectionWindow();
             }
         }
 
-        private void CollectTelemetryData(string timestamp)
+        private void CollectTelemetryData()
         {
             if (SystemInfo.supportsGyroscope)
             {
@@ -84,6 +86,11 @@ namespace NX10
 
         private void StartTelemetryCollectionWindow()
         {
+            if(currentCollectionWindow != null)
+            {
+                EndTelemetryCollectionWindow();
+            }
+
             currentCollectionWindow = new NX10TelemetryWindow()
             {
                 startTimestamp = DateTime.UtcNow,
@@ -93,10 +100,15 @@ namespace NX10
 
         private void EndTelemetryCollectionWindow()
         {
-            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            if (currentCollectionWindow == null)
+            {
+                Debug.LogError("Trying to end a collection window that hasnt been started");
+                return;
+            }
+
             SendTelemetryData(currentCollectionWindow.startTimestampISO);
 
-            currentCollectionWindow.EndWindow();
+            currentCollectionWindow.Dispose();
             currentCollectionWindow = null;
 
             timer = timer - apiIntervalSeconds;

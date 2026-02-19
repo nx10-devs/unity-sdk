@@ -48,9 +48,9 @@ namespace NX10
 
         public void ForceClosePrompt()
         {
-            if ((currentPrompt))
+            if (currentPrompt)
             {
-                currentPrompt.ForceClose();
+                currentPrompt.OnClose();
             }
         }
 

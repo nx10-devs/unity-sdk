@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class NX10TelemetryWindow
+public class NX10TelemetryWindow : IDisposable
 {
     public DateTime startTimestamp;
     public string startTimestampISO => startTimestamp.ToString(("yyyy-MM-ddTHH:mm:ss.fffZ"));
@@ -15,7 +15,12 @@ public class NX10TelemetryWindow
         return DateTime.UtcNow - startTimestamp;
     }
 
-    public void EndWindow()
+    public void Dispose()
+    {
+        EndWindow();
+    }
+
+    private void EndWindow()
     {
         inputEvents.Clear();
     }
