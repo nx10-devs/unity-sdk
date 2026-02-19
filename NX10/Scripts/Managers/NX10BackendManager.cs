@@ -51,7 +51,7 @@ namespace NX10
         [Serializable]
         public class AttributesPayload
         {
-            public string timeStamp;
+            public string timestamp;
             public Dictionary<string, object> data;
         }
         #endregion
@@ -156,11 +156,16 @@ namespace NX10
 
         private void SendAttributes(Dictionary<string, object> newAttributes)
         {
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
             string attributesEndPoint = currentSession.GetEndpoint("attributes", "v1");
             string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             AttributesPayload attributesPayload = new AttributesPayload()
             {
-                timeStamp = timestamp,
+                timestamp = timestamp,
                 data = newAttributes
             };
 
@@ -172,7 +177,7 @@ namespace NX10
                 {
                     Debug.Log("Attribute Success");
                 }
-            }));
+            }, headers));
         }
 
         public void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)

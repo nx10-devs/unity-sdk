@@ -79,12 +79,12 @@ namespace NX10
             }
         }
 
-        public void ShowSlider(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        private void ShowSlider(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
             promptManager.ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);
         }
 
-        public void ShowButton(FeelingType[] typeToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        private void ShowButton(FeelingType[] typeToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
         {
             promptManager.ShowButton(typeToShow, feelingContext, feelingFor, completeAction);
         }
