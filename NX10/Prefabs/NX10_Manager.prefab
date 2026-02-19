@@ -82,17 +82,51 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NX10Manager
   nX10ApiKey: sk_test_Q6vOnYuCYRlG2O4sM07naUoOWCypv2SdHAjBaFoVa0UsrqcG73t_W7mgucXPG7ioV5G4sFVWQ31IRxf3z8fmAw
+--- !u!1 &4717045626657959527
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6618393820989119034}
+  - component: {fileID: 4050984657845231266}
+  m_Layer: 0
+  m_Name: NX10TelemetryManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6618393820989119034
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4717045626657959527}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3270453275827457883}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4050984657845231266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4717045626657959527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffaf05a8a9370e7478321a59974054f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NX10::NX10.NX10TelemetryManager
   apiIntervalSeconds: 10
-  partner: nx10
-  source: Match-3
-  telemetryApiKey: 
-  telemetryEndpointOverride: 
-  touchEvents: []
-  gyroData: []
-  accelerometerData: []
-  nx10TouchEvents: []
-  nx10GyroData: []
-  nx10AccelerometerData: []
 --- !u!1 &5289940703915008594
 GameObject:
   m_ObjectHideFlags: 0
@@ -245,6 +279,7 @@ Transform:
   m_Children:
   - {fileID: 474530832427710043}
   - {fileID: 1373705716446522769}
+  - {fileID: 6618393820989119034}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2118193475920352643

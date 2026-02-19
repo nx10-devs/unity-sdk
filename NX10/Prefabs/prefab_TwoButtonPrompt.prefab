@@ -512,7 +512,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Frustration '
+  m_text: Very Frustrated
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 615a0a6f0c64d48c0bf5b6fff88cacca, type: 2}
   m_sharedMaterial: {fileID: 21976591372562464, guid: 615a0a6f0c64d48c0bf5b6fff88cacca,
@@ -1357,7 +1357,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Enjoyment
+  m_text: Meh
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 615a0a6f0c64d48c0bf5b6fff88cacca, type: 2}
   m_sharedMaterial: {fileID: 21976591372562464, guid: 615a0a6f0c64d48c0bf5b6fff88cacca,
@@ -1494,7 +1494,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Enjoyment
+  m_text: Ecstatic
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 615a0a6f0c64d48c0bf5b6fff88cacca, type: 2}
   m_sharedMaterial: {fileID: 21976591372562464, guid: 615a0a6f0c64d48c0bf5b6fff88cacca,

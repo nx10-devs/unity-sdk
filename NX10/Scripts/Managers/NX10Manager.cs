@@ -9,6 +9,7 @@ namespace NX10
     {
         private NX10PromptManager promptManager;
         private NX10BackendManager backendManager;
+        private NX10TelemetryManager telemetryManager;
 
         [SerializeField] private List<FeelingWithSprite> feelingWithSprites;
         public Dictionary<FeelingType, Sprite> feelingSpriteDict = new Dictionary<FeelingType, Sprite>();
@@ -21,6 +22,7 @@ namespace NX10
 
             promptManager = GetComponentInChildren<NX10PromptManager>();
             backendManager = GetComponentInChildren<NX10BackendManager>();
+            telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
 
             foreach (FeelingWithSprite feelingWithSprite in feelingWithSprites)
             {
@@ -56,12 +58,12 @@ namespace NX10
 
         public void SetTelemetryCollection(bool canCollect)
         {
-            backendManager.SetTelemetryCollection(canCollect);
+            telemetryManager.SetTelemetryCollection(canCollect);
         }
 
-        public void SetDeviceIdOverride(string overrideDeviceId)
+        public void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
-            backendManager.SetOverrideDeviceId(overrideDeviceId);
+            backendManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
         }
 
         public void ShowPrompt(PromptType promptType, FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
@@ -95,21 +97,6 @@ namespace NX10
         public float GetRemainingCooldownTimeMinutes(string timerKey)
         {
             return promptManager.GetRemainingCooldownTimeMinutes(timerKey);
-        }
-
-        public void SendSessionDataToApi(string sessionDataJson, string reason)
-        {
-            backendManager.SendSessionDataToAPI(sessionDataJson, reason);
-        }
-
-        public void OnGameStart()
-        {
-            backendManager.OnGameStart();
-        }
-
-        public void OnGameEnd(bool win)
-        {
-            backendManager.OnGameEnd(win);
         }
 
         public void SendSaaqPromptData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
