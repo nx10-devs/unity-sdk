@@ -66,3 +66,21 @@
     height: 48px;
     margin-right: 12px;
 }
+
+/* .preview-container {
+    background-color: #1f222a;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.preview-container Label {
+    color: white;
+}
+
+.preview-container Button {
+    background-color: #3a7afe;
+    color: white;
+    border-radius: 4px;
+    height: 24px;
+    width: 80px;
+} */

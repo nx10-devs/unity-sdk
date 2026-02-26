@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="Background" class="card" style="height: 450px; background-image: none; width: 350px; top: 0; left: 0; right: 0; bottom: 0;">
+        
+        <!-- TMP Title -->
+        <ui:IMGUIContainer name="TitleTMP" style="position: absolute; width: 343px; top: 84px; left: 3px;" />
+        
+        <!-- TMP Question -->
+        <ui:IMGUIContainer name="QuestionTMP" style="position: absolute; width: 341px; top: 111px; left: 0px;" />
+        
+        <!-- TMP Emoji -->
+        <ui:IMGUIContainer name="EmojiTMP" style="position: absolute; width: 342px; height: 52px; top: 155px; left: 0px;" />
+        
+        <ui:VisualElement name="SliderRow" class="slider-row">
+            <ui:Slider name="FeelingSlider" low-value="0" high-value="2" value="1" class="slider" style="position: absolute; width: 311px; top: 199px; left: 15px; right: 15px;" />
+            <!-- TMP Slider Label -->
+            <ui:IMGUIContainer name="SliderLabelTMP" style="position: absolute; width: 342px; top: 157px; left: 0px;" />
+        </ui:VisualElement>
+        
+        <ui:Button name="SubmitButton" text="Submit" class="submit-button" style="width: 108px; -unity-text-align: middle-center; align-self: center; position: absolute; top: 330px; left: auto;" />
+        
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,17 +1,35 @@
-﻿using UnityEditor;
-using UnityEditor.UIElements;
-using UnityEngine;
-using UnityEngine.UIElements;
+﻿using System.Security.Cryptography;
+using TMPro;
+using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.PackageManager.Requests;
+using UnityEditor.UIElements;
+using UnityEngine;
+using UnityEngine.TextCore.Text;
+using UnityEngine.UIElements;
 
 namespace NX10
 {
     public class NX10PackageConfigWindow : EditorWindow
     {
         private NX10PackageConfig config;
+        private NX10PackageConfig workingCopy;
+
         private TextField apiKeyField;
+        private ObjectField backgroundSpriteField;
+        private ObjectField fontField;
+
         private Label statusLabel;
+
+        GameObject previewInstance;
+        Camera previewCamera;
+        RenderTexture previewTexture;
+
+        TextMeshProUGUI titleText;
+        TextMeshProUGUI questionText;
+        TextMeshProUGUI feelingText;
+        TextMeshProUGUI submitText;
+        UnityEngine.UI.Image backgroundImage;
 
         [MenuItem("Window/NX10/Configuration")]
         public static void Open()
@@ -20,7 +38,7 @@ namespace NX10
             wnd.titleContent = new GUIContent("Config");
         }
 
-        static Texture2D LoadStaticIcon()
+        static Texture2D LoadLogo()
         {
             return AssetDatabase.LoadAssetAtPath<Texture2D>(
                 "Packages/com.nx10.sdk/NX10/Scripts/Config/Editor/nx10_logo.png");
@@ -37,6 +55,8 @@ namespace NX10
                 rootVisualElement.Add(new Label("Config not found in Resources folder."));
                 return;
             }
+
+            workingCopy = ScriptableObject.Instantiate(config);
 
             // Load USS
             var script = MonoScript.FromScriptableObject(this);
@@ -58,6 +78,7 @@ namespace NX10
             rootVisualElement.Add(CreateApiSection());
             rootVisualElement.Add(CreateAppearanceSection());
             rootVisualElement.Add(CreateApplyButton());
+            rootVisualElement.Add(CreateDiscardButton());
             rootVisualElement.Add(CreateFooter());
         }
 
@@ -70,7 +91,7 @@ namespace NX10
             row.AddToClassList("header-row");
 
             var logo = new Image();
-            logo.image = LoadStaticIcon();
+            logo.image = LoadLogo();
             logo.AddToClassList("header-logo");
 
             var textContainer = new VisualElement();
@@ -107,6 +128,11 @@ namespace NX10
             })
             { text = "Show / Hide" };
 
+            apiKeyField.RegisterValueChangedCallback(evt =>
+            {
+                workingCopy.apiKey = config.apiKey;
+            });
+
             var row = new VisualElement();
             row.AddToClassList("row");
             row.Add(apiKeyField);
@@ -123,44 +149,149 @@ namespace NX10
 
         VisualElement CreateAppearanceSection()
         {
-            var card = CreateCard("Appearance");
+            var card = CreateCard("Prompt Appearance");
 
-            var spriteField = new ObjectField("Prompt Background")
+            backgroundSpriteField = new ObjectField("Prompt Background")
             {
                 objectType = typeof(Sprite),
                 value = config.promptBackgroundSprite
             };
 
-            spriteField.RegisterValueChangedCallback(evt =>
-            {
-                config.promptBackgroundSprite = (Sprite)evt.newValue;
-                EditorUtility.SetDirty(config);
-            });
-
-            var fontField = new ObjectField("Prompt Font")
+            fontField = new ObjectField("Prompt Font")
             {
                 objectType = typeof(TMPro.TMP_FontAsset),
                 value = config.promptFont
             };
 
-            fontField.RegisterValueChangedCallback(evt =>
+            card.Add(backgroundSpriteField);
+            card.Add(fontField);
+
+            CreatePreview();
+
+            var previewBox = new VisualElement();
+            previewBox.style.borderTopWidth = 1;
+            previewBox.style.borderBottomWidth = 1;
+            previewBox.style.borderLeftWidth = 1;
+            previewBox.style.borderRightWidth = 1;
+            previewBox.style.borderTopColor = Color.gray;
+            previewBox.style.borderBottomColor = Color.gray;
+            previewBox.style.borderLeftColor = Color.gray;
+            previewBox.style.borderRightColor = Color.gray;
+            previewBox.style.paddingLeft = 4;
+            previewBox.style.paddingRight = 4;
+            previewBox.style.paddingTop = 12; 
+            previewBox.style.paddingBottom = 4;
+            previewBox.style.marginTop = 8;
+            previewBox.style.marginBottom = 8;
+            previewBox.style.flexDirection = FlexDirection.Column;
+            previewBox.style.position = Position.Relative;
+
+            var image = new Image();
+            image.style.width = 350;
+            image.style.height = 450;
+            image.image = previewTexture;
+
+            previewBox.Add(image);
+
+            var previewLabel = new Label("Preview");
+            previewLabel.style.position = Position.Absolute;
+            previewLabel.style.top = -8; 
+            previewLabel.style.left = 8;
+            previewLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            previewLabel.style.fontSize = 11;
+            previewLabel.style.backgroundColor = new StyleColor(new Color(0.1f, 0.1f, 0.1f, 1f));
+            previewLabel.style.paddingLeft = 4;
+            previewLabel.style.paddingRight = 4;
+
+            previewBox.Add(previewLabel);
+
+            card.Add(previewBox);
+
+            backgroundSpriteField.RegisterValueChangedCallback(evt =>
             {
-                config.promptFont = (TMPro.TMP_FontAsset)evt.newValue;
-                EditorUtility.SetDirty(config);
+                backgroundImage.sprite = workingCopy.promptBackgroundSprite = evt.newValue as Sprite;
+                RefreshPreview();
             });
 
-            card.Add(spriteField);
-            card.Add(fontField);
+            fontField.RegisterValueChangedCallback(evt =>
+            {
+                TMP_FontAsset fontAsset = workingCopy.promptFont = evt.newValue as TMP_FontAsset;
+                titleText.font = fontAsset;
+                questionText.font = fontAsset;
+                feelingText.font = fontAsset;
+                submitText.font = fontAsset;
+
+                RefreshPreview();
+            });
 
             return card;
         }
+
+        void ApplyConfigToPreview()
+        {
+            backgroundImage.sprite = workingCopy.promptBackgroundSprite;
+
+            titleText.font = workingCopy.promptFont;
+            questionText.font = workingCopy.promptFont;
+            feelingText.font = workingCopy.promptFont;
+            submitText.font = workingCopy.promptFont;
+        }
+
+        void RefreshPreview()
+        {
+            ApplyConfigToPreview();
+            previewCamera.Render();
+        }
+
+        void OnDisable()
+        {
+            if (previewInstance != null)
+                DestroyImmediate(previewInstance);
+
+            if (previewTexture != null)
+                previewTexture.Release();
+        }
+
+        void CreatePreview()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Packages/com.nx10.sdk/NX10/Prefabs/NX10PromptPreview.prefab");
+
+            previewInstance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            previewInstance.hideFlags = HideFlags.HideAndDontSave;
+
+            previewCamera = previewInstance.GetComponentInChildren<Camera>();
+
+            previewTexture = new RenderTexture(350, 450, 16);
+            previewCamera.targetTexture = previewTexture;
+            string sliderPathPrefix = "Canvas/prefab_SliderPrompt/Image";
+            titleText = previewInstance.transform.Find(sliderPathPrefix + "/Title")
+                .GetComponent<TextMeshProUGUI>();
+
+            questionText = previewInstance.transform.Find(sliderPathPrefix + "/PromptText")
+                .GetComponent<TextMeshProUGUI>();
+
+            feelingText = previewInstance.transform.Find(sliderPathPrefix + "/GameObject/EmotionText")
+                .GetComponent<TextMeshProUGUI>();
+
+            submitText = previewInstance.transform.Find(sliderPathPrefix + "/Submit/TextMeshPro Text")
+                .GetComponent<TextMeshProUGUI>();
+
+            backgroundImage = previewInstance.transform.Find(sliderPathPrefix)
+                .GetComponent<UnityEngine.UI.Image>();
+        }
+
 
         VisualElement CreateApplyButton()
         {
             var button = new Button(() =>
             {
-                config.apiKey = apiKeyField.value;
+                Undo.RecordObject(config, "NX10 Config Changes");
+
+                EditorUtility.CopySerialized(workingCopy, config);
                 EditorUtility.SetDirty(config);
+                AssetDatabase.SaveAssets();
+
                 Apply();
                 statusLabel.text = "✔ Configuration Applied";
             })
@@ -171,6 +302,34 @@ namespace NX10
             button.AddToClassList("primary-button");
 
             return button;
+        }
+
+        VisualElement CreateDiscardButton()
+        {
+            var discardButton = new Button(() =>
+            {
+                DiscardChanges();
+            })
+            {
+                text = "Discard"
+            };
+
+            return discardButton;
+        }
+
+        public override void DiscardChanges()
+        {
+            base.DiscardChanges();
+
+            EditorUtility.CopySerialized(config, workingCopy);
+            RebuildUIFromWorkingCopy();
+            RefreshPreview();
+        }
+
+        void RebuildUIFromWorkingCopy()
+        {
+            fontField.SetValueWithoutNotify(workingCopy.promptFont);
+            backgroundSpriteField.SetValueWithoutNotify(workingCopy.promptBackgroundSprite);
         }
 
         VisualElement CreateFooter()
