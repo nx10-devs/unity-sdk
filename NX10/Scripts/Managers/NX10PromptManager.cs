@@ -31,9 +31,10 @@ namespace NX10
         private string promptDisplayTimestamp = "";
         private string promptAnswerTimestamp = "";
 
-        private const string TOTAL_SAAQ_DONE = "TOTAL_SAAQ_DONE";
-
         public FeelingType[] currentFeelingTypesToShow { get; private set; }
+
+        public Action<string, int, string, string, string, string, string> sendSaaqDataRequest;
+
 
         private void Start()
         {
@@ -49,9 +50,8 @@ namespace NX10
         private void PromptUiController_onSAAQSubmitted(FeelingType feelingType)
         {
             promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            NX10Manager.Instance.SendSaaqPromptData(feelingType.ToString(), (int)feelingType, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
 
-            AddSaaqToTotalCount();
+            sendSaaqDataRequest?.Invoke(feelingType.ToString(), (int)feelingType, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
             promptCompleteAction.Invoke(feelingType);
         }
 
@@ -82,59 +82,6 @@ namespace NX10
         {
             currentFeelingTypesToShow = typesToShow;
             ShowPrompt(PromptType.Button, "modal1", feelingContext, feelingFor, completeAction);
-        }
-
-        public bool ShowSliderTimerDependant(FeelingType[] typesToShow, string timerKey, int duration, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
-        {
-            bool Show()
-            {
-                ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);
-                PlayerPrefs.SetString(timerKey, DateTime.Now.ToString());
-                PlayerPrefs.SetInt(timerKey + "_duration", duration);
-                return true;
-            }
-
-            string timeStamp = PlayerPrefs.GetString(timerKey, string.Empty);
-
-            if (timeStamp == string.Empty)
-            {
-                return Show();
-            }
-
-            DateTime lastClaimTime = DateTime.Parse(timeStamp);
-            TimeSpan timeElapsed = DateTime.Now - lastClaimTime;
-            if (timeElapsed.TotalSeconds >= duration)
-            {
-                return Show();
-            }
-
-            return false;
-        }
-
-        public float GetRemainingCooldownTimeMinutes(string timerKey)
-        {
-            string timeStamp = PlayerPrefs.GetString(timerKey, string.Empty);
-            DateTime lastClaimTime = DateTime.Parse(timeStamp);
-            TimeSpan timeElapsed = DateTime.Now - lastClaimTime;
-            int duration = PlayerPrefs.GetInt(timerKey + "_duration");
-
-            int timeRemaining = duration - (int)timeElapsed.TotalSeconds;
-
-            float remainingMinutes = Mathf.Ceil(((float)timeRemaining) / 60f);
-            return remainingMinutes;
-        }
-
-        public int GetTotalSaaqDone()
-        {
-            return PlayerPrefs.GetInt(TOTAL_SAAQ_DONE, 0);
-        }
-
-        public void AddSaaqToTotalCount()
-        {
-            int totalSaaqDone = PlayerPrefs.GetInt(TOTAL_SAAQ_DONE, 0);
-            int finalTotalSaaqDone = totalSaaqDone + 1;
-            PlayerPrefs.SetInt(TOTAL_SAAQ_DONE, finalTotalSaaqDone);
-            PlayerPrefs.Save();
         }
     }
 }

@@ -11,6 +11,8 @@ namespace NX10
         public float apiIntervalSeconds;
         private float timer = 0.0f;
 
+        public Action<string, double, List<IInputEvent>> sendTelemetryDataRequest;
+
         private void Awake()
         {
             if (SystemInfo.supportsGyroscope)
@@ -116,7 +118,7 @@ namespace NX10
 
         private void SendTelemetryData(string timestamp)
         {
-            NX10Manager.Instance.SendTelemetryData(timestamp, currentCollectionWindow.Offset().TotalMilliseconds, currentCollectionWindow.inputEvents);
+            sendTelemetryDataRequest?.Invoke(timestamp, currentCollectionWindow.Offset().TotalMilliseconds, currentCollectionWindow.inputEvents);
         }
     }
 }

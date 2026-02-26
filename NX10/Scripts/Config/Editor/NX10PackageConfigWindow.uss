@@ -1,0 +1,68 @@
+.header {
+    background-color: #1e2430;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.header-title {
+    font-size: 20px;
+    unity-font-style: bold;
+    color: white;
+}
+
+.header-subtitle {
+    font-size: 12px;
+    color: #9aa4b2;
+}
+
+.card {
+    background-color: #2a2f3a;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.card-title {
+    font-size: 13px;
+    unity-font-style: bold;
+    margin-bottom: 6px;
+    color: #cfd8e3;
+}
+
+.row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.primary-button {
+    height: 40px;
+    margin-top: 10px;
+    background-color: #3a7afe;
+    color: white;
+    unity-font-style: bold;
+}
+
+.footer {
+    margin-top: 10px;
+    font-size: 10px;
+    color: #7d8694;
+    unity-text-align: middle-right;
+}
+
+.status-label {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #4cd964;
+}
+
+.header-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.header-logo {
+    width: 48px;
+    height: 48px;
+    margin-right: 12px;
+}

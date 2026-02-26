@@ -11,8 +11,6 @@ namespace NX10
 {
     public class NX10BackendManager : MonoBehaviour
     {
-        public string nX10ApiKey;
-
         private string deviceId;
         private string appVersion;
         private string buildId;
@@ -130,7 +128,7 @@ namespace NX10
         private Dictionary<string, object> currentGameMetaData = new Dictionary<string, object>();
         private NX10SDKSession currentSession;
 
-        public void UpdateNX10MetaData(Dictionary<string, object> metaData)
+        public void UpdateAttributes(Dictionary<string, object> metaData)
         {
             var changedValues = new Dictionary<string, object>();
 
@@ -227,7 +225,10 @@ namespace NX10
             SetupData();
 
             currentSession = new NX10SDKSession();
-            string apiKey = nX10ApiKey;
+            string apiKey = NX10RuntimeConfig.ApiKey;
+
+            if (apiKey == string.Empty)
+                return;
 
             Identifiers identifiers = new Identifiers
             {
@@ -271,7 +272,7 @@ namespace NX10
 
             Debug.Log(startSessionJson);
 
-            StartCoroutine(NX10PostRequest("https://control-plane.affectstack-stage.com/routes/sessions/start", startSessionJson, (success, message) =>
+            StartCoroutine(NX10PostRequest("https://control-plane.affectstack.com/routes/sessions/start", startSessionJson, (success, message) =>
             {
                 if (success)
                 {
@@ -308,7 +309,7 @@ namespace NX10
             }
         }
         
-        public void SendSaaqPrompt(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)
+        public void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             string saaqEndpoint = currentSession.GetEndpoint("saaq", "v1");

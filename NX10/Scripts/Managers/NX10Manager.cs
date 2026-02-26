@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using static NX10.PromptUiController;
 
 namespace NX10
 {
@@ -11,7 +10,7 @@ namespace NX10
         private NX10BackendManager backendManager;
         private NX10TelemetryManager telemetryManager;
 
-        [SerializeField] private List<FeelingWithSprite> feelingWithSprites;
+        [SerializeField] private List<PromptUiController.FeelingWithSprite> feelingWithSprites;
         public Dictionary<FeelingType, Sprite> feelingSpriteDict = new Dictionary<FeelingType, Sprite>();
 
         public bool Initialised { get; private set; }
@@ -24,7 +23,10 @@ namespace NX10
             backendManager = GetComponentInChildren<NX10BackendManager>();
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
 
-            foreach (FeelingWithSprite feelingWithSprite in feelingWithSprites)
+            telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
+            promptManager.sendSaaqDataRequest += SendSaaqData;
+
+            foreach (PromptUiController.FeelingWithSprite feelingWithSprite in feelingWithSprites)
             {
                 feelingSpriteDict.Add(feelingWithSprite.Type, feelingWithSprite.sprite);
             }
@@ -51,19 +53,14 @@ namespace NX10
             promptManager.ForceClosePrompt();
         }
 
-        public void UpdateNX10MetaData(Dictionary<string, object> metaData)
+        public void UpdateAttributes(Dictionary<string, object> attributes)
         {
-            backendManager.UpdateNX10MetaData(metaData);
+            backendManager.UpdateAttributes(attributes);
         }
 
         public void SetTelemetryCollection(bool canCollect)
         {
             telemetryManager.SetTelemetryCollection(canCollect);
-        }
-
-        public void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
-        {
-            backendManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
         }
 
         public void ShowPrompt(PromptType promptType, FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
@@ -89,20 +86,16 @@ namespace NX10
             promptManager.ShowButton(typeToShow, feelingContext, feelingFor, completeAction);
         }
 
-        public bool ShowSliderTimerDependant(FeelingType[] typesToShow, string timerKey, int duration, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        private void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
         {
-            return promptManager.ShowSliderTimerDependant(typesToShow, timerKey, duration, feelingContext, feelingFor, completeAction);
+            backendManager.SendSaaqData(feeling, ranking, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
         }
 
-        public float GetRemainingCooldownTimeMinutes(string timerKey)
+        private void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
-            return promptManager.GetRemainingCooldownTimeMinutes(timerKey);
+            backendManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
         }
 
-        public void SendSaaqPromptData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
-        {
-            backendManager.SendSaaqPrompt(feeling, ranking, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
-        }
     }
 }
 
