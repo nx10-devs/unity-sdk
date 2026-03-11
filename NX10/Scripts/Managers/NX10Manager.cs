@@ -10,9 +10,6 @@ namespace NX10
         private NX10BackendManager backendManager;
         private NX10TelemetryManager telemetryManager;
 
-        [SerializeField] private List<PromptUiController.FeelingWithSprite> feelingWithSprites;
-        public Dictionary<FeelingType, Sprite> feelingSpriteDict = new Dictionary<FeelingType, Sprite>();
-
         public bool Initialised { get; private set; }
 
         protected override void Awake()
@@ -25,11 +22,6 @@ namespace NX10
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
             promptManager.sendSaaqDataRequest += SendSaaqData;
-
-            foreach (PromptUiController.FeelingWithSprite feelingWithSprite in feelingWithSprites)
-            {
-                feelingSpriteDict.Add(feelingWithSprite.Type, feelingWithSprite.sprite);
-            }
         }
 
         public void StartSession()
@@ -38,11 +30,6 @@ namespace NX10
             {
                 Initialised = true;
             });
-        }
-
-        public Sprite GetSprite(FeelingType feelingType)
-        {
-            return feelingSpriteDict[feelingType];
         }
 
         /// <summary>

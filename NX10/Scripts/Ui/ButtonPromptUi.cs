@@ -25,7 +25,7 @@ namespace NX10
             foreach (FeelingButton feelingButton in feelingButtons)
             {
                 feelingButtonsDict.Add(feelingButton.FeelingType, feelingButton.button);
-                feelingButton.button.image.sprite = NX10Manager.Instance.GetSprite(feelingButton.FeelingType);
+                //feelingButton.button.image.sprite = NX10Manager.Instance.GetSprite(feelingButton.FeelingType);
             }
         }
 

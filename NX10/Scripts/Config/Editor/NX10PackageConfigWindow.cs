@@ -130,7 +130,7 @@ namespace NX10
 
             apiKeyField.RegisterValueChangedCallback(evt =>
             {
-                workingCopy.apiKey = config.apiKey;
+                workingCopy.apiKey = apiKeyField.value;
             });
 
             var row = new VisualElement();
@@ -292,7 +292,7 @@ namespace NX10
                 EditorUtility.SetDirty(config);
                 AssetDatabase.SaveAssets();
 
-                Apply();
+                //Apply();
                 statusLabel.text = "✔ Configuration Applied";
             })
             {

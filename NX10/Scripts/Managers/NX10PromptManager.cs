@@ -12,10 +12,14 @@ namespace NX10
     public enum FeelingType
     {
         VeryFrustrated = 0,
-        Frustrated = 1,
+        Frustated = 1,
         Neutral = 2,
         Enjoyment = 3,
-        Ecstatic = 4
+        Ecstatic = 4,
+        Bored = 5,
+        Surprised = 6,
+        Relaxed = 7,
+        Fun = 8,
     }
 
     public class NX10PromptManager : MonoBehaviour

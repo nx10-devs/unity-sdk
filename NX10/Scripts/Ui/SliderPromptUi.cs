@@ -27,7 +27,7 @@ namespace NX10
             if(_manager.currentFeelingTypesToShow != null)
                 currentFeelingType = _manager.currentFeelingTypesToShow[(int)slider.value];
 
-            SliderEmotion.sprite = NX10Manager.Instance.GetSprite(currentFeelingType);
+            //SliderEmotion.sprite = NX10Manager.Instance.GetSprite(currentFeelingType);
             SliderEmotionText.text = currentFeelingType.ToString();
         }
 
