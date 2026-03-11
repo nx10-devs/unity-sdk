@@ -1,11 +1,9 @@
-﻿using System.Security.Cryptography;
+﻿#if UNITY_EDITOR
+
 using TMPro;
 using UnityEditor;
-using UnityEditor.PackageManager;
-using UnityEditor.PackageManager.Requests;
 using UnityEditor.UIElements;
 using UnityEngine;
-using UnityEngine.TextCore.Text;
 using UnityEngine.UIElements;
 
 namespace NX10
@@ -390,3 +388,4 @@ namespace NX10
         }
     }
 }
+#endif
