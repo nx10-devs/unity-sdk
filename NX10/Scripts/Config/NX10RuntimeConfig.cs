@@ -4,20 +4,20 @@ namespace NX10
 {
     public static class NX10RuntimeConfig
     {
-        private static NX10PackageConfig _config;
+        private static NX10Config _config;
 
-        public static NX10PackageConfig Config
+        public static NX10Config Config
         {
             get
             {
                 if (_config == null)
                 {
-                    _config = Resources.Load<NX10PackageConfig>("NX10Package_Config");
+                    _config = Resources.Load<NX10Config>("NX10Package_Config");
                 }
                 return _config;
             }
         }
 
-        public static string ApiKey => Config != null ? Config.apiKey : string.Empty;
+        public static string ApiKey => Config != null ? Config.GetActiveKey() : string.Empty;
     }
 }

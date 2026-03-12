@@ -9,14 +9,14 @@ namespace NX10
         [SerializeField] private Image backGroundImage;
         private TextMeshProUGUI[] texts;
 
-        public void ApplyConfig(NX10PackageConfig config)
+        public void ApplyConfig(NX10Config config)
         {
-            backGroundImage.sprite = config.promptBackgroundSprite;
+           /* //backGroundImage.sprite = config.promptBackgroundSprite;
             texts = GetComponentsInChildren<TextMeshProUGUI>();
             foreach(TextMeshProUGUI text in texts)
             {
                 text.font = config.promptFont;
-            }
+            }*/
 
         }
     }

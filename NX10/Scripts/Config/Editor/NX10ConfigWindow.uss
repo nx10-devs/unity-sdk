@@ -1,0 +1,149 @@
+.header {
+    background-color: #1e2430;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.header-title {
+    font-size: 20px;
+    unity-font-style: bold;
+    color: white;
+}
+
+.header-subtitle {
+    font-size: 12px;
+    color: #9aa4b2;
+}
+
+.card {
+    background-color: #2a2f3a;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.card-title {
+    font-size: 13px;
+    unity-font-style: bold;
+    margin-bottom: 6px;
+    color: #cfd8e3;
+}
+
+.row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.primary-button {
+    height: 40px;
+    margin-top: 10px;
+    background-color: #3a7afe;
+    color: white;
+    unity-font-style: bold;
+}
+
+.footer {
+    margin-top: 10px;
+    font-size: 10px;
+    color: #7d8694;
+    unity-text-align: middle-right;
+}
+
+.status-label {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #4cd964;
+}
+
+.header-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.header-logo {
+    width: 48px;
+    height: 48px;
+    margin-right: 12px;
+}
+
+.api-field {
+    flex-direction: column; /* Label on top, Input on bottom */
+    margin-bottom: 12px;
+    flex-grow: 1;
+}
+
+.api-field > .unity-label {
+    margin-bottom: 4px;
+    color: #9aa4b2; /* Matching your subtitle color */
+    font-size: 12px;
+}
+
+.api-field .unity-base-text-field__input {
+    background-color: #1e2430; /* Darker than the card */
+    border-color: #3f4759;
+    border-radius: 4px;
+    padding: 8px; /* This makes it feel "Big" */
+    height: 32px;
+    color: #ececec;
+    selection-color: #3a7afe;
+}
+
+.api-field .unity-base-text-field__input:focus {
+    border-color: #3a7afe;
+}
+/* Container for the route rows */
+.route-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 6px 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(0,0,0,0.1);
+}
+
+.route-label {
+    flex-grow: 1;
+    -unity-font-style: bold;
+}
+
+.route-enum {
+    width: 130px;
+}
+
+/* Button Styling */
+.primary-button {
+    background-color: #0078D4;
+    color: white;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 10px;
+    -unity-font-style: bold;
+    border-width: 0;
+}
+
+.primary-button:hover {
+    background-color: #005A9E;
+}
+
+.primary-button:disabled {
+    background-color: #444;
+    color: #888;
+    opacity: 0.5;
+}
+
+.discard-button {
+    background-color: transparent;
+    border-width: 1px;
+    border-color: #666;
+    margin-top: 5px;
+    color: #ccc;
+}
+
+.discard-button:hover {
+    background-color: #d13438;
+    color: white;
+}
+
+.discard-button:disabled {
+    opacity: 0.3;
+}
