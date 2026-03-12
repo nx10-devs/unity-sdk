@@ -148,7 +148,7 @@ namespace NX10
 
             if(changedValues.Count > 0)
             {
-                SendAttributes(changedValues);
+                SendAttributes(currentGameMetaData);
             }
         }
 
