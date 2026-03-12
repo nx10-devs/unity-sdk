@@ -6,7 +6,6 @@ namespace NX10
 {
     public class SliderPromptUi : PromptUi
     {
-        [SerializeField] private Image SliderEmotion;
         [SerializeField] private TextMeshProUGUI SliderEmotionText;
         [SerializeField] private Slider Slider; 
 
@@ -27,7 +26,6 @@ namespace NX10
             if(_manager.currentFeelingTypesToShow != null)
                 currentFeelingType = _manager.currentFeelingTypesToShow[(int)slider.value];
 
-            //SliderEmotion.sprite = NX10Manager.Instance.GetSprite(currentFeelingType);
             SliderEmotionText.text = currentFeelingType.ToString();
         }
 
