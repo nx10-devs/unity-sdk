@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+using Gyroscope = UnityEngine.InputSystem.Gyroscope;
+#endif
+
 namespace NX10
 {
     public class NX10TelemetryManager : MonoBehaviour
@@ -15,8 +20,20 @@ namespace NX10
 
         private void Awake()
         {
+#if ENABLE_INPUT_SYSTEM
+            if (Gyroscope.current != null)
+                InputSystem.EnableDevice(Gyroscope.current);
+
+            if (LinearAccelerationSensor.current != null)
+                InputSystem.EnableDevice(LinearAccelerationSensor.current);
+
+            return;
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
             if (SystemInfo.supportsGyroscope)
                 Input.gyro.enabled = true;
+#endif
         }
 
         private void Update()
@@ -26,7 +43,7 @@ namespace NX10
 
         private void UpdateTelemetryCollection()
         {
-            if (!canCollectTelemetryData)
+            if (!canCollectTelemetryData || currentCollectionWindow == null)
                 return;
 
             timer += Time.deltaTime;
@@ -40,36 +57,82 @@ namespace NX10
 
         private void CollectTelemetryData()
         {
-            if (SystemInfo.supportsGyroscope)
+            double offset = currentCollectionWindow.Offset().TotalMilliseconds;
+
+#if ENABLE_INPUT_SYSTEM
+            if (Gyroscope.current != null)
             {
-                GyroEvent gyroEvent = new GyroEvent();
-                gyroEvent.timestampOffsetMs = currentCollectionWindow.Offset().TotalMilliseconds;
-                gyroEvent.x = Input.gyro.rotationRate.x;
-                gyroEvent.y = Input.gyro.rotationRate.y;
-                gyroEvent.z = Input.gyro.rotationRate.z;
-                currentCollectionWindow.inputEvents.Add(gyroEvent);
+                var gyro = Gyroscope.current.angularVelocity.ReadValue();
+                currentCollectionWindow.inputEvents.Add(new GyroEvent
+                {
+                    timestampOffsetMs = offset,
+                    x = gyro.x,
+                    y = gyro.y,
+                    z = gyro.z
+                });
             }
 
-            if (SystemInfo.supportsAccelerometer)
+            if (LinearAccelerationSensor.current != null)
             {
-                AccelerometerEvent accelEvent = new AccelerometerEvent();
-                accelEvent.timestampOffsetMs = currentCollectionWindow.Offset().TotalMilliseconds;
-                accelEvent.x = Input.gyro.userAcceleration.x;
-                accelEvent.y = Input.gyro.userAcceleration.y;
-                accelEvent.z = Input.gyro.userAcceleration.z;
-                currentCollectionWindow.inputEvents.Add(accelEvent);
+                var accel = LinearAccelerationSensor.current.acceleration.ReadValue();
+                currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
+                {
+                    timestampOffsetMs = offset,
+                    x = accel.x,
+                    y = accel.y,
+                    z = accel.z
+                });
+            }
+
+            if (Touchscreen.current != null)
+            {
+                foreach (var touch in Touchscreen.current.touches)
+                {
+                    if (!touch.press.isPressed) continue;
+
+                    currentCollectionWindow.inputEvents.Add(new TouchInputEvent
+                    {
+                        timestampOffsetMs = offset,
+                        x = touch.position.ReadValue().x,
+                        y = touch.position.ReadValue().y,
+                        velocityX = touch.delta.ReadValue().x / Time.unscaledDeltaTime,
+                        velocityY = touch.delta.ReadValue().y / Time.unscaledDeltaTime
+                    });
+                }
+            }
+
+            return;
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+            if (SystemInfo.supportsGyroscope)
+            {
+                currentCollectionWindow.inputEvents.Add(new GyroEvent {
+                    timestampOffsetMs = offset,
+                    x = Input.gyro.rotationRate.x,
+                    y = Input.gyro.rotationRate.y,
+                    z = Input.gyro.rotationRate.z
+                });
+
+                currentCollectionWindow.inputEvents.Add(new AccelerometerEvent {
+                    timestampOffsetMs = offset,
+                    x = Input.gyro.userAcceleration.x,
+                    y = Input.gyro.userAcceleration.y,
+                    z = Input.gyro.userAcceleration.z
+                });
             }
 
             foreach (var touch in Input.touches)
             {
-                TouchInputEvent touchInputEvent = new TouchInputEvent();
-                touchInputEvent.timestampOffsetMs = currentCollectionWindow.Offset().TotalMilliseconds;
-                touchInputEvent.x = touch.position.x;
-                touchInputEvent.y = touch.position.y;
-                touchInputEvent.velocityX = touch.deltaPosition.x / Time.unscaledDeltaTime;
-                touchInputEvent.velocityY = touch.deltaPosition.y / Time.unscaledDeltaTime;
-                currentCollectionWindow.inputEvents.Add(touchInputEvent);
+                currentCollectionWindow.inputEvents.Add(new TouchInputEvent {
+                    timestampOffsetMs = offset,
+                    x = touch.position.x,
+                    y = touch.position.y,
+                    velocityX = touch.deltaPosition.x / Time.unscaledDeltaTime,
+                    velocityY = touch.deltaPosition.y / Time.unscaledDeltaTime
+                });
             }
+#endif
         }
 
         public void SetTelemetryCollection(bool canCollect)
@@ -77,21 +140,15 @@ namespace NX10
             canCollectTelemetryData = canCollect;
 
             if (canCollect)
-            {
                 StartTelemetryCollectionWindow();
-            }
             else
-            {
                 EndTelemetryCollectionWindow();
-            }
         }
 
         private void StartTelemetryCollectionWindow()
         {
-            if(currentCollectionWindow != null)
-            {
+            if (currentCollectionWindow != null)
                 EndTelemetryCollectionWindow();
-            }
 
             currentCollectionWindow = new NX10TelemetryWindow()
             {
@@ -102,18 +159,12 @@ namespace NX10
 
         private void EndTelemetryCollectionWindow()
         {
-            if (currentCollectionWindow == null)
-            {
-                Debug.LogError("Trying to end a collection window that hasnt been started");
-                return;
-            }
+            if (currentCollectionWindow == null) return;
 
             SendTelemetryData(currentCollectionWindow.startTimestampISO);
-
             currentCollectionWindow.Dispose();
             currentCollectionWindow = null;
-
-            timer = timer - apiIntervalSeconds;
+            timer -= apiIntervalSeconds;
         }
 
         private void SendTelemetryData(string timestamp)
@@ -122,4 +173,3 @@ namespace NX10
         }
     }
 }
-

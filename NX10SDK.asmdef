@@ -1,16 +1,24 @@
 {
-  "name": "NX10",
-  "references": [
-    "Unity.TextMeshPro",
-    "Unity.Newtonsoft.Json"
-  ],
-  "includePlatforms": [],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+    "name": "NX10",
+    "rootNamespace": "",
+    "references": [
+        "Unity.TextMeshPro",
+        "Unity.Newtonsoft.Json",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.input-system",
+            "expression": "1.0.0",
+            "define": "USING_NEW_INPUT"
+        }
+    ],
+    "noEngineReferences": false
 }
