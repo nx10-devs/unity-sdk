@@ -4,18 +4,41 @@ using UnityEngine;
 
 namespace NX10
 {
-    public class NX10Manager : NX10PersistentSingleton<NX10Manager>
+    public class NX10Manager : MonoBehaviour
     {
+        private static NX10Manager _instance;
+
+        public static NX10Manager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = UnityEngine.Object.FindAnyObjectByType<NX10Manager>();
+
+                    if (_instance == null)
+                    {
+                        GameObject sdkObject = Resources.Load<GameObject>("NX10_Manager");
+                        GameObject instanceObject = UnityEngine.Object.Instantiate(sdkObject);
+
+                        instanceObject.hideFlags = HideFlags.HideInHierarchy;
+                        DontDestroyOnLoad(instanceObject);
+
+                        _instance = instanceObject.GetComponent<NX10Manager>();
+                    }
+                }
+                return _instance;
+            }
+        }
+
         private NX10PromptManager promptManager;
         private NX10BackendManager backendManager;
         private NX10TelemetryManager telemetryManager;
 
         public bool Initialised { get; private set; }
 
-        protected override void Awake()
+        protected void Awake()
         {
-            base.Awake();
-
             promptManager = GetComponentInChildren<NX10PromptManager>();
             backendManager = GetComponentInChildren<NX10BackendManager>();
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
