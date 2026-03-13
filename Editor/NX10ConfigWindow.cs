@@ -29,6 +29,14 @@ namespace NX10
                 "Packages/com.nx10.sdk/NX10/Scripts/Config/Editor/nx10_logo.png");
         }
 
+        private void OnDestroy()
+        {
+            if (workingCopy != null)
+            {
+                DestroyImmediate(workingCopy);
+            }
+        }
+
         public void CreateGUI()
         {
             rootVisualElement.Clear();
@@ -41,7 +49,12 @@ namespace NX10
                 return;
             }
 
-            workingCopy = ScriptableObject.Instantiate(config);
+            if (workingCopy == null)
+            {
+                workingCopy = ScriptableObject.Instantiate(config);
+                workingCopy.name = config.name;
+                workingCopy.hideFlags = HideFlags.HideAndDontSave; 
+            }
 
             var script = MonoScript.FromScriptableObject(this);
             var scriptPath = AssetDatabase.GetAssetPath(script);
