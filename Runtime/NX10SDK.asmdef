@@ -1,6 +1,6 @@
 {
     "name": "NX10",
-    "rootNamespace": "",
+    "rootNamespace": "NX10",
     "references": [
         "Unity.TextMeshPro",
         "Unity.Newtonsoft.Json",
