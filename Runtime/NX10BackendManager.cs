@@ -138,6 +138,11 @@ namespace NX10
                 SetAttribute(key, value);
             }
 
+            if (!NX10Manager.Instance.Initialised)
+            {
+                return;
+            }
+
             SendAttributes();
         }
 
