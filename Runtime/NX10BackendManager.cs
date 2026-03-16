@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Unity.VisualScripting.YamlDotNet.Core.Tokens;
 using UnityEngine;
 using UnityEngine.Networking;
 using static UnityEngine.InputSystem.LowLevel.InputEventTrace;
@@ -126,34 +127,53 @@ namespace NX10
         }
         #endregion
 
-        private Dictionary<string, object> currentGameMetaData = new Dictionary<string, object>();
+        private Dictionary<string, object> currentGameAttributes = new Dictionary<string, object>();
         private NX10SDKSession currentSession;
 
-        public void UpdateAttributes(Dictionary<string, object> metaData)
+        public void SetAttributes(Dictionary<string, object> attributes)
         {
-            var changedValues = new Dictionary<string, object>();
-
-            foreach (var kvp in metaData)
+            foreach (var kvp in attributes)
             {
-                if (!currentGameMetaData.TryGetValue(kvp.Key, out var existingValue))
-                {
-                    currentGameMetaData[kvp.Key] = kvp.Value;
-                    changedValues[kvp.Key] = kvp.Value;
-                }
-                else if (!Equals(existingValue, kvp.Value))
-                {
-                    currentGameMetaData[kvp.Key] = kvp.Value;
-                    changedValues[kvp.Key] = kvp.Value;
-                }
+                string key = kvp.Key;
+                object value = kvp.Value;
+
+                SetAttribute(key, value);
             }
 
-            if(changedValues.Count > 0)
+            SendAttributes();
+        }
+
+        public void SetAttribute(string key, object value, bool sendAttributes = false)
+        {
+            if (!currentGameAttributes.TryGetValue(key, out var existingValue))
             {
-                SendAttributes(currentGameMetaData);
+                currentGameAttributes[key] = value;
+            }
+            else if (!Equals(existingValue, value))
+            {
+                currentGameAttributes[key] = value;
+            }
+
+            if (sendAttributes)
+                SendAttributes();
+        }
+
+        public void RemoveAttribute(string key)
+        {
+            if(currentGameAttributes.ContainsKey(key))
+            {
+                currentGameAttributes.Remove(key);
+                SendAttributes();
             }
         }
 
-        private void SendAttributes(Dictionary<string, object> newAttributes)
+        public void ClearAttributes()
+        {
+            currentGameAttributes.Clear();
+            SendAttributes();
+        }
+
+        private void SendAttributes()
         {
             List<HeaderObject> headers = new List<HeaderObject>()
             {
@@ -165,7 +185,7 @@ namespace NX10
             AttributesPayload attributesPayload = new AttributesPayload()
             {
                 timestamp = timestamp,
-                data = newAttributes
+                data = currentGameAttributes
             };
 
             string attributeJson = JsonConvert.SerializeObject(attributesPayload);
@@ -298,7 +318,7 @@ namespace NX10
                 saaqType = feelingModalType,
                 feelingContext = feelingContext,
                 feelingFor = feelingFor,
-                metaData = new Dictionary<string, object>(currentGameMetaData)
+                metaData = new Dictionary<string, object>(currentGameAttributes)
             };
 
             string nx10jsonData = JsonConvert.SerializeObject(saaqResponse);

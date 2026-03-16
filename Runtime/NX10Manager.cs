@@ -56,22 +56,34 @@ namespace NX10
             });
         }
 
-        /// <summary>
-        /// should be used carefully, will call the prompts completionAction
-        /// </summary>
-        public void ForceClosePrompt()
+        public void SetAttributes(Dictionary<string, object> attributes)
         {
-            promptManager.ForceClosePrompt();
+            backendManager.SetAttributes(attributes);
         }
 
-        public void UpdateAttributes(Dictionary<string, object> attributes)
+        public void SetAttribute(string attributeKey, object attributeValue)
         {
-            backendManager.UpdateAttributes(attributes);
+            backendManager.SetAttribute(attributeKey, attributeValue, true);
         }
 
-        public void SetTelemetryCollection(bool canCollect)
+        public void RemoveAttribute(string attributeKey)
         {
-            telemetryManager.SetTelemetryCollection(canCollect);
+            backendManager.RemoveAttribute(attributeKey);
+        }
+
+        public void ClearAttributes()
+        {
+            backendManager.ClearAttributes();
+        }
+
+        public void StartTelemetry()
+        {
+            telemetryManager.SetTelemetryCollection(true);
+        }
+
+        public void StopTelemetry()
+        {
+            telemetryManager.SetTelemetryCollection(false);
         }
 
         public void ShowPrompt(PromptType promptType, FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
