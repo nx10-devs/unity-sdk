@@ -14,12 +14,12 @@ namespace NX10
     [Serializable]
     public class SessionConfig
     {
-        public Identifiers Identifiers;
+        public UserIdentifiers Identifiers;
         public AppProvidedData AppProvidedData;
     }
 
     [Serializable]
-    public class Identifiers
+    public class UserIdentifiers
     {
         public string deviceId;
         public string email;
@@ -58,7 +58,7 @@ namespace NX10
         public class SessionStartPayload
         {
             public string apiKey;
-            public Identifiers identifiers;
+            public UserIdentifiers identifiers;
             public SDKData sdkProvided;
             public AppProvidedData appProvided;
         }
