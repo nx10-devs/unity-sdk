@@ -4,7 +4,7 @@
   "displayName": "NX10 Unity SDK",
   "description": "This is an example package",
   "unity": "2022.0",
-  "documentationUrl": "https://example.com/",
+  "documentationUrl": "https://control-plane.affectstack.com/docs/unity",
   "changelogUrl": "https://example.com/changelog.html",
   "licensesUrl": "https://example.com/licensing.html",
   "dependencies": {
@@ -17,8 +17,8 @@
     "keyword3"
   ],
   "author": {
-    "name": "Unity",
-    "email": "unity@example.com",
-    "url": "https://www.unity3d.com"
+    "name": "NX10",
+    "email": "admin@nx10.me",
+    "url": "https://www.nx10.me"
   }
 }
