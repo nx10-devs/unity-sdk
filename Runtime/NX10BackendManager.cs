@@ -223,6 +223,7 @@ namespace NX10
         {
             currentSession = new NX10SDKSession();
             string apiKey = NX10RuntimeConfig.ApiKey;
+            PackageRuntimeData packageData = Resources.Load<PackageRuntimeData>("NX10PackageVersion");
 
             if (apiKey == string.Empty)
                 return;
@@ -239,7 +240,7 @@ namespace NX10
             SDKData sdkData = new SDKData
             {
                 device = deviceInfo,
-                sdkVersion = "1.0.0",
+                sdkVersion = packageData.version,
                 sdkType = "unity"
             };
 
@@ -252,7 +253,6 @@ namespace NX10
             };
 
             string startSessionJson = JsonConvert.SerializeObject(payload);
-
             StartCoroutine(NX10PostRequest("https://control-plane.affectstack.com/routes/sessions/start", startSessionJson, (success, message) =>
             {
                 if (success)
