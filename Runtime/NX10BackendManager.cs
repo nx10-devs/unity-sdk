@@ -150,7 +150,7 @@ namespace NX10
         {
             if (!NX10Manager.Instance.Initialised)
             {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before setting an collection attribute");
+                Debug.LogError("NX10 Manager not initialised, ensure it is before setting an attribute");
                 return;
             }
 
