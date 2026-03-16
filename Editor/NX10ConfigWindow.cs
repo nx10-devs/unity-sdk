@@ -15,6 +15,7 @@ namespace NX10
 
         private Label statusLabel;
 
+        const string packageId = "com.nx10.sdk";
 
         [MenuItem("Window/NX10/Configuration")]
         public static void Open()
@@ -25,8 +26,9 @@ namespace NX10
 
         static Texture2D LoadLogo()
         {
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(
-                "Packages/com.nx10.sdk/NX10/Scripts/Config/Editor/nx10_logo.png");
+            string path = $"Packages/{packageId}/Editor";
+            string assetPath = $"{path}/{"nx10_logo.png"}";
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
         }
 
         private void OnDestroy()
