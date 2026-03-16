@@ -143,6 +143,12 @@ namespace NX10
 
         public void SetAttribute(string key, object value, bool sendAttributes = false)
         {
+            if (!NX10Manager.Instance.Initialised)
+            {
+                Debug.LogError("NX10 Manager not initialised, ensure it is before setting an collection attribute");
+                return;
+            }
+
             if (!currentGameAttributes.TryGetValue(key, out var existingValue))
             {
                 currentGameAttributes[key] = value;
@@ -158,7 +164,13 @@ namespace NX10
 
         public void RemoveAttribute(string key)
         {
-            if(currentGameAttributes.ContainsKey(key))
+            if (!NX10Manager.Instance.Initialised)
+            {
+                Debug.LogError("NX10 Manager not initialised, ensure it is before removing an attribute");
+                return;
+            }
+
+            if (currentGameAttributes.ContainsKey(key))
             {
                 currentGameAttributes.Remove(key);
                 SendAttributes();
@@ -167,6 +179,12 @@ namespace NX10
 
         public void ClearAttributes()
         {
+            if (!NX10Manager.Instance.Initialised)
+            {
+                Debug.LogError("NX10 Manager not initialised, ensure it is before clearing attributes");
+                return;
+            }
+
             currentGameAttributes.Clear();
             SendAttributes();
         }

@@ -137,6 +137,12 @@ namespace NX10
 
         public void SetTelemetryCollection(bool canCollect)
         {
+            if(!NX10Manager.Instance.Initialised)
+            {
+                Debug.LogError("NX10 Manager not initialised, ensure it is before starting a collection window");
+                return;
+            }
+
             canCollectTelemetryData = canCollect;
 
             if (canCollect)
