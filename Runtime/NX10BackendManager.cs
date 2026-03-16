@@ -6,16 +6,53 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+using static UnityEngine.InputSystem.LowLevel.InputEventTrace;
 
 namespace NX10
 {
+    [Serializable]
+    public class SessionConfig
+    {
+        public Identifiers Identifiers;
+        public AppProvidedData AppProvidedData;
+    }
+
+    [Serializable]
+    public class Identifiers
+    {
+        public string deviceId;
+        public string email;
+        public string phoneNumber;
+    }
+
+    [Serializable]
+    public class SDKData
+    {
+        public DeviceInfo device;
+        public string sdkVersion;
+        public string sdkType;
+    }
+
+    [Serializable]
+    public class DeviceInfo
+    {
+        public string type;
+        public string os;
+        public string osVersion;
+        public string deviceVersion;
+        public string deviceVariant;
+    }
+
+    [Serializable]
+    public class AppProvidedData
+    {
+        public Dictionary<string, object> metaData;
+        public string applicationVersion;
+        public string buildNumber;
+    }
+
     public class NX10BackendManager : MonoBehaviour
     {
-        private string deviceId;
-        private string appVersion;
-        private string buildId;
-
-        #region Payloads
         [Serializable]
         public class SessionStartPayload
         {
@@ -52,43 +89,8 @@ namespace NX10
             public string timestamp;
             public Dictionary<string, object> data;
         }
-        #endregion
 
-        #region Session Start Packets
-        [Serializable]
-        public class Identifiers
-        {
-            public string deviceId;
-            public string email;
-            public string phoneNumber;
-        }
-
-        [Serializable]
-        public class SDKData
-        {
-            public DeviceInfo device;
-            public string sdkVersion;
-            public string sdkType;
-        }
-
-        [Serializable]
-        public class DeviceInfo
-        {
-            public string type;
-            public string os;
-            public string osVersion;
-            public string deviceVersion;
-            public string deviceVariant;
-        }
-
-        [Serializable]
-        public class AppProvidedData
-        {
-            public Dictionary<string, object> metaData;
-            public string applicationVersion;
-            public string buildNumber;
-        }
-
+       
         [Serializable]
         public class SessionStartResponse
         {
@@ -109,7 +111,6 @@ namespace NX10
             public string type;
             public string version;
         }
-        #endregion
 
         #region Headers
         public class HeaderObject
@@ -200,42 +201,13 @@ namespace NX10
             }, headers));
         }
 
-        private string GetOSName()
+        public void StartSession(SessionConfig sessionConfig, Action<bool> sessionStartSuccess)
         {
-#if UNITY_EDITOR
-            return "Editor";
-#elif UNITY_IOS
-        return "iOS";
-#elif UNITY_ANDROID
-            return "Android";
-#else
-        return "Unknown";
-#endif
-        }
-
-        private void SetupData()
-        {
-            deviceId = SystemInfo.deviceUniqueIdentifier;
-            appVersion = UnityEngine.Application.version;
-            buildId = UnityEngine.Application.buildGUID;
-        }
-
-        public void StartSession(Action<bool> sessionStartSuccess)
-        {
-            SetupData();
-
             currentSession = new NX10SDKSession();
             string apiKey = NX10RuntimeConfig.ApiKey;
 
             if (apiKey == string.Empty)
                 return;
-
-            Identifiers identifiers = new Identifiers
-            {
-                deviceId = deviceId,
-                email = string.Empty,
-                phoneNumber = string.Empty,
-            };
 
             DeviceInfo deviceInfo = new DeviceInfo
             {
@@ -253,24 +225,15 @@ namespace NX10
                 sdkType = "unity"
             };
 
-            AppProvidedData appProvided = new AppProvidedData
-            {
-                metaData = new Dictionary<string, object>(currentGameMetaData),
-                applicationVersion = appVersion,
-                buildNumber = buildId
-            };
-
-            SessionStartPayload sessionStartPacket = new SessionStartPayload
+            SessionStartPayload payload = new SessionStartPayload
             {
                 apiKey = apiKey,
-                identifiers = identifiers,  
+                identifiers = sessionConfig.Identifiers,
                 sdkProvided = sdkData,
-                appProvided = appProvided
+                appProvided = sessionConfig.AppProvidedData
             };
 
-            string startSessionJson = JsonConvert.SerializeObject(sessionStartPacket);
-
-            Debug.Log(startSessionJson);
+            string startSessionJson = JsonConvert.SerializeObject(payload);
 
             StartCoroutine(NX10PostRequest("https://control-plane.affectstack.com/routes/sessions/start", startSessionJson, (success, message) =>
             {
@@ -308,7 +271,20 @@ namespace NX10
                 Debug.Log("EndPoint: " + endpointInfo.type + ", version: " + endpointInfo.version);
             }
         }
-        
+
+        private string GetOSName()
+        {
+#if UNITY_EDITOR
+            return "Editor";
+#elif UNITY_IOS
+        return "iOS";
+#elif UNITY_ANDROID
+            return "Android";
+#else
+        return "Unknown";
+#endif
+        }
+
         public void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");

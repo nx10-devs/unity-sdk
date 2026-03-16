@@ -47,11 +47,12 @@ namespace NX10
             promptManager.sendSaaqDataRequest += SendSaaqData;
         }
 
-        public void StartSession()
+        public void StartSession(SessionConfig sessionConfig, System.Action<bool> startSuccess)
         {
-            backendManager.StartSession((sessionStartSuccess) =>
+            backendManager.StartSession(sessionConfig, (sessionStartSuccess) =>
             {
-                Initialised = true;
+                Initialised = sessionStartSuccess;
+                startSuccess?.Invoke(sessionStartSuccess);
             });
         }
 
