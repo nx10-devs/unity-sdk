@@ -4,10 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Unity.VisualScripting.YamlDotNet.Core.Tokens;
 using UnityEngine;
 using UnityEngine.Networking;
-using static UnityEngine.InputSystem.LowLevel.InputEventTrace;
 
 namespace NX10
 {
@@ -194,7 +192,7 @@ namespace NX10
             {
                 if (success)
                 {
-                    Debug.Log("Attribute Success");
+                    
                 }
             }, headers));
         }
