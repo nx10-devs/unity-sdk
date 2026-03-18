@@ -30,7 +30,7 @@ namespace NX10
         [SerializeField] private PromptUiController uiController;
         public PromptUiController PromptUiController => uiController;
 
-        private Action<FeelingType> promptCompleteAction;
+        private Action<SAAQAnswer> promptAnsweredAction;
 
         private string promptType = "modal2";
         private string feelingContext = "menu";
@@ -57,22 +57,16 @@ namespace NX10
         private void PromptUiController_onSAAQSubmitted(SAAQAnswer answer)
         {
             promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-            sendSaaqDataRequest?.Invoke(answer, promptType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
-            promptCompleteAction.Invoke(ParseFeeling(answer.feelingsType));
+            promptAnsweredAction.Invoke(answer);
         }
 
-        public void ForceClosePrompt()
-        {
-            uiController.ForceClosePrompt();
-        }
-
-        public void ShowPrompt(SAAQPrompt prompt)
+        public void ShowPrompt(SAAQPrompt prompt, Action<SAAQAnswer> promptAnsweredAction)
         {
             promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
             this.promptType = prompt.type;
             this.currentSaaqAnswers = prompt.answers.ToArray();
+            this.promptAnsweredAction = promptAnsweredAction;
 
             this.feelingContext = string.Empty;
             this.feelingFor = string.Empty;

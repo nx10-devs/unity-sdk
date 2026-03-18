@@ -89,9 +89,9 @@ namespace NX10
             telemetryManager.SetTelemetryCollection(false);
         }
 
-        public void ShowPrompt(SAAQPrompt prompt)
+        public void ShowPrompt(SAAQPrompt prompt, Action<SAAQAnswer> promptAnsweredAction)
         {
-            promptManager.ShowPrompt(prompt);
+            promptManager.ShowPrompt(prompt, promptAnsweredAction);
         }
 
         private void SendSaaqData(SAAQAnswer answer, string promptType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)

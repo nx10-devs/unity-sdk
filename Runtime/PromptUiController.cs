@@ -46,14 +46,6 @@ namespace NX10
             onSAAQSubmitted.Invoke(answer);
         }
 
-        public void ForceClosePrompt()
-        {
-            if (currentPrompt)
-            {
-                currentPrompt.OnClose();
-            }
-        }
-
         public void ShowPrompt(PromptType type)
         {
             currentPrompt = promptUiDict[type];
