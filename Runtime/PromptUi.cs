@@ -6,7 +6,7 @@ namespace NX10
     public class PromptUi : MonoBehaviour
     {
         protected NX10PromptManager _manager;
-        public event Action<FeelingType> onSubmit;
+        public event Action<SAAQAnswer> onSubmit;
 
         public virtual void Initialise(NX10PromptManager promptManager)
         {
@@ -26,9 +26,9 @@ namespace NX10
             gameObject.SetActive(false);
         }
 
-        protected void Submit(FeelingType feelingType)
+        protected void Submit(SAAQAnswer answer)
         {
-            onSubmit.Invoke(feelingType);
+            onSubmit.Invoke(answer);
             OnClose();
         }
     }

@@ -50,6 +50,26 @@ namespace NX10
         public string buildNumber;
     }
 
+    [Serializable]
+    public class SAAQPrompt
+    {
+        public string triggerID;
+        public string type;
+        public string questionText;
+        public List<SAAQAnswer> answers;
+    }
+
+
+    [Serializable]
+    public class SAAQAnswer
+    {
+        public string displayName;
+        public string feelingsType;
+        public string id;
+        public string suggestedEmoji;
+    }
+
+
     public class NX10BackendManager : MonoBehaviour
     {
         [Serializable]
@@ -80,6 +100,21 @@ namespace NX10
             public string feelingContext;
             public string feelingFor;
             public Dictionary<string, object> metaData = new Dictionary<string, object>();
+        }
+
+        [Serializable]
+        public class SAAQRequest
+        {
+            public string status;
+            public SAAQData data;
+
+            public bool HasPrompt => data != null && data.prompt != null;
+        }
+
+        [Serializable]
+        public class SAAQData
+        {
+            public SAAQPrompt prompt;
         }
 
         [Serializable]
@@ -127,6 +162,8 @@ namespace NX10
 
         private Dictionary<string, object> currentGameAttributes = new Dictionary<string, object>();
         private NX10SDKSession currentSession;
+
+        public Action<SAAQPrompt> OnPromptRequested;
 
         public void SetAttributes(Dictionary<string, object> attributes)
         {
@@ -238,6 +275,7 @@ namespace NX10
             string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
             StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payloadJson, (success, message) =>
             {
+                HandleIncomingSAAQ(message);
                 
             }, headers));
         }
@@ -287,7 +325,7 @@ namespace NX10
             }));
         }
 
-        public void HandleSessionStartSuccess(string sessionStartJson)
+        private void HandleSessionStartSuccess(string sessionStartJson)
         {
             SessionStartResponse response = JsonUtility.FromJson<SessionStartResponse>(sessionStartJson);
 
@@ -310,6 +348,17 @@ namespace NX10
             foreach(EndpointInfo endpointInfo in currentSession.Endpoints)
             {
                 Debug.Log("EndPoint: " + endpointInfo.type + ", version: " + endpointInfo.version);
+            }
+        }
+
+        private void HandleIncomingSAAQ(string json)
+        {
+            SAAQRequest request = JsonUtility.FromJson<SAAQRequest>(json);
+
+            if (request.status == "success" && request.HasPrompt)
+            {
+                Debug.Log($"Trigger Received: {request.data.prompt.questionText}");
+                OnPromptRequested.Invoke(request.data.prompt);
             }
         }
 

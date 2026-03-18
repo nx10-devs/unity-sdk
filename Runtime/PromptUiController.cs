@@ -27,7 +27,7 @@ namespace NX10
 
         private PromptUi currentPrompt;
 
-        public event Action<FeelingType> onSAAQSubmitted;
+        public event Action<SAAQAnswer> onSAAQSubmitted;
 
         public void Initialise(NX10PromptManager promptManager)
         {
@@ -41,9 +41,9 @@ namespace NX10
             }
         }
 
-        private void Prompt_onSubmit(FeelingType obj)
+        private void Prompt_onSubmit(SAAQAnswer answer)
         {
-            onSAAQSubmitted.Invoke(obj);
+            onSAAQSubmitted.Invoke(answer);
         }
 
         public void ForceClosePrompt()

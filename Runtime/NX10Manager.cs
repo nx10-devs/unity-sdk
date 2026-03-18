@@ -37,6 +37,8 @@ namespace NX10
 
         public bool Initialised { get; private set; }
 
+        public event Action<SAAQPrompt> OnPromptRequested;
+
         protected void Awake()
         {
             promptManager = GetComponentInChildren<NX10PromptManager>();
@@ -45,6 +47,7 @@ namespace NX10
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
             promptManager.sendSaaqDataRequest += SendSaaqData;
+            backendManager.OnPromptRequested += PromptRequested;
         }
 
         public void StartSession(SessionConfig sessionConfig, System.Action<bool> startSuccess)
@@ -86,32 +89,14 @@ namespace NX10
             telemetryManager.SetTelemetryCollection(false);
         }
 
-        public void ShowPrompt(PromptType promptType, FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        public void ShowPrompt(SAAQPrompt prompt)
         {
-            switch(promptType)
-            {
-                case PromptType.Slider:
-                    ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);
-                    break;
-                    case PromptType.Button:
-                    ShowButton(typesToShow, feelingContext, feelingFor, completeAction);
-                    break;
-            }
+            promptManager.ShowPrompt(prompt);
         }
 
-        private void ShowSlider(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        private void SendSaaqData(SAAQAnswer answer, string promptType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
         {
-            promptManager.ShowSlider(typesToShow, feelingContext, feelingFor, completeAction);
-        }
-
-        private void ShowButton(FeelingType[] typeToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
-        {
-            promptManager.ShowButton(typeToShow, feelingContext, feelingFor, completeAction);
-        }
-
-        private void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
-        {
-            backendManager.SendSaaqData(feeling, ranking, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
+            backendManager.SendSaaqData(answer.feelingsType, 0, promptType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
         }
 
         private void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
@@ -119,6 +104,10 @@ namespace NX10
             backendManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
         }
 
+        private void PromptRequested(SAAQPrompt prompt)
+        {
+            OnPromptRequested?.Invoke(prompt);
+        }
     }
 }
 

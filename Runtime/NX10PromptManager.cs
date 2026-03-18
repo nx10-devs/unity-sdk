@@ -5,8 +5,11 @@ namespace NX10
 {
     public enum PromptType
     {
-        Slider,
-        Button
+        SaaqType1,
+        SaaqType2,
+        SaaqType3,
+        SaaqType4,
+        SaaqType5,
     }
 
     public enum FeelingType
@@ -29,15 +32,15 @@ namespace NX10
 
         private Action<FeelingType> promptCompleteAction;
 
-        private string feelingModalType = "modal2";
+        private string promptType = "modal2";
         private string feelingContext = "menu";
         private string feelingFor = "coins";
         private string promptDisplayTimestamp = "";
         private string promptAnswerTimestamp = "";
 
-        public FeelingType[] currentFeelingTypesToShow { get; private set; }
+        public SAAQAnswer[] currentSaaqAnswers { get; private set; }
 
-        public Action<string, int, string, string, string, string, string> sendSaaqDataRequest;
+        public Action<SAAQAnswer, string, string, string, string, string> sendSaaqDataRequest;
 
 
         private void Start()
@@ -51,12 +54,12 @@ namespace NX10
             PromptUiController.onSAAQSubmitted -= PromptUiController_onSAAQSubmitted;
         }
 
-        private void PromptUiController_onSAAQSubmitted(FeelingType feelingType)
+        private void PromptUiController_onSAAQSubmitted(SAAQAnswer answer)
         {
             promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-            sendSaaqDataRequest?.Invoke(feelingType.ToString(), (int)feelingType, feelingModalType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
-            promptCompleteAction.Invoke(feelingType);
+            sendSaaqDataRequest?.Invoke(answer, promptType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
+            promptCompleteAction.Invoke(ParseFeeling(answer.feelingsType));
         }
 
         public void ForceClosePrompt()
@@ -64,28 +67,38 @@ namespace NX10
             uiController.ForceClosePrompt();
         }
 
-        public void ShowPrompt(PromptType type, string feelingModalType, string feelingContext, string feelingFor, Action<FeelingType> promptCompleteAction)
+        public void ShowPrompt(SAAQPrompt prompt)
         {
             promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-            this.feelingModalType = feelingModalType;
-            this.feelingContext = feelingContext;
-            this.feelingFor = feelingFor;
-            this.promptCompleteAction = promptCompleteAction;
+            this.promptType = prompt.type;
+            this.currentSaaqAnswers = prompt.answers.ToArray();
 
-            uiController.ShowPrompt(type);
+            this.feelingContext = string.Empty;
+            this.feelingFor = string.Empty;
+
+            PromptType promptType = ParsePromptType(prompt.type);
+            uiController.ShowPrompt(promptType);
         }
 
-        public void ShowSlider(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        private PromptType ParsePromptType(string promptType)
         {
-            currentFeelingTypesToShow = typesToShow;
-            ShowPrompt(PromptType.Slider, "modal2", feelingContext, feelingFor, completeAction);
+            if (Enum.TryParse(promptType, true, out PromptType result))
+            {
+                return result;
+            }
+
+            throw new Exception("cant find prompt type " + promptType);
         }
 
-        public void ShowButton(FeelingType[] typesToShow, string feelingContext, string feelingFor, Action<FeelingType> completeAction)
+        private FeelingType ParseFeeling(string feeling)
         {
-            currentFeelingTypesToShow = typesToShow;
-            ShowPrompt(PromptType.Button, "modal1", feelingContext, feelingFor, completeAction);
+            if (Enum.TryParse(feeling, true, out FeelingType result))
+            {
+                return result;
+            }
+
+            throw new Exception("cant find feeling type " +  feeling);
         }
     }
 }
