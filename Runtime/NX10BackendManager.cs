@@ -108,7 +108,7 @@ namespace NX10
             public string status;
             public SAAQData data;
 
-            public bool HasPrompt => data != null && data.prompt != null;
+            public bool HasPrompt => data.prompt != null;
         }
 
         [Serializable]
@@ -284,9 +284,11 @@ namespace NX10
         {
             currentSession = new NX10SDKSession();
             string apiKey = NX10RuntimeConfig.ApiKey;
+            string endpoint = NX10RuntimeConfig.SessionStartEndpoint;
+
             PackageRuntimeData packageData = Resources.Load<PackageRuntimeData>("NX10PackageVersion");
 
-            if (apiKey == string.Empty)
+            if (apiKey == string.Empty || endpoint == string.Empty)
                 return;
 
             DeviceInfo deviceInfo = new DeviceInfo
@@ -314,7 +316,7 @@ namespace NX10
             };
 
             string startSessionJson = JsonConvert.SerializeObject(payload);
-            StartCoroutine(NX10PostRequest("https://control-plane.affectstack.com/routes/sessions/start", startSessionJson, (success, message) =>
+            StartCoroutine(NX10PostRequest(endpoint, startSessionJson, (success, message) =>
             {
                 if (success)
                 {

@@ -242,10 +242,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PromptUiController
   prompts:
-  - Type: 1
-    Prompt: {fileID: 7045132667450738447}
   - Type: 0
     Prompt: {fileID: 7681381836992026583}
+  - Type: 1
+    Prompt: {fileID: 7045132667450738447}
 --- !u!1 &5400660362620291651
 GameObject:
   m_ObjectHideFlags: 0
@@ -293,17 +293,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5af0c8e82f58df14c85c8515163b6883, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NX10Manager
-  feelingWithSprites:
-  - Type: 0
-    sprite: {fileID: -9082789242079819192, guid: 731fa0db8678a4ac79a8817c461252c8, type: 3}
-  - Type: 1
-    sprite: {fileID: 8726783322534400942, guid: 33dab6805d1cb4aec9953eef604e62ae, type: 3}
-  - Type: 2
-    sprite: {fileID: -1424433873885203634, guid: 17570232ca44c47fc9b3c1116e811dab, type: 3}
-  - Type: 3
-    sprite: {fileID: 8580352971482666360, guid: 3949d363988ac44f79c78dbe8e3c1408, type: 3}
-  - Type: 4
-    sprite: {fileID: 5607429834371072433, guid: 7674b699ae9404755ae491a42b85aabe, type: 3}
 --- !u!1 &6615638062156919921
 GameObject:
   m_ObjectHideFlags: 0
@@ -361,6 +350,30 @@ PrefabInstance:
     - target: {fileID: 1060673826446220046, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
       propertyPath: m_Name
       value: prefab_SliderPrompt
+      objectReference: {fileID: 0}
+    - target: {fileID: 1060673826446220046, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3265710476294407612, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3265710476294407612, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3265710476294407612, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326746941834224150, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4326746941834224150, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9045646070288153901, guid: 15612aed25ffc754295d42c34feddcf9, type: 3}
       propertyPath: m_Pivot.x

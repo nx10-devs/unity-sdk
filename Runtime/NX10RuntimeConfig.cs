@@ -19,5 +19,6 @@ namespace NX10
         }
 
         public static string ApiKey => Config != null ? Config.GetActiveKey() : string.Empty;
+        public static string SessionStartEndpoint => Config != null ? Config.GetSessionStartEndPoint() : string.Empty;
     }
 }
