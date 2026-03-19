@@ -401,6 +401,25 @@ namespace NX10
                 answerID = answer.id,
                 metaData = new Dictionary<string, object>(currentGameAttributes)
             };
+
+            string nx10jsonData = JsonConvert.SerializeObject(payload);
+            Debug.Log(nx10jsonData);
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            StartCoroutine(NX10PostRequest(saaqEndpoint, nx10jsonData, (success, message) =>
+            {
+                if (success)
+                {
+
+                }
+                else
+                {
+
+                }
+            }, headers));
         }
 
         public void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)
