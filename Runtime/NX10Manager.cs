@@ -94,6 +94,11 @@ namespace NX10
             promptManager.ShowPrompt(prompt, promptAnsweredAction);
         }
 
+        public void SendPromptAnswer(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
+        {
+            backendManager.SendTriggeredSAAQData(answer, displayTimestamp, answerTimestamp, triggerId);
+        }
+
         private void SendSaaqData(SAAQAnswer answer, string promptType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
         {
             backendManager.SendSaaqData(answer.feelingsType, 0, promptType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);

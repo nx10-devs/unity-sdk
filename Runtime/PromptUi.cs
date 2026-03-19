@@ -1,10 +1,12 @@
 using System;
+using TMPro;
 using UnityEngine;
 
 namespace NX10
 {
     public class PromptUi : MonoBehaviour
     {
+        [SerializeField] private TextMeshProUGUI questionText;
         protected NX10PromptManager _manager;
         public event Action<SAAQAnswer> onSubmit;
 
@@ -16,8 +18,9 @@ namespace NX10
             }
         }
 
-        public virtual void OnOpen()
+        public virtual void OnOpen(SAAQPrompt prompt)
         {
+            questionText.text = prompt.questionText;
             gameObject.SetActive(true);
         }
 

@@ -6,19 +6,24 @@ namespace NX10
 {
     public class SliderPromptUi : PromptUi
     {
-        [SerializeField] private TextMeshProUGUI SliderEmotionText;
+        [SerializeField] private TextMeshProUGUI SliderEmotionText, SliderEmojiText;
         [SerializeField] private Slider Slider; 
 
         private SAAQAnswer currentAnswer;
 
-        public override void OnOpen()
+        public override void OnOpen(SAAQPrompt prompt)
         {
-            base.OnOpen();
+            base.OnOpen(prompt);
 
             Slider.minValue = 0;
             Slider.maxValue = _manager.currentSaaqAnswers.Length -1;
 
             Slider.value = (Slider.maxValue - Slider.minValue) / 2.0f;
+
+            currentAnswer = _manager.currentSaaqAnswers[(int)Slider.value];
+
+            SliderEmotionText.text = currentAnswer.displayName;
+            SliderEmojiText.text = currentAnswer.suggestedEmoji;
         }
 
         public void OnSliderChange(Slider slider)
@@ -26,7 +31,8 @@ namespace NX10
             if(_manager.currentSaaqAnswers != null)
                 currentAnswer = _manager.currentSaaqAnswers[(int)slider.value];
 
-            SliderEmotionText.text = currentAnswer.displayName.ToString();
+            SliderEmotionText.text = currentAnswer.displayName;
+            SliderEmojiText.text = currentAnswer.suggestedEmoji;
         }
 
         public void SubmitPressed()

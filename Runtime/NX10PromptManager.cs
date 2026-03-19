@@ -71,28 +71,7 @@ namespace NX10
             this.feelingContext = string.Empty;
             this.feelingFor = string.Empty;
 
-            PromptType promptType = ParsePromptType(prompt.type);
-            uiController.ShowPrompt(promptType);
-        }
-
-        private PromptType ParsePromptType(string promptType)
-        {
-            if (Enum.TryParse(promptType, true, out PromptType result))
-            {
-                return result;
-            }
-
-            throw new Exception("cant find prompt type " + promptType);
-        }
-
-        private FeelingType ParseFeeling(string feeling)
-        {
-            if (Enum.TryParse(feeling, true, out FeelingType result))
-            {
-                return result;
-            }
-
-            throw new Exception("cant find feeling type " +  feeling);
+            uiController.ShowPrompt(prompt);
         }
     }
 }

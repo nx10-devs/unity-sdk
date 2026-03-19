@@ -102,13 +102,24 @@ namespace NX10
             public Dictionary<string, object> metaData = new Dictionary<string, object>();
         }
 
+        [System.Serializable]
+        public class NX10SAAQTriggeredPayload
+        {
+            public string deviceSendTimestamp;
+            public string promptDisplayTimestamp;
+            public string promptAnswerTimestamp;
+            public string triggerID;
+            public string answerID;
+            public Dictionary<string, object> metaData = new Dictionary<string, object>();
+        }
+
         [Serializable]
         public class SAAQRequest
         {
             public string status;
             public SAAQData data;
 
-            public bool HasPrompt => data.prompt != null;
+            public bool HasPrompt => data.prompt.triggerID != null;
         }
 
         [Serializable]
@@ -375,6 +386,21 @@ namespace NX10
 #else
         return "Unknown";
 #endif
+        }
+
+        public void SendTriggeredSAAQData(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
+        {
+            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string saaqEndpoint = currentSession.GetEndpoint("saaq-triggered", "v1");
+            NX10SAAQTriggeredPayload payload = new NX10SAAQTriggeredPayload()
+            {
+                deviceSendTimestamp = timeStamp,
+                promptDisplayTimestamp = displayTimestamp,
+                promptAnswerTimestamp = answerTimestamp,
+                triggerID = triggerId,
+                answerID = answer.id,
+                metaData = new Dictionary<string, object>(currentGameAttributes)
+            };
         }
 
         public void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)

@@ -8,41 +8,41 @@ namespace NX10
 {
     public class ButtonPromptUi : PromptUi
     {
-        [Serializable]
-        public class FeelingButton
-        {
-            public FeelingType FeelingType;
-            public Button button;
-        }
+        [SerializeField] private PromptButton promptButtonBase;
 
-        [SerializeField] private List<FeelingButton> feelingButtons;
-        private Dictionary<FeelingType, Button> feelingButtonsDict = new Dictionary<FeelingType, Button>();
+        private List<PromptButton> promptButtons = new List<PromptButton>();
 
         public override void Initialise(NX10PromptManager promptManager)
         {
             base.Initialise(promptManager);
-
-            foreach (FeelingButton feelingButton in feelingButtons)
-            {
-                feelingButtonsDict.Add(feelingButton.FeelingType, feelingButton.button);
-                //feelingButton.button.image.sprite = NX10Manager.Instance.GetSprite(feelingButton.FeelingType);
-            }
         }
 
-        public override void OnOpen()
+        public override void OnOpen(SAAQPrompt prompt)
         {
-            base.OnOpen();
+            base.OnOpen(prompt);
 
-            foreach (FeelingButton feelingButton in feelingButtons)
+            promptButtonBase.gameObject.SetActive(true);
+
+            foreach (SAAQAnswer answer in prompt.answers)
             {
-                //feelingButton.button.gameObject.SetActive(_manager.currentSaaqAnswers.Contains(feelingButton.FeelingType));
+                PromptButton promptButton = Instantiate(promptButtonBase, promptButtonBase.transform.parent);
+                promptButtons.Add(promptButton);
+                promptButton.Initialise(answer);
+                promptButton.pressed += ButtonPressed;
             }
+
+            promptButtonBase.gameObject.SetActive(false);
         }
 
-        public void ButtonPressed(int feelingTypeIndex)
+        public void ButtonPressed(SAAQAnswer answer)
         {
-            /*FeelingType feelingType = (FeelingType) feelingTypeIndex;   
-            Submit(feelingType);*/
+            foreach(PromptButton promptButton in promptButtons)
+            {
+                promptButton.pressed -= ButtonPressed;
+            }
+
+            promptButtons.Clear();
+            Submit(answer);
         }
     }
 

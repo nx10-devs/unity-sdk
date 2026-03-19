@@ -46,10 +46,21 @@ namespace NX10
             onSAAQSubmitted.Invoke(answer);
         }
 
-        public void ShowPrompt(PromptType type)
+        public void ShowPrompt(SAAQPrompt prompt)
         {
-            currentPrompt = promptUiDict[type];
-            currentPrompt.OnOpen();
+            PromptType promptType = ParsePromptType(prompt.type);
+            currentPrompt = promptUiDict[promptType];
+            currentPrompt.OnOpen(prompt);
+        }
+
+        private PromptType ParsePromptType(string promptType)
+        {
+            if (Enum.TryParse(promptType, true, out PromptType result))
+            {
+                return result;
+            }
+
+            throw new Exception("cant find prompt type " + promptType);
         }
     }
 }
