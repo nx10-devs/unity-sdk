@@ -6,7 +6,7 @@ namespace NX10
 {
     public class SliderPromptUi : PromptUi
     {
-        [SerializeField] private TextMeshProUGUI SliderEmotionText, SliderEmojiText;
+        [SerializeField] private TextMeshProUGUI SliderEmotionText;
         [SerializeField] private Slider Slider; 
 
         private SAAQAnswer currentAnswer;
@@ -23,7 +23,6 @@ namespace NX10
             currentAnswer = _manager.currentSaaqAnswers[(int)Slider.value];
 
             SliderEmotionText.text = currentAnswer.displayName;
-            SliderEmojiText.text = currentAnswer.suggestedEmoji;
         }
 
         public void OnSliderChange(Slider slider)
@@ -32,7 +31,6 @@ namespace NX10
                 currentAnswer = _manager.currentSaaqAnswers[(int)slider.value];
 
             SliderEmotionText.text = currentAnswer.displayName;
-            SliderEmojiText.text = currentAnswer.suggestedEmoji;
         }
 
         public void SubmitPressed()
