@@ -34,6 +34,7 @@ namespace NX10
         private NX10PromptManager promptManager;
         private NX10BackendManager backendManager;
         private NX10TelemetryManager telemetryManager;
+        private NX10AnalyticsManager analyticsManager;
 
         public bool Initialised { get; private set; }
 
@@ -44,10 +45,17 @@ namespace NX10
             promptManager = GetComponentInChildren<NX10PromptManager>();
             backendManager = GetComponentInChildren<NX10BackendManager>();
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
+            analyticsManager = GetComponentInChildren<NX10AnalyticsManager>();
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
             promptManager.sendSaaqDataRequest += SendSaaqData;
             backendManager.OnPromptRequested += PromptRequested;
+            analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
+        }
+
+        private void AnalyticsManager_analyticsFired(string eventName, string sourceName)
+        {
+            backendManager.SendAnalytics(eventName, sourceName);
         }
 
         public void StartSession(SessionConfig sessionConfig, System.Action<bool> startSuccess)
@@ -56,6 +64,8 @@ namespace NX10
             {
                 Initialised = sessionStartSuccess;
                 startSuccess?.Invoke(sessionStartSuccess);
+
+                analyticsManager.FireEvent("app_started");
             });
         }
 

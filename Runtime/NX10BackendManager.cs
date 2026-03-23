@@ -114,6 +114,15 @@ namespace NX10
         }
 
         [Serializable]
+        public class NX10AnalyticsPayload
+        {
+            public string eventName;
+            public string sourceName;
+            public string clientTimestamp;
+            public Dictionary<string, object> eventData = new Dictionary<string, object>();
+        }
+
+        [Serializable]
         public class SAAQRequest
         {
             public string status;
@@ -426,7 +435,7 @@ namespace NX10
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             string saaqEndpoint = currentSession.GetEndpoint("saaq", "v1");
-            NX10SAAQPayload saaqResponse = new NX10SAAQPayload()
+            NX10SAAQPayload saaqPayload = new NX10SAAQPayload()
             {
                 deviceSendTimestamp = timeStamp,
                 promptDisplayTimestamp = promptDisplayTimestamp,
@@ -438,7 +447,7 @@ namespace NX10
                 metaData = new Dictionary<string, object>(currentGameAttributes)
             };
 
-            string nx10jsonData = JsonConvert.SerializeObject(saaqResponse);
+            string nx10jsonData = JsonConvert.SerializeObject(saaqPayload);
             Debug.Log(nx10jsonData);
             List<HeaderObject> headers = new List<HeaderObject>()
             {
@@ -446,6 +455,36 @@ namespace NX10
             };
 
             StartCoroutine(NX10PostRequest(saaqEndpoint, nx10jsonData, (success, message) =>
+            {
+                if (success)
+                {
+
+                }
+                else
+                {
+
+                }
+            }, headers));
+        }
+
+        public void SendAnalytics(string eventName, string sourceName)
+        {
+            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string analyticsEndpoint = currentSession.GetEndpoint("analytics", "v1");
+            NX10AnalyticsPayload analyticsPayload = new NX10AnalyticsPayload()
+            {
+                eventName = eventName,
+                sourceName = sourceName,
+                clientTimestamp = timeStamp,
+            };
+
+            string nx10jsonData = JsonConvert.SerializeObject(analyticsPayload);
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            StartCoroutine(NX10PostRequest(analyticsEndpoint, nx10jsonData, (success, message) =>
             {
                 if (success)
                 {

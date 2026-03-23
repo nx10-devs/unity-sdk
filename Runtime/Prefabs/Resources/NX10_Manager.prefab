@@ -279,6 +279,7 @@ Transform:
   - {fileID: 474530832427710043}
   - {fileID: 1373705716446522769}
   - {fileID: 6618393820989119034}
+  - {fileID: 7214082636428366456}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2118193475920352643
@@ -293,6 +294,51 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5af0c8e82f58df14c85c8515163b6883, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NX10Manager
+--- !u!1 &5774818563425820448
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7214082636428366456}
+  - component: {fileID: 7944644763640034406}
+  m_Layer: 0
+  m_Name: NX10AnalyticsManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7214082636428366456
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5774818563425820448}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3270453275827457883}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7944644763640034406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5774818563425820448}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f305e58341e76648b08e649416543ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NX10::NX10.NX10AnalyticsManager
+  sourceName: slice-n-dice
 --- !u!1 &6615638062156919921
 GameObject:
   m_ObjectHideFlags: 0
