@@ -119,7 +119,9 @@ namespace NX10
             public string eventName;
             public string sourceName;
             public string clientTimestamp;
-            public Dictionary<string, object> eventData = new Dictionary<string, object>();
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public Dictionary<string, object> eventData;
         }
 
         [Serializable]
@@ -467,7 +469,7 @@ namespace NX10
             }, headers));
         }
 
-        public void SendAnalytics(string eventName, string sourceName)
+        public void SendAnalytics(string eventName, string sourceName, Dictionary<string, object> metdata = null)
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             string analyticsEndpoint = currentSession.GetEndpoint("analytics", "v1");
@@ -477,6 +479,11 @@ namespace NX10
                 sourceName = sourceName,
                 clientTimestamp = timeStamp,
             };
+
+            if (metdata != null)
+            {
+                analyticsPayload.eventData = metdata;
+            }
 
             string nx10jsonData = JsonConvert.SerializeObject(analyticsPayload);
             List<HeaderObject> headers = new List<HeaderObject>()
