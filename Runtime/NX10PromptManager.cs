@@ -15,7 +15,7 @@ namespace NX10
     public enum FeelingType
     {
         VeryFrustrated = 0,
-        Frustated = 1,
+        Frustrated = 1,
         Neutral = 2,
         Enjoyment = 3,
         Ecstatic = 4,
