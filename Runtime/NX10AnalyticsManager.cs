@@ -5,17 +5,16 @@ namespace NX10
 {
     public class NX10AnalyticsManager : MonoBehaviour
     {
-        [SerializeField] private string sourceName;
+        private const string sourceName = "unity-sdk";
         public event Action<string, string> analyticsFired;
 
-        private void OnApplicationQuit()
+        public void FireEvent(string eventName, string overrideSourceName = "")
         {
-            FireEvent("app_closed");
-        }
+            string source = sourceName;
+            if(overrideSourceName != "")
+                source = overrideSourceName;
 
-        public void FireEvent(string eventName)
-        {
-            analyticsFired?.Invoke(eventName, sourceName);
+            analyticsFired?.Invoke(eventName, source);
         }
     }
 }

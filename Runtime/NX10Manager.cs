@@ -65,7 +65,7 @@ namespace NX10
                 Initialised = sessionStartSuccess;
                 startSuccess?.Invoke(sessionStartSuccess);
 
-                analyticsManager.FireEvent("app_started");
+                analyticsManager.FireEvent("session_started");
             });
         }
 
@@ -92,16 +92,19 @@ namespace NX10
         public void StartTelemetry()
         {
             telemetryManager.SetTelemetryCollection(true);
+            analyticsManager.FireEvent("client_started_telemetry");
         }
 
         public void StopTelemetry()
         {
             telemetryManager.SetTelemetryCollection(false);
+            analyticsManager.FireEvent("client_stopped_telemetry");
         }
 
         public void ShowPrompt(SAAQPrompt prompt, Action<SAAQAnswer> promptAnsweredAction)
         {
             promptManager.ShowPrompt(prompt, promptAnsweredAction);
+            analyticsManager.FireEvent("saaq_shown");
         }
 
         public void SendPromptAnswer(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
