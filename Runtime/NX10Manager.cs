@@ -53,9 +53,9 @@ namespace NX10
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
         }
 
-        private void AnalyticsManager_analyticsFired(string eventName, string sourceName)
+        private void AnalyticsManager_analyticsFired(string eventName, string sourceName, Dictionary<string, object> metaData = null)
         {
-            backendManager.SendAnalytics(eventName, sourceName);
+            backendManager.SendAnalytics(eventName, sourceName, metaData);
         }
 
         public void StartSession(SessionConfig sessionConfig, System.Action<bool> startSuccess)

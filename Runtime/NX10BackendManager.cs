@@ -491,6 +491,8 @@ namespace NX10
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
             };
 
+            Debug.Log(nx10jsonData);
+
             StartCoroutine(NX10PostRequest(analyticsEndpoint, nx10jsonData, (success, message) =>
             {
                 if (success)
@@ -529,7 +531,6 @@ namespace NX10
             {
                 success = true;
                 responseMessage = request.downloadHandler.text;
-                Debug.Log("Post Successful");
             }
             else
             {
