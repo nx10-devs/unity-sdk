@@ -1,4 +1,6 @@
+using CodiceApp.EventTracking.Plastic;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -36,6 +38,8 @@ namespace NX10
         private NX10TelemetryManager telemetryManager;
         private NX10AnalyticsManager analyticsManager;
 
+        private Queue<NX10AnalyticsManager.NX10AnalyticsEvent> unSentEvents = new Queue<NX10AnalyticsManager.NX10AnalyticsEvent>();
+
         public bool Initialised { get; private set; }
 
         public event Action<SAAQPrompt> OnPromptRequested;
@@ -53,9 +57,29 @@ namespace NX10
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
         }
 
-        private void AnalyticsManager_analyticsFired(string eventName, string sourceName, Dictionary<string, object> metaData = null)
+        private void AnalyticsManager_analyticsFired(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
         {
-            backendManager.SendAnalytics(eventName, sourceName, metaData);
+            if(!Initialised)
+            {
+                unSentEvents.Enqueue(analyticsEvent);
+            }
+            else
+            {
+                SendAnalytics(analyticsEvent);
+            }
+        }
+
+        private void SendUnsentAnalytics()
+        {
+            foreach(var e in unSentEvents)
+            {
+                SendAnalytics(e);
+            }
+        }
+
+        private void SendAnalytics(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
+        {
+            backendManager.SendAnalytics(analyticsEvent.eventName, analyticsEvent.sourceName, analyticsEvent.timeStamp, analyticsEvent.data);
         }
 
         public void StartSession(SessionConfig sessionConfig, System.Action<bool> startSuccess)
@@ -66,6 +90,7 @@ namespace NX10
                 startSuccess?.Invoke(sessionStartSuccess);
 
                 analyticsManager.FireEvent("session_started");
+                SendUnsentAnalytics();
             });
         }
 

@@ -469,9 +469,8 @@ namespace NX10
             }, headers));
         }
 
-        public void SendAnalytics(string eventName, string sourceName, Dictionary<string, object> metdata = null)
+        public void SendAnalytics(string eventName, string sourceName, string timeStamp, Dictionary<string, object> metdata = null)
         {
-            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             string analyticsEndpoint = currentSession.GetEndpoint("analytics", "v1");
             NX10AnalyticsPayload analyticsPayload = new NX10AnalyticsPayload()
             {
