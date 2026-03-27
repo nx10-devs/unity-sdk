@@ -92,13 +92,13 @@ namespace NX10
         public void StartTelemetry()
         {
             telemetryManager.SetTelemetryCollection(true);
-            analyticsManager.FireEvent("client_started_telemetry");
+            analyticsManager.FireEvent("telemetry_started");
         }
 
         public void StopTelemetry()
         {
             telemetryManager.SetTelemetryCollection(false);
-            analyticsManager.FireEvent("client_stopped_telemetry");
+            analyticsManager.FireEvent("telemetry_ended");
         }
 
         public void ShowPrompt(SAAQPrompt prompt, Action<SAAQAnswer> promptAnsweredAction)
