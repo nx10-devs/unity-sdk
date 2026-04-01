@@ -82,8 +82,28 @@ namespace NX10
             backendManager.SendAnalytics(analyticsEvent.eventName, analyticsEvent.sourceName, analyticsEvent.timeStamp, analyticsEvent.data);
         }
 
-        public void StartSession(SessionConfig sessionConfig, System.Action<bool> startSuccess)
+        public void StartSession(string email = null, string phoneNumber = null, Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
         {
+            UserIdentifiers identifiers = new UserIdentifiers
+            {
+                deviceId = SystemInfo.deviceUniqueIdentifier,
+                email = email,
+                phoneNumber = phoneNumber,
+            };
+
+            AppProvidedData appProvided = new AppProvidedData
+            {
+                metaData = metaData,
+                applicationVersion = Application.version,
+                buildNumber = Application.buildGUID
+            };
+
+            SessionConfig sessionConfig = new SessionConfig
+            {
+                Identifiers = identifiers,
+                AppProvidedData = appProvided
+            };
+
             backendManager.StartSession(sessionConfig, (sessionStartSuccess) =>
             {
                 Initialised = sessionStartSuccess;
