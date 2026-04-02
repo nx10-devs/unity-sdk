@@ -9,165 +9,8 @@ using UnityEngine.Networking;
 
 namespace NX10
 {
-    [Serializable]
-    public class SessionConfig
+    public class NX10NetworkingManager : MonoBehaviour
     {
-        public UserIdentifiers Identifiers;
-        public AppProvidedData AppProvidedData;
-    }
-
-    [Serializable]
-    public class UserIdentifiers
-    {
-        public string deviceId;
-        public string email;
-        public string phoneNumber;
-    }
-
-    [Serializable]
-    public class SDKData
-    {
-        public DeviceInfo device;
-        public string sdkVersion;
-        public string sdkType;
-    }
-
-    [Serializable]
-    public class DeviceInfo
-    {
-        public string type;
-        public string os;
-        public string osVersion;
-        public string deviceVersion;
-        public string deviceVariant;
-    }
-
-    [Serializable]
-    public class AppProvidedData
-    {
-        public Dictionary<string, object> metaData;
-        public string applicationVersion;
-        public string buildNumber;
-    }
-
-    [Serializable]
-    public class SAAQPrompt
-    {
-        public string triggerID;
-        public string type;
-        public string questionText;
-        public List<SAAQAnswer> answers;
-    }
-
-
-    [Serializable]
-    public class SAAQAnswer
-    {
-        public string displayName;
-        public string feelingsType;
-        public string id;
-        public string suggestedEmoji;
-    }
-
-
-    public class NX10BackendManager : MonoBehaviour
-    {
-        [Serializable]
-        public class SessionStartPayload
-        {
-            public string apiKey;
-            public UserIdentifiers identifiers;
-            public SDKData sdkProvided;
-            public AppProvidedData appProvided;
-        }
-
-        [System.Serializable]
-        public class NX10TelemetryPayload
-        {
-            public string bts;
-            public double ets;
-            public object[][] d;
-        }
-
-        [System.Serializable]
-        public class NX10SAAQPayload
-        {
-            public string deviceSendTimestamp;
-            public string promptDisplayTimestamp;
-            public string promptAnswerTimestamp;
-            public string feeling;
-            public string saaqType;
-            public string feelingContext;
-            public string feelingFor;
-            public Dictionary<string, object> metaData = new Dictionary<string, object>();
-        }
-
-        [System.Serializable]
-        public class NX10SAAQTriggeredPayload
-        {
-            public string deviceSendTimestamp;
-            public string promptDisplayTimestamp;
-            public string promptAnswerTimestamp;
-            public string triggerID;
-            public string answerID;
-            public Dictionary<string, object> metaData = new Dictionary<string, object>();
-        }
-
-        [Serializable]
-        public class NX10AnalyticsPayload
-        {
-            public string eventName;
-            public string sourceName;
-            public string clientTimestamp;
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public Dictionary<string, object> eventData;
-        }
-
-        [Serializable]
-        public class SAAQRequest
-        {
-            public string status;
-            public SAAQData data;
-
-            public bool HasPrompt => data.prompt.triggerID != null;
-        }
-
-        [Serializable]
-        public class SAAQData
-        {
-            public SAAQPrompt prompt;
-        }
-
-        [Serializable]
-        public class AttributesPayload
-        {
-            public string timestamp;
-            public Dictionary<string, object> data;
-        }
-
-       
-        [Serializable]
-        public class SessionStartResponse
-        {
-            public SessionStartData data;
-        }
-
-        [Serializable]
-        public class SessionStartData
-        {
-            public string token;
-            public List<EndpointInfo> endpoints;
-        }
-
-        [Serializable]
-        public class EndpointInfo
-        {
-            public string location;
-            public string type;
-            public string version;
-        }
-
         #region Headers
         public class HeaderObject
         {
@@ -182,78 +25,11 @@ namespace NX10
         }
         #endregion
 
-        private Dictionary<string, object> currentGameAttributes = new Dictionary<string, object>();
         private NX10SDKSession currentSession;
 
-        public Action<SAAQPrompt> OnPromptRequested;
+        public Action<SAAQBlock> OnPromptRequested;
 
-        public void SetAttributes(Dictionary<string, object> attributes)
-        {
-            foreach (var kvp in attributes)
-            {
-                string key = kvp.Key;
-                object value = kvp.Value;
-
-                SetAttribute(key, value);
-            }
-
-            if (!NX10Manager.Instance.Initialised)
-            {
-                return;
-            }
-
-            SendAttributes();
-        }
-
-        public void SetAttribute(string key, object value, bool sendAttributes = false)
-        {
-            if (!NX10Manager.Instance.Initialised)
-            {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before setting an attribute");
-                return;
-            }
-
-            if (!currentGameAttributes.TryGetValue(key, out var existingValue))
-            {
-                currentGameAttributes[key] = value;
-            }
-            else if (!Equals(existingValue, value))
-            {
-                currentGameAttributes[key] = value;
-            }
-
-            if (sendAttributes)
-                SendAttributes();
-        }
-
-        public void RemoveAttribute(string key)
-        {
-            if (!NX10Manager.Instance.Initialised)
-            {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before removing an attribute");
-                return;
-            }
-
-            if (currentGameAttributes.ContainsKey(key))
-            {
-                currentGameAttributes.Remove(key);
-                SendAttributes();
-            }
-        }
-
-        public void ClearAttributes()
-        {
-            if (!NX10Manager.Instance.Initialised)
-            {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before clearing attributes");
-                return;
-            }
-
-            currentGameAttributes.Clear();
-            SendAttributes();
-        }
-
-        private void SendAttributes()
+        public void SendAttributes(Dictionary<string, object> currentGameAttributes)
         {
             List<HeaderObject> headers = new List<HeaderObject>()
             {
@@ -262,7 +38,7 @@ namespace NX10
 
             string attributesEndPoint = currentSession.GetEndpoint("attributes", "v1");
             string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            AttributesPayload attributesPayload = new AttributesPayload()
+            NX10AttributesPayload attributesPayload = new NX10AttributesPayload()
             {
                 timestamp = timestamp,
                 data = currentGameAttributes
@@ -329,7 +105,7 @@ namespace NX10
                 sdkType = "unity"
             };
 
-            SessionStartPayload payload = new SessionStartPayload
+            NX10SessionStartPayload payload = new NX10SessionStartPayload
             {
                 apiKey = apiKey,
                 identifiers = sessionConfig.Identifiers,
@@ -377,12 +153,12 @@ namespace NX10
 
         private void HandleIncomingSAAQ(string json)
         {
-            SAAQRequest request = JsonUtility.FromJson<SAAQRequest>(json);
+            SAAQResponse request = JsonUtility.FromJson<SAAQResponse>(json);
 
             if (request.status == "success" && request.HasPrompt)
             {
                 Debug.Log($"Trigger Received: {request.data.prompt.questionText}");
-                OnPromptRequested.Invoke(request.data.prompt);
+                //OnPromptRequested.Invoke(request.data.prompt);
             }
         }
 
@@ -410,7 +186,7 @@ namespace NX10
                 promptAnswerTimestamp = answerTimestamp,
                 triggerID = triggerId,
                 answerID = answer.id,
-                metaData = new Dictionary<string, object>(currentGameAttributes)
+                metaData = new Dictionary<string, object>()
             };
 
             string nx10jsonData = JsonConvert.SerializeObject(payload);
@@ -446,7 +222,7 @@ namespace NX10
                 saaqType = feelingModalType,
                 feelingContext = feelingContext,
                 feelingFor = feelingFor,
-                metaData = new Dictionary<string, object>(currentGameAttributes)
+                metaData = new Dictionary<string, object>()
             };
 
             string nx10jsonData = JsonConvert.SerializeObject(saaqPayload);

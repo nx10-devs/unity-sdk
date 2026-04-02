@@ -7,14 +7,14 @@ namespace NX10
     public class NX10SDKSession
     {
         public string Token { get; private set; }
-        public IReadOnlyList<NX10BackendManager.EndpointInfo> Endpoints => _endpoints;
+        public IReadOnlyList<EndpointInfo> Endpoints => _endpoints;
 
-        private List<NX10BackendManager.EndpointInfo> _endpoints = new List<NX10BackendManager.EndpointInfo>();
+        private List<EndpointInfo> _endpoints = new List<EndpointInfo>();
 
-        public void Initialize(NX10BackendManager.SessionStartData data)
+        public void Initialize(SessionStartData data)
         {
             Token = data.token;
-            _endpoints = data.endpoints ?? new List<NX10BackendManager.EndpointInfo>();
+            _endpoints = data.endpoints ?? new List<EndpointInfo>();
         }
 
         public string GetEndpoint(string type, string version)

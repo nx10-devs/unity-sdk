@@ -34,9 +34,10 @@ namespace NX10
         }
 
         private NX10PromptManager promptManager;
-        private NX10BackendManager backendManager;
+        private NX10NetworkingManager backendManager;
         private NX10TelemetryManager telemetryManager;
         private NX10AnalyticsManager analyticsManager;
+        private NX10AttributesManager attributesManager;
 
         private Queue<NX10AnalyticsManager.NX10AnalyticsEvent> unSentEvents = new Queue<NX10AnalyticsManager.NX10AnalyticsEvent>();
 
@@ -47,14 +48,21 @@ namespace NX10
         protected void Awake()
         {
             promptManager = GetComponentInChildren<NX10PromptManager>();
-            backendManager = GetComponentInChildren<NX10BackendManager>();
+            backendManager = GetComponentInChildren<NX10NetworkingManager>();
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
             analyticsManager = GetComponentInChildren<NX10AnalyticsManager>();
+            attributesManager = GetComponentInChildren<NX10AttributesManager>();
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
             promptManager.sendSaaqDataRequest += SendSaaqData;
             backendManager.OnPromptRequested += PromptRequested;
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
+            attributesManager.sendAttributesRequest += SendAttributeRequest;
+        }
+
+        private void SendAttributeRequest(Dictionary<string, object> attributes)
+        {
+            backendManager.SendAttributes(attributes);
         }
 
         private void AnalyticsManager_analyticsFired(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
@@ -116,22 +124,22 @@ namespace NX10
 
         public void SetAttributes(Dictionary<string, object> attributes)
         {
-            backendManager.SetAttributes(attributes);
+            attributesManager.SetAttributes(attributes);
         }
 
         public void SetAttribute(string attributeKey, object attributeValue)
         {
-            backendManager.SetAttribute(attributeKey, attributeValue, true);
+            attributesManager.SetAttribute(attributeKey, attributeValue, true);
         }
 
         public void RemoveAttribute(string attributeKey)
         {
-            backendManager.RemoveAttribute(attributeKey);
+            attributesManager.RemoveAttribute(attributeKey);
         }
 
         public void ClearAttributes()
         {
-            backendManager.ClearAttributes();
+            attributesManager.ClearAttributes();
         }
 
         public void StartTelemetry()
