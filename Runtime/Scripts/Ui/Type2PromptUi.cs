@@ -105,7 +105,7 @@ namespace NX10
                 NX10Manager.Instance.ShowPrompt(option.followonQuestion[0], dismissable, (answer) =>
                 {
                     SelectedFeeling selectedFeeling = new SelectedFeeling();
-                    selectedFeeling.feelingType = option.feeling.feelingsType.ToString();
+                    selectedFeeling.feelingType = option.feeling.feelingsType.ToString().ToLower();
 
                     if (answer.type == "answered")
                     {
@@ -141,7 +141,7 @@ namespace NX10
             foreach (SAAQOption option in selectedOptions)
             {
                 SelectedFeeling selectedFeeling = new SelectedFeeling();
-                selectedFeeling.feelingType = option.feeling.feelingsType.ToString();
+                selectedFeeling.feelingType = option.feeling.feelingsType.ToString().ToLower();
                 selectedFeeling.followonAnswer = null;
 
                 currentAnswer.data.selectedValues.Add(selectedFeeling);
