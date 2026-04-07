@@ -93,6 +93,11 @@ namespace NX10
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public SAAQAnswerData data;
+
+        public SAAQAnswer()
+        {
+            data = new SAAQAnswerData();
+        }
     }
 
     [Serializable]
@@ -109,6 +114,7 @@ namespace NX10
     public class SelectedFeeling
     {
         public string feelingType;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public FollowonAnswer followonAnswer;
     }
 

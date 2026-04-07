@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -7,7 +8,7 @@ namespace NX10
     public class SAAQResponse
     {
         public string status;
-        public SAAQData data;
+        public SAAQData data = null;
 
         public bool HasPrompt => data != null;
     }
@@ -17,7 +18,17 @@ namespace NX10
     {
         public string triggerID;
         public bool dismissable;
+        public SAAQDisplayBehaviour displayBehaviour;
         public SAAQBlock prompt;
+    }
+
+
+    [Serializable]
+    public class SAAQDisplayBehaviour
+    {
+        public string blockType;
+        public int timeoutSeconds;
+        public string id;
     }
 
     [Serializable]
@@ -30,12 +41,12 @@ namespace NX10
         // Logic for saaqType1 (Slider)
         public string leftAnchorValue;
         public string rightAnchorValue;
-        public int? rangeSize;
-        public int? startingValue;
-        public bool? confirmButtonEnabled;
+        public int rangeSize;
+        public int startingValue;
+        public bool confirmButtonEnabled;
 
         // Logic for saaqType2 (Multiple Choice / Categorical)
-        public bool? multipleSelect;
+        public bool multipleSelect;
         public List<SAAQOption> options;
     }
 

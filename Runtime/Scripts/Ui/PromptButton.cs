@@ -6,19 +6,19 @@ namespace NX10
     public class PromptButton : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI feelingText;
-        private SAAQAnswer answer;
+        private SAAQOption option;
 
-        public System.Action<SAAQAnswer> pressed;
+        public System.Action<SAAQOption> pressed;
 
-        public void Initialise(SAAQAnswer answer)
+        public void Initialise(SAAQOption option)
         {
-            this.answer = answer;
-            //feelingText.text = answer.displayName;
+            this.option = option;
+            feelingText.text = option.feeling.displayName;
         }
 
         public void OnPressed()
         {
-            pressed?.Invoke(answer);
+            pressed?.Invoke(option);
         }
     }
 }

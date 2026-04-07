@@ -22,10 +22,12 @@ namespace NX10
             }
         }
 
-        public virtual void OnOpen(SAAQData promptData)
+        public virtual void OnOpen(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
-            questionText.text = promptData.prompt.questionText;
-            dismissButton.gameObject.SetActive(promptData.dismissable);
+            onSubmit = promptAnsweredAction;
+
+            questionText.text = promptData.questionText;
+            dismissButton.gameObject.SetActive(dismissable);
 
             gameObject.SetActive(true);
         }

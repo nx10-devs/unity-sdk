@@ -30,8 +30,6 @@ namespace NX10
         [SerializeField] private PromptUiController uiController;
         public PromptUiController PromptUiController => uiController;
 
-        private Action<SAAQAnswer> promptAnsweredAction;
-
         private string triggerId;
         private string promptDisplayTimestamp = "";
         private string promptAnswerTimestamp = "";
@@ -39,27 +37,18 @@ namespace NX10
         private void Start()
         {
             PromptUiController.Initialise(this);
-            PromptUiController.onSAAQSubmitted += PromptUiController_onSAAQSubmitted;
-        }
-
-        private void OnDestroy()
-        {
-            PromptUiController.onSAAQSubmitted -= PromptUiController_onSAAQSubmitted;
-        }
-
-        private void PromptUiController_onSAAQSubmitted(SAAQAnswer answer)
-        {
-            promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            promptAnsweredAction.Invoke(answer);
         }
 
         public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer> promptAnsweredAction)
         {
             this.promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             this.triggerId = promptData.triggerID;
-            this.promptAnsweredAction = promptAnsweredAction;
 
-            uiController.ShowPrompt(promptData);
+            uiController.ShowPrompt(promptData.prompt, promptData.dismissable, (answer) =>
+            {
+                promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                promptAnsweredAction(answer);
+            });
         }
     }
 }

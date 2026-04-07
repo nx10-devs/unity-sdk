@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,28 +18,30 @@ namespace NX10
             base.Initialise(promptManager);
         }
 
-        public override void OnOpen(SAAQData promptData)
+        public override void OnOpen(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
-            base.OnOpen(promptData);
+            base.OnOpen(promptData, dismissable, promptAnsweredAction);
 
             currentAnswer = new SAAQAnswer();
 
             Slider.minValue = 0;
-            Slider.maxValue = promptData.prompt.rangeSize.Value;
-            Slider.value = promptData.prompt.startingValue.Value;
+            Slider.maxValue = promptData.rangeSize;
+            Slider.value = promptData.startingValue;
 
-            submitButton.interactable = promptData.prompt.confirmButtonEnabled.Value;
+            submitButton.interactable = promptData.confirmButtonEnabled;
 
             currentAnswer.data.selectedValue = (int)Slider.value;
             currentAnswer.data.selectedValues = null;
 
-            leftAnchorText.text = promptData.prompt.leftAnchorValue;
-            rightAnchorText.text = promptData.prompt.rightAnchorValue;
+            leftAnchorText.text = promptData.leftAnchorValue;
+            rightAnchorText.text = promptData.rightAnchorValue;
         }
 
         public void OnSliderChange(Slider slider)
         {
-            currentAnswer.data.selectedValue = (int)Slider.value;
+            if(currentAnswer != null) 
+                currentAnswer.data.selectedValue = (int)Slider.value;
+
             submitButton.interactable = true;
         }
 

@@ -78,7 +78,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 3299439065979342104}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 98c9a0ba102e843adbdd7efafe0f9267, type: 3}
+  m_Script: {fileID: 11500000, guid: 8231ee8dbee09054cb32f80d50e2e812, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NX10Manager
 --- !u!1 &4717045626657959527
@@ -280,6 +280,7 @@ Transform:
   - {fileID: 1373705716446522769}
   - {fileID: 6618393820989119034}
   - {fileID: 7214082636428366456}
+  - {fileID: 5576008223299184873}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2118193475920352643
@@ -338,7 +339,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f305e58341e76648b08e649416543ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: NX10::NX10.NX10AnalyticsManager
-  sourceName: slice-n-dice
 --- !u!1 &6615638062156919921
 GameObject:
   m_ObjectHideFlags: 0
@@ -350,7 +350,7 @@ GameObject:
   - component: {fileID: 474530832427710043}
   - component: {fileID: 361365984997421471}
   m_Layer: 0
-  m_Name: PromptManager
+  m_Name: NX10PromptManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -385,6 +385,50 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PromptManager
   uiController: {fileID: 4574304103880144211}
+--- !u!1 &8037812480272504634
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5576008223299184873}
+  - component: {fileID: 2970842054273412801}
+  m_Layer: 0
+  m_Name: NX10AttributesManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5576008223299184873
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8037812480272504634}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3270453275827457883}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2970842054273412801
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8037812480272504634}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87121b8d434f3c2428f257169e560e2b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NX10::NX10.NX10AttributesManager
 --- !u!1001 &2519843909508978033
 PrefabInstance:
   m_ObjectHideFlags: 0

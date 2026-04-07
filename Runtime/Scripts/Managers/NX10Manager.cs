@@ -34,7 +34,7 @@ namespace NX10
         }
 
         private NX10PromptManager promptManager;
-        private NX10NetworkingManager backendManager;
+        private NX10NetworkingManager networkingManager;
         private NX10TelemetryManager telemetryManager;
         private NX10AnalyticsManager analyticsManager;
         private NX10AttributesManager attributesManager;
@@ -48,20 +48,20 @@ namespace NX10
         protected void Awake()
         {
             promptManager = GetComponentInChildren<NX10PromptManager>();
-            backendManager = GetComponentInChildren<NX10NetworkingManager>();
+            networkingManager = GetComponentInChildren<NX10NetworkingManager>();
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
             analyticsManager = GetComponentInChildren<NX10AnalyticsManager>();
             attributesManager = GetComponentInChildren<NX10AttributesManager>();
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
-            backendManager.OnPromptRequested += PromptRequested;
+            networkingManager.OnPromptRequested += PromptRequested;
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
             attributesManager.sendAttributesRequest += SendAttributeRequest;
         }
 
         private void SendAttributeRequest(Dictionary<string, object> attributes)
         {
-            backendManager.SendAttributes(attributes);
+            networkingManager.SendAttributes(attributes);
         }
 
         private void AnalyticsManager_analyticsFired(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
@@ -86,7 +86,7 @@ namespace NX10
 
         private void SendAnalytics(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
         {
-            backendManager.SendAnalytics(analyticsEvent.eventName, analyticsEvent.sourceName, analyticsEvent.timeStamp, analyticsEvent.data);
+            networkingManager.SendAnalytics(analyticsEvent.eventName, analyticsEvent.sourceName, analyticsEvent.timeStamp, analyticsEvent.data);
         }
 
         public void StartSession(string email = null, string phoneNumber = null, Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
@@ -111,7 +111,7 @@ namespace NX10
                 AppProvidedData = appProvided
             };
 
-            backendManager.StartSession(sessionConfig, (sessionStartSuccess) =>
+            networkingManager.StartSession(sessionConfig, (sessionStartSuccess) =>
             {
                 Initialised = sessionStartSuccess;
                 startSuccess?.Invoke(sessionStartSuccess);
@@ -161,12 +161,12 @@ namespace NX10
 
         public void SendPromptAnswer(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
         {
-            backendManager.SendTriggeredSAAQData(answer, displayTimestamp, answerTimestamp, triggerId);
+            networkingManager.SendTriggeredSAAQData(answer, displayTimestamp, answerTimestamp, triggerId);
         }
 
         private void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
-            backendManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
+            networkingManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
         }
 
         private void PromptRequested(SAAQData promptData)

@@ -153,7 +153,7 @@ namespace NX10
 
         private void HandleIncomingSAAQ(string json)
         {
-            SAAQResponse request = JsonUtility.FromJson<SAAQResponse>(json);
+            SAAQResponse request = JsonConvert.DeserializeObject<SAAQResponse>(json);
 
             if (request.status == "success" && request.HasPrompt)
             {
