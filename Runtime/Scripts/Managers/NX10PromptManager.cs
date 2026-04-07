@@ -30,23 +30,17 @@ namespace NX10
         [SerializeField] private PromptUiController uiController;
         public PromptUiController PromptUiController => uiController;
 
-        private string triggerId;
-        private string promptDisplayTimestamp = "";
-        private string promptAnswerTimestamp = "";
+       
 
         private void Start()
         {
             PromptUiController.Initialise(this);
         }
 
-        public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer> promptAnsweredAction)
+        public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
-            this.promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            this.triggerId = promptData.triggerID;
-
-            uiController.ShowPrompt(promptData.prompt, promptData.dismissable, (answer) =>
+            uiController.ShowPrompt(promptData, dismissable, (answer) =>
             {
-                promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
                 promptAnsweredAction(answer);
             });
         }

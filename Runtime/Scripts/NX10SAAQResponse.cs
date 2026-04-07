@@ -61,7 +61,7 @@ namespace NX10
     public class Feeling
     {
         public string id;
-        public string feelingsType;
+        public FeelingType feelingsType;
         public string displayName;
         public string suggestedEmoji;
     }

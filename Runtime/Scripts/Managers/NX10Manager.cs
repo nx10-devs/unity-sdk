@@ -153,9 +153,9 @@ namespace NX10
             analyticsManager.FireEvent("telemetry_ended");
         }
 
-        public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer> promptAnsweredAction)
+        public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
-            promptManager.ShowPrompt(promptData, promptAnsweredAction);
+            promptManager.ShowPrompt(promptData, dismissable, promptAnsweredAction);
             analyticsManager.FireEvent("saaq_shown");
         }
 

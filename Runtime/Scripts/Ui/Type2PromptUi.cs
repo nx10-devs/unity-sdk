@@ -13,6 +13,7 @@ namespace NX10
         private List<PromptButton> promptButtons = new List<PromptButton>();
 
         private SAAQBlock promptData;
+        private bool dismissable;
 
         private List<SAAQOption> selectedOptions;
 
@@ -36,6 +37,7 @@ namespace NX10
             base.OnOpen(promptData, dismissable, promptAnsweredAction);
 
             this.promptData = promptData;
+            this.dismissable = dismissable;
             selectedOptions = new List<SAAQOption>();
 
             currentAnswer = new SAAQAnswer();
@@ -97,9 +99,27 @@ namespace NX10
 
         private void CheckFollowUp(SAAQOption option)
         {
+            gameObject.SetActive(false);
             if (option.followonQuestion != null)
             {
+                NX10Manager.Instance.ShowPrompt(option.followonQuestion[0], dismissable, (answer) =>
+                {
+                    SelectedFeeling selectedFeeling = new SelectedFeeling()
+                    {
+                        feelingType = option.feeling.feelingsType.ToString(),
+                        followonAnswer = new FollowonAnswer()
+                        {
+                            selectedValue = answer.data.selectedValue.Value
+                        }
+                    };
 
+                    currentAnswer.data.selectedValues = new List<SelectedFeeling>()
+                    {
+                        selectedFeeling
+                    };
+
+                    Submit(currentAnswer);
+                });
             }
             else
             {
@@ -118,7 +138,7 @@ namespace NX10
             foreach (SAAQOption option in selectedOptions)
             {
                 SelectedFeeling selectedFeeling = new SelectedFeeling();
-                selectedFeeling.feelingType = option.feeling.feelingsType;
+                selectedFeeling.feelingType = option.feeling.feelingsType.ToString();
                 selectedFeeling.followonAnswer = null;
 
                 currentAnswer.data.selectedValues.Add(selectedFeeling);
