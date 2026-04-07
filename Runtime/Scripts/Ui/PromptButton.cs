@@ -1,11 +1,13 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace NX10
 {
     public class PromptButton : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI feelingText;
+             
         private SAAQOption option;
 
         public System.Action<SAAQOption> pressed;
