@@ -47,11 +47,13 @@ namespace NX10
 
         public void DismissPressed()
         {
+            currentAnswer.data = null;
             OnDismiss(currentAnswer);
         }
 
         public void SubmitPressed()
         {
+            currentAnswer.type = "answered";
             Submit(currentAnswer);
         }
     }

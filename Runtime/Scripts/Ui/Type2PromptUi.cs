@@ -104,14 +104,17 @@ namespace NX10
             {
                 NX10Manager.Instance.ShowPrompt(option.followonQuestion[0], dismissable, (answer) =>
                 {
-                    SelectedFeeling selectedFeeling = new SelectedFeeling()
+                    SelectedFeeling selectedFeeling = new SelectedFeeling();
+                    selectedFeeling.feelingType = option.feeling.feelingsType.ToString();
+
+                    if (answer.type == "answered")
                     {
-                        feelingType = option.feeling.feelingsType.ToString(),
-                        followonAnswer = new FollowonAnswer()
+                        selectedFeeling.followonAnswer = new FollowonAnswer()
                         {
                             selectedValue = answer.data.selectedValue.Value
-                        }
-                    };
+                        };
+                    }
+                    else currentAnswer.type = "partial";
 
                     currentAnswer.data.selectedValues = new List<SelectedFeeling>()
                     {
@@ -144,6 +147,7 @@ namespace NX10
                 currentAnswer.data.selectedValues.Add(selectedFeeling);
             }
 
+            currentAnswer.type = "answered";
             Submit(currentAnswer);
         }
     }

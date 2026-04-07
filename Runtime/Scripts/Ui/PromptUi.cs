@@ -40,7 +40,6 @@ namespace NX10
         protected void OnDismiss(SAAQAnswer answer)
         {
             answer.type = "dismissed";
-            answer.data = null;
 
             onSubmit.Invoke(answer);
             OnClose();
@@ -49,8 +48,6 @@ namespace NX10
 
         protected void Submit(SAAQAnswer answer)
         {
-            answer.type = "answered";
-
             onSubmit.Invoke(answer);
             OnClose();
         }
