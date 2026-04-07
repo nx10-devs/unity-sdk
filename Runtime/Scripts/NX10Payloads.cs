@@ -75,15 +75,47 @@ namespace NX10
         public Dictionary<string, object> metaData = new Dictionary<string, object>();
     }
 
-    [System.Serializable]
+    [Serializable]
     public class NX10SAAQTriggeredPayload
     {
+        public string triggerID;
+        public SAAQAnswer answer;
         public string deviceSendTimestamp;
         public string promptDisplayTimestamp;
-        public string promptAnswerTimestamp;
-        public string triggerID;
-        public string answerID;
+        public string promptClosedTimestamp;
         public Dictionary<string, object> metaData = new Dictionary<string, object>();
+    }
+
+    [Serializable]
+    public class SAAQAnswer
+    {
+        public string type; // "answered" or "dismissed"
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public SAAQAnswerData data;
+    }
+
+    [Serializable]
+    public class SAAQAnswerData
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? selectedValue;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<SelectedFeeling> selectedValues;
+    }
+
+    [Serializable]
+    public class SelectedFeeling
+    {
+        public string feelingType;
+        public FollowonAnswer followonAnswer;
+    }
+
+    [Serializable]
+    public class FollowonAnswer
+    {
+        public int selectedValue;
     }
 
     [Serializable]

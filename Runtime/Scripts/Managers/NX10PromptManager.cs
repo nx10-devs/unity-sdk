@@ -32,16 +32,9 @@ namespace NX10
 
         private Action<SAAQAnswer> promptAnsweredAction;
 
-        private string promptType = "modal2";
-        private string feelingContext = "menu";
-        private string feelingFor = "coins";
+        private string triggerId;
         private string promptDisplayTimestamp = "";
         private string promptAnswerTimestamp = "";
-
-        public SAAQAnswer[] currentSaaqAnswers { get; private set; }
-
-        public Action<SAAQAnswer, string, string, string, string, string> sendSaaqDataRequest;
-
 
         private void Start()
         {
@@ -60,18 +53,13 @@ namespace NX10
             promptAnsweredAction.Invoke(answer);
         }
 
-        public void ShowPrompt(SAAQPrompt prompt, Action<SAAQAnswer> promptAnsweredAction)
+        public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer> promptAnsweredAction)
         {
-            promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-            this.promptType = prompt.type;
-            this.currentSaaqAnswers = prompt.answers.ToArray();
+            this.promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            this.triggerId = promptData.triggerID;
             this.promptAnsweredAction = promptAnsweredAction;
 
-            this.feelingContext = string.Empty;
-            this.feelingFor = string.Empty;
-
-            uiController.ShowPrompt(prompt);
+            uiController.ShowPrompt(promptData);
         }
     }
 }

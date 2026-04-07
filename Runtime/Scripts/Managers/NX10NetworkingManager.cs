@@ -27,7 +27,7 @@ namespace NX10
 
         private NX10SDKSession currentSession;
 
-        public Action<SAAQBlock> OnPromptRequested;
+        public Action<SAAQData> OnPromptRequested;
 
         public void SendAttributes(Dictionary<string, object> currentGameAttributes)
         {
@@ -158,7 +158,7 @@ namespace NX10
             if (request.status == "success" && request.HasPrompt)
             {
                 Debug.Log($"Trigger Received: {request.data.prompt.questionText}");
-                //OnPromptRequested.Invoke(request.data.prompt);
+                OnPromptRequested.Invoke(request.data);
             }
         }
 
@@ -175,17 +175,17 @@ namespace NX10
 #endif
         }
 
-        public void SendTriggeredSAAQData(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
+        public void SendTriggeredSAAQData(SAAQAnswer answer, string displayTimestamp, string closedTimestamp, string triggerId)
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             string saaqEndpoint = currentSession.GetEndpoint("saaq-triggered", "v1");
             NX10SAAQTriggeredPayload payload = new NX10SAAQTriggeredPayload()
             {
+                triggerID = triggerId,
+                answer = answer,
                 deviceSendTimestamp = timeStamp,
                 promptDisplayTimestamp = displayTimestamp,
-                promptAnswerTimestamp = answerTimestamp,
-                triggerID = triggerId,
-                answerID = answer.id,
+                promptClosedTimestamp = closedTimestamp,
                 metaData = new Dictionary<string, object>()
             };
 

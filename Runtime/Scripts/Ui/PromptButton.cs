@@ -13,7 +13,7 @@ namespace NX10
         public void Initialise(SAAQAnswer answer)
         {
             this.answer = answer;
-            feelingText.text = answer.displayName;
+            //feelingText.text = answer.displayName;
         }
 
         public void OnPressed()

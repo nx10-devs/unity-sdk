@@ -1,13 +1,17 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace NX10
 {
     public class PromptUi : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI questionText;
+        [SerializeField] private Button dismissButton;
+
         protected NX10PromptManager _manager;
+
         public event Action<SAAQAnswer> onSubmit;
 
         public virtual void Initialise(NX10PromptManager promptManager)
@@ -18,9 +22,11 @@ namespace NX10
             }
         }
 
-        public virtual void OnOpen(SAAQPrompt prompt)
+        public virtual void OnOpen(SAAQData promptData)
         {
-            questionText.text = prompt.questionText;
+            questionText.text = promptData.prompt.questionText;
+            dismissButton.gameObject.SetActive(promptData.dismissable);
+
             gameObject.SetActive(true);
         }
 
@@ -29,8 +35,20 @@ namespace NX10
             gameObject.SetActive(false);
         }
 
+        protected void OnDismiss(SAAQAnswer answer)
+        {
+            answer.type = "dismissed";
+            answer.data = null;
+
+            onSubmit.Invoke(answer);
+            OnClose();
+        }
+
+
         protected void Submit(SAAQAnswer answer)
         {
+            answer.type = "answered";
+
             onSubmit.Invoke(answer);
             OnClose();
         }

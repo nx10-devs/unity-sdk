@@ -43,7 +43,7 @@ namespace NX10
 
         public bool Initialised { get; private set; }
 
-        public event Action<SAAQPrompt> OnPromptRequested;
+        public event Action<SAAQData> OnPromptRequested;
 
         protected void Awake()
         {
@@ -54,7 +54,6 @@ namespace NX10
             attributesManager = GetComponentInChildren<NX10AttributesManager>();
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
-            promptManager.sendSaaqDataRequest += SendSaaqData;
             backendManager.OnPromptRequested += PromptRequested;
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
             attributesManager.sendAttributesRequest += SendAttributeRequest;
@@ -154,9 +153,9 @@ namespace NX10
             analyticsManager.FireEvent("telemetry_ended");
         }
 
-        public void ShowPrompt(SAAQPrompt prompt, Action<SAAQAnswer> promptAnsweredAction)
+        public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer> promptAnsweredAction)
         {
-            promptManager.ShowPrompt(prompt, promptAnsweredAction);
+            promptManager.ShowPrompt(promptData, promptAnsweredAction);
             analyticsManager.FireEvent("saaq_shown");
         }
 
@@ -165,19 +164,14 @@ namespace NX10
             backendManager.SendTriggeredSAAQData(answer, displayTimestamp, answerTimestamp, triggerId);
         }
 
-        private void SendSaaqData(SAAQAnswer answer, string promptType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string promptAnswerTimestamp)
-        {
-            backendManager.SendSaaqData(answer.feelingsType, 0, promptType, feelingContext, feelingFor, promptDisplayTimestamp, promptAnswerTimestamp);
-        }
-
         private void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
             backendManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
         }
 
-        private void PromptRequested(SAAQPrompt prompt)
+        private void PromptRequested(SAAQData promptData)
         {
-            OnPromptRequested?.Invoke(prompt);
+            OnPromptRequested?.Invoke(promptData);
         }
     }
 }

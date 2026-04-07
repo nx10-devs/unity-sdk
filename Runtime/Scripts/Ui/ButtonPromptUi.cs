@@ -17,20 +17,20 @@ namespace NX10
             base.Initialise(promptManager);
         }
 
-        public override void OnOpen(SAAQPrompt prompt)
+        public override void OnOpen(SAAQData promptData)
         {
-            base.OnOpen(prompt);
+            base.OnOpen(promptData);
 
             promptButtonBase.gameObject.SetActive(true);
 
-            foreach (SAAQAnswer answer in prompt.answers)
+            /*foreach (SAAQAnswer answer in prompt.answers)
             {
                 PromptButton promptButton = Instantiate(promptButtonBase, promptButtonBase.transform.parent);
                 promptButtons.Add(promptButton);
                 promptButton.Initialise(answer);
                 promptButton.pressed += ButtonPressed;
             }
-
+*/
             promptButtonBase.gameObject.SetActive(false);
         }
 
