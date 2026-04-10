@@ -4,7 +4,9 @@ using UnityEngine;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 using Gyroscope = UnityEngine.InputSystem.Gyroscope;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 #endif
 
 namespace NX10
@@ -84,21 +86,16 @@ namespace NX10
                 });
             }
 
-            if (Touchscreen.current != null)
+            foreach (var touch in Touch.activeTouches)
             {
-                foreach (var touch in Touchscreen.current.touches)
-                {
-                    if (!touch.press.isPressed) continue;
-
-                    currentCollectionWindow.inputEvents.Add(new TouchInputEvent
+                currentCollectionWindow.inputEvents.Add(new TouchInputEvent
                     {
                         timestampOffsetMs = offset,
-                        x = touch.position.ReadValue().x,
-                        y = touch.position.ReadValue().y,
-                        velocityX = touch.delta.ReadValue().x / Time.unscaledDeltaTime,
-                        velocityY = touch.delta.ReadValue().y / Time.unscaledDeltaTime
+                        x = touch.screenPosition.x,
+                        y = touch.screenPosition.y,
+                        velocityX = touch.delta.x / Time.unscaledDeltaTime,
+                        velocityY = touch.delta.y / Time.unscaledDeltaTime,
                     });
-                }
             }
 
             return;
