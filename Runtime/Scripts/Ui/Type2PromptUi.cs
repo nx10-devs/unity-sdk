@@ -93,6 +93,7 @@ namespace NX10
             }
             else
             {
+                currentAnswer.type = "answered";
                 CheckFollowUp(option);
             }
         }
