@@ -26,6 +26,7 @@ namespace NX10
         #endregion
 
         private NX10SDKSession currentSession;
+        public NX10SDKSession CurrentSession => currentSession;
 
         public Action<SAAQData> OnPromptRequested;
 
