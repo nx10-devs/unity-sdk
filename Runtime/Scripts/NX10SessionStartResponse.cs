@@ -13,6 +13,7 @@ namespace NX10
     public class SessionStartData
     {
         public string token;
+        public DeviceConfig deviceConfig;
         public List<EndpointInfo> endpoints;
     }
 
@@ -22,5 +23,19 @@ namespace NX10
         public string location;
         public string type;
         public string version;
+    }
+
+    [Serializable]
+    public class DeviceConfig
+    {
+        public Sensors sensor;
+    }
+
+    [Serializable]
+    public class Sensors
+    {
+        public int touchSampleHz;
+        public int gyroscopeSampleHz;
+        public int accelerometerSampleHz;
     }
 }

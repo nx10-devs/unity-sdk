@@ -112,10 +112,14 @@ namespace NX10
             networkingManager.StartSession(sessionConfig, (sessionStartSuccess) =>
             {
                 Initialised = sessionStartSuccess;
-                startSuccess?.Invoke(sessionStartSuccess);
+
+                NX10SDKSession session = networkingManager.CurrentSession;
+                telemetryManager.SetSamplingRates(session.gyroFrequencyHz, session.accelFrequencyHz, session.touchFrequencyHz);
 
                 analyticsManager.FireEvent("session_started");
                 SendUnsentAnalytics();
+
+                startSuccess?.Invoke(sessionStartSuccess);
             });
         }
 
