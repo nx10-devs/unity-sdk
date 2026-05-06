@@ -47,6 +47,10 @@ namespace NX10
         private void OnEnable()
         {
             isRunning = true;
+
+#if UNITY_EDITOR
+            TouchSimulation.Enable();
+#endif
         }
 
         private void OnDisable()
@@ -124,7 +128,7 @@ namespace NX10
 
             StartCoroutine(CollectionWorker(gyroHZ, CollectGyroData));
             StartCoroutine(CollectionWorker(accelerometerHZ, CollectAccelData));
-            StartCoroutine(CollectionWorker(touchHZ, CollectTouchData));
+            StartCoroutine(CollectionWorker(touchHZ, CollectTouchDataV2));
         }
 
         private void EndTelemetryCollectionWindow()
@@ -194,34 +198,86 @@ namespace NX10
 #endif
         }
 
-        private void CollectTouchData()
+        private void CollectTouchDataV2()
         {
             double offset = currentCollectionWindow.Offset().TotalMilliseconds;
 #if ENABLE_INPUT_SYSTEM
             foreach (var touch in Touch.activeTouches)
             {
-                currentCollectionWindow.inputEvents.Add(new TouchInputEvent
+                currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
                     timestampOffsetMs = offset,
-                    x = touch.screenPosition.x,
-                    y = touch.screenPosition.y,
-                    velocityX = touch.delta.x / Time.unscaledDeltaTime,
-                    velocityY = touch.delta.y / Time.unscaledDeltaTime,
+                    touchId = touch.touchId.ToString(),
+                    touchType = ConvertTouchPhaseToTouchType(touch.phase),
+                    touchObject = null,
+                    xMm = PixelsToMillimeters(touch.screenPosition.x),
+                    yMm = PixelsToMillimeters(touch.screenPosition.y),
+                    touchRadiusMm = PixelsToMillimeters(touch.radius.x)//touch.radius,
                 });
             }
 
 #else
         foreach (var touch in Input.touches)
             {
-                currentCollectionWindow.inputEvents.Add(new TouchInputEvent {
+                currentCollectionWindow.inputEvents.Add(new TouchInputEventV2 {
                     timestampOffsetMs = offset,
-                    x = touch.position.x,
-                    y = touch.position.y,
-                    velocityX = touch.deltaPosition.x / Time.unscaledDeltaTime,
-                    velocityY = touch.deltaPosition.y / Time.unscaledDeltaTime
+                    touchId = touch.fingerId.ToString(),
+                    touchType = ConvertTouchPhaseToTouchType(touch.phase),
+                    touchObject = null,
+                    xMm = PixelsToMillimeters(touch.position.x),
+                    yMm = PixelsToMillimeters(touch.position.y),
+                    touchRadiusMm = PixelsToMillimeters(touch.radius),
                 });
             }
 #endif
+        }
+
+        private string ConvertTouchPhaseToTouchType(UnityEngine.InputSystem.TouchPhase touchPhase)
+        {
+            switch (touchPhase)
+            {
+                case UnityEngine.InputSystem.TouchPhase.Began:
+                    return "down";
+                case UnityEngine.InputSystem.TouchPhase.Ended:
+                    return "up";
+                case UnityEngine.InputSystem.TouchPhase.Moved:
+                    return "move";
+                case UnityEngine.InputSystem.TouchPhase.Stationary:
+                    return "stationary";
+                case UnityEngine.InputSystem.TouchPhase.Canceled:
+                    return "cancelled";
+            }
+
+            throw new NotImplementedException();
+        }
+
+        private string ConvertTouchPhaseToTouchType(UnityEngine.TouchPhase touchPhase)
+        {
+            switch (touchPhase)
+            {
+                case UnityEngine.TouchPhase.Began:
+                    return "down";
+                case UnityEngine.TouchPhase.Ended:
+                    return "up";
+                case UnityEngine.TouchPhase.Moved:
+                    return "move";
+                case UnityEngine.TouchPhase.Stationary:
+                    return "stationary";
+                case UnityEngine.TouchPhase.Canceled:
+                    return "cancelled";
+            }
+
+            throw new NotImplementedException();
+        }
+
+        public float PixelsToMillimeters(float pixelDistance)
+        {
+            float dpi = Screen.dpi;
+
+            // Fallback for devices that don't report DPI correctly
+            if (dpi <= 0) dpi = 160f;
+
+            return (pixelDistance / dpi) * 25.4f;
         }
     }
 }

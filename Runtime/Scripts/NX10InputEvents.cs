@@ -74,6 +74,36 @@ namespace NX10
             };
         }
     }
+
+    [System.Serializable]
+    public class TouchInputEventV2 : IInputEvent
+    {
+        public string type => "touch";
+        public string eventVersion => "2";
+        public double timestampOffsetMs { get; set; }
+        public string touchId;
+        public string touchType;
+        public string touchObject;
+        public float xMm;
+        public float yMm;
+        public float touchRadiusMm;
+
+        public object[] ToArray()
+        {
+            return new object[]
+            {
+                    type,
+                    eventVersion,
+                    timestampOffsetMs,
+                    touchId,
+                    touchType,
+                    touchObject,
+                    xMm,
+                    yMm,
+                    touchRadiusMm
+            };
+        }
+    }
     #endregion
 }
 

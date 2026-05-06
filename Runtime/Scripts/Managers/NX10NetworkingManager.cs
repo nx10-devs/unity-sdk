@@ -57,7 +57,7 @@ namespace NX10
         }
 
         public void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
-        {          
+        {
             List<HeaderObject> headers = new List<HeaderObject>()
             {
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
@@ -74,8 +74,9 @@ namespace NX10
             string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
             StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payloadJson, (success, message) =>
             {
-                HandleIncomingSAAQ(message);
-                
+                if (success)
+                    HandleIncomingSAAQ(message);
+
             }, headers));
         }
 
