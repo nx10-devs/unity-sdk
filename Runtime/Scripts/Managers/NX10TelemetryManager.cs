@@ -270,14 +270,14 @@ namespace NX10
             throw new NotImplementedException();
         }
 
-        public float PixelsToMillimeters(float pixelDistance)
+        public float PixelsToMillimeters(float pixels)
         {
             float dpi = Screen.dpi;
 
             // Fallback for devices that don't report DPI correctly
             if (dpi <= 0) dpi = 160f;
 
-            return (pixelDistance / dpi) * 25.4f;
+            return (pixels / dpi) * 25.4f;
         }
     }
 }
