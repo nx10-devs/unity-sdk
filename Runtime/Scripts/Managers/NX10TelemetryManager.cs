@@ -26,7 +26,7 @@ namespace NX10
         public int? touchHZ;
         public int? acquisitionWindowSize;
 
-        private float dpi;
+        private float dpmm;
 
         private bool canCollectGyro => gyroHZ != null;
         private bool canCollectAccelerometer => accelerometerHZ != null;
@@ -70,13 +70,13 @@ namespace NX10
             UpdateTelemetryCollectionWindow();
         }
 
-        public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? acquisitionWindowSize, float dpi)
+        public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? acquisitionWindowSize, float dpmm)
         {
             this.gyroHZ = gyroHz;
             this.accelerometerHZ = accelerometerHz;
             this.touchHZ = touchHz;
             this.acquisitionWindowSize = acquisitionWindowSize;
-            this.dpi = dpi;
+            this.dpmm = dpmm;
         }
 
         private IEnumerator CollectionWorker(float frequency, System.Action collectionMethod)
@@ -291,9 +291,9 @@ namespace NX10
 
         public float PixelsToMillimeters(float pixels)
         {
-            if (dpi <= 0) dpi = 160f;
+            if (dpmm <= 0) dpmm = 12.83465f;
 
-            return (pixels / dpi) * 25.4f;
+            return (pixels / dpmm);
         }
     }
 }
