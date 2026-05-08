@@ -34,8 +34,9 @@ namespace NX10
     [Serializable]
     public class Sensors
     {
-        public int touchSampleHz;
-        public int gyroscopeSampleHz;
-        public int accelerometerSampleHz;
+        public int? touchSampleHz;
+        public int? gyroscopeSampleHz;
+        public int? accelerometerSampleHz;
+        public int? acquisitionWindowSize;
     }
 }

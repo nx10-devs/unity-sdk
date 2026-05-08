@@ -17,14 +17,19 @@ namespace NX10
         private bool canCollectTelemetryData;
         private bool isRunning;
         private NX10TelemetryWindow currentCollectionWindow;
-        public float apiIntervalSeconds;
         private float timer = 0.0f;
 
         public Action<string, double, List<IInputEvent>> sendTelemetryDataRequest;
 
-        public int gyroHZ;
-        public int accelerometerHZ;
-        public int touchHZ;
+        public int? gyroHZ;
+        public int? accelerometerHZ;
+        public int? touchHZ;
+        public int? acquisitionWindowSize;
+
+        private bool canCollectGyro => gyroHZ != null;
+        private bool canCollectAccelerometer => accelerometerHZ != null;
+        private bool canCollectTouch => touchHZ != null;
+        private bool canOpenWindow => acquisitionWindowSize != null;
 
         private void Awake()
         {
@@ -63,13 +68,13 @@ namespace NX10
             UpdateTelemetryCollectionWindow();
         }
 
-        public void SetSamplingRates(int gyroRate, int accelRate, int touchRate)
+        public void SetSamplingRates(int? gyroHz, int? accelerometerHz, int? touchHz, int? acquisitionWindowSize)
         {
-            gyroHZ = gyroRate;
-            accelerometerHZ = accelRate;
-            touchHZ = touchRate;
+            this.gyroHZ = gyroHz;
+            this.accelerometerHZ = accelerometerHz;
+            this.touchHZ = touchHz;
+            this.acquisitionWindowSize = acquisitionWindowSize;
         }
-
 
         private IEnumerator CollectionWorker(float frequency, System.Action collectionMethod)
         {
@@ -88,12 +93,15 @@ namespace NX10
 
         private void UpdateTelemetryCollectionWindow()
         {
+            if (!canOpenWindow)
+                return;
+
             if (!canCollectTelemetryData || currentCollectionWindow == null)
                 return;
 
             timer += Time.deltaTime;
 
-            if (timer > apiIntervalSeconds)
+            if (timer > acquisitionWindowSize.Value)
             {
                 StartTelemetryCollectionWindow();
             }
@@ -106,6 +114,9 @@ namespace NX10
                 Debug.LogError("NX10 Manager not initialised, ensure it is before starting a collection window");
                 return;
             }
+
+            if (!canOpenWindow)
+                return;
 
             canCollectTelemetryData = canCollect;
 
@@ -126,9 +137,14 @@ namespace NX10
                 inputEvents = new List<IInputEvent>()
             };
 
-            StartCoroutine(CollectionWorker(gyroHZ, CollectGyroData));
-            StartCoroutine(CollectionWorker(accelerometerHZ, CollectAccelData));
-            StartCoroutine(CollectionWorker(touchHZ, CollectTouchDataV2));
+            if(canCollectGyro)
+                StartCoroutine(CollectionWorker(gyroHZ.Value, CollectGyroData));
+
+            if(canCollectAccelerometer)
+                StartCoroutine(CollectionWorker(accelerometerHZ.Value, CollectAccelData));
+
+            if(canCollectTouch)
+                StartCoroutine(CollectionWorker(touchHZ.Value, CollectTouchDataV2));
         }
 
         private void EndTelemetryCollectionWindow()
@@ -138,7 +154,7 @@ namespace NX10
             SendTelemetryData(currentCollectionWindow.startTimestampISO);
             currentCollectionWindow.Dispose();
             currentCollectionWindow = null;
-            timer -= apiIntervalSeconds;
+            timer -= acquisitionWindowSize.Value;
 
             StopAllCoroutines();
         }
