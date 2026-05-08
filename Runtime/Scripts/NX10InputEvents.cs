@@ -8,7 +8,7 @@ namespace NX10
     }
 
     [System.Serializable]
-    public class GyroEvent : IInputEvent
+    public struct GyroEvent : IInputEvent
     {
         public string type => "gyro";
         public double timestampOffsetMs { get; set; }
@@ -30,7 +30,7 @@ namespace NX10
     }
 
     [System.Serializable]
-    public class AccelerometerEvent : IInputEvent
+    public struct AccelerometerEvent : IInputEvent
     {
         public string type => "acc";
         public double timestampOffsetMs { get; set; }
@@ -52,7 +52,7 @@ namespace NX10
     }
 
     [System.Serializable]
-    public class TouchInputEvent : IInputEvent
+    public struct TouchInputEvent : IInputEvent
     {
         public string type => "touch";
         public double timestampOffsetMs { get; set; }
@@ -76,7 +76,7 @@ namespace NX10
     }
 
     [System.Serializable]
-    public class TouchInputEventV2 : IInputEvent
+    public struct TouchInputEventV2 : IInputEvent
     {
         public string type => "touch";
         public string eventVersion => "2";
