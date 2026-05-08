@@ -29,6 +29,7 @@ namespace NX10
     public class DeviceConfig
     {
         public Sensors sensor;
+        public DeviceSettings device;
     }
 
     [Serializable]
@@ -38,5 +39,11 @@ namespace NX10
         public int? gyroscopeSampleHz;
         public int? accelerometerSampleHz;
         public int? acquisitionWindowSize;
+    }
+
+    [Serializable]
+    public class DeviceSettings
+    {
+        public Dictionary<string, float> deviceModelToDpiMap;
     }
 }

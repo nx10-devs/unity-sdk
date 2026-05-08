@@ -17,6 +17,8 @@ namespace NX10
 
         public int? acquisitionWindowSize { get; private set; }
 
+        public float dpi;
+
         public void Initialize(SessionStartData data)
         {
             Token = data.token;
@@ -26,6 +28,16 @@ namespace NX10
             accelFrequencyHz = data.deviceConfig.sensor.accelerometerSampleHz;
             touchFrequencyHz = data.deviceConfig.sensor.touchSampleHz;
             acquisitionWindowSize = data.deviceConfig.sensor.acquisitionWindowSize;
+
+            string deviceModel = SystemInfo.deviceModel;
+            if(data.deviceConfig.device.deviceModelToDpiMap.TryGetValue(deviceModel, out float value))
+            {
+                dpi = value;
+            }
+            else
+            {
+                dpi = Screen.dpi;
+            }
         }
 
         public string GetEndpoint(string type, string version)

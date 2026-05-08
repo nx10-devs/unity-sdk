@@ -129,7 +129,7 @@ namespace NX10
 
         private void HandleSessionStartSuccess(string sessionStartJson)
         {
-            SessionStartResponse response = JsonUtility.FromJson<SessionStartResponse>(sessionStartJson);
+            SessionStartResponse response = JsonConvert.DeserializeObject<SessionStartResponse>(sessionStartJson);
 
             if (response == null)
             {
