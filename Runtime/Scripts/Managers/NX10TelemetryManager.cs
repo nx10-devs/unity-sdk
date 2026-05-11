@@ -313,6 +313,7 @@ namespace NX10
             GUILayout.BeginArea(new Rect(50, 40, 330, 160));
             GUILayout.Label($"Window Start: {currentCollectionWindow.startTimestampISO}");
             GUILayout.Label($"Events Recorded: {currentCollectionWindow.inputEvents.Count}");
+            GUILayout.Label($"DPI: {dpi}");
             GUILayout.Label($"Timer: {timer:F2}s / {acquisitionWindowSize}s");
 
             GUILayout.Space(10);
