@@ -44,6 +44,8 @@ namespace NX10
             if (LinearAccelerationSensor.current != null)
                 InputSystem.EnableDevice(LinearAccelerationSensor.current);
 
+            EnhancedTouchSupport.Enable();
+
             return;
 #endif
 
