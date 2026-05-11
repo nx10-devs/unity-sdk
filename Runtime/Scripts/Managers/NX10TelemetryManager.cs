@@ -295,10 +295,44 @@ namespace NX10
 
         public float PixelsToMillimeters(float pixels)
         {
-            float points = NX10ScaleFactor.PixelsToPoints(pixels);
-            float mm = points * pointToMmScaleFactor;
+            if (dpmm <= 0) dpmm = 12.83465f;
+            return (pixels / dpmm);
+        }
 
-            return (float)Math.Round(mm, 3);
+        private void OnGUI()
+        {
+            if (!canCollectTelemetryData || currentCollectionWindow == null)
+            {
+                GUI.Box(new Rect(40, 10, 250, 30), "Telemetry: Not Collecting");
+                return;
+            }
+
+            GUI.Box(new Rect(40, 10, 350, 200), $"Telemetry Active ({touchHZ}Hz)");
+
+            GUILayout.BeginArea(new Rect(50, 40, 330, 160));
+            GUILayout.Label($"Window Start: {currentCollectionWindow.startTimestampISO}");
+            GUILayout.Label($"Events Recorded: {currentCollectionWindow.inputEvents.Count}");
+            GUILayout.Label($"Timer: {timer:F2}s / {acquisitionWindowSize}s");
+
+            GUILayout.Space(10);
+            GUILayout.Label("<b>Active Touches (Raw -> mm):</b>");
+
+#if ENABLE_INPUT_SYSTEM
+            foreach (var touch in Touch.activeTouches)
+            {
+                float xMm = PixelsToMillimeters(touch.screenPosition.x);
+                float yMm = PixelsToMillimeters(touch.screenPosition.y);
+                GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm ({touch.phase})");
+            }
+#else
+            foreach (var touch in Input.touches)
+            {
+                float xMm = PixelsToMillimeters(touch.position.x);
+                float yMm = PixelsToMillimeters(touch.position.y);
+                GUILayout.Label($"ID {touch.fingerId}: {xMm}mm, {yMm}mm ({touch.phase})");
+            }
+#endif
+            GUILayout.EndArea();
         }
     }
 }
