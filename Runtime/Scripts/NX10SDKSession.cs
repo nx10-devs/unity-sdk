@@ -17,7 +17,7 @@ namespace NX10
 
         public int? acquisitionWindowSize { get; private set; }
 
-        public float dpmm;
+        public float dpi;
 
         public void Initialize(SessionStartData data)
         {
@@ -32,11 +32,11 @@ namespace NX10
             string deviceModel = SystemInfo.deviceModel;
             if(data.deviceConfig.device.deviceModelToDpiMap.TryGetValue(deviceModel, out float value))
             {
-                dpmm = value;
+                dpi = value;
             }
             else
             {
-                dpmm = Screen.dpi / 25.4f;
+                dpi = Screen.dpi / 25.4f;
             }
         }
 

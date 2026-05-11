@@ -114,7 +114,7 @@ namespace NX10
                 Initialised = sessionStartSuccess;
 
                 NX10SDKSession session = networkingManager.CurrentSession;
-                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz, session.touchFrequencyHz, session.acquisitionWindowSize, session.dpmm);
+                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz, session.touchFrequencyHz, session.acquisitionWindowSize, session.dpi);
 
                 analyticsManager.FireEvent("session_started");
                 SendUnsentAnalytics();
