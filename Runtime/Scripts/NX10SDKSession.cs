@@ -36,7 +36,7 @@ namespace NX10
             }
             else
             {
-                dpi = Screen.dpi / 25.4f;
+                dpi = Screen.dpi;
             }
         }
 

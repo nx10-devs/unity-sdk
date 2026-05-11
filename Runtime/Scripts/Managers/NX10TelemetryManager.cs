@@ -295,8 +295,9 @@ namespace NX10
 
         public float PixelsToMillimeters(float pixels)
         {
-            if (dpi <= 0) dpi = 160;
-            return (pixels / dpi) * 25.4f;
+            float inches = pixels / dpi;
+            float millimeters = inches * 25.4f;
+            return (float)Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
         }
 
         private void OnGUI()

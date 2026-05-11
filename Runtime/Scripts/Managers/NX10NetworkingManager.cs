@@ -144,13 +144,6 @@ namespace NX10
             }
 
             currentSession.Initialize(response.data);
-
-            Debug.Log("Token: " + currentSession.Token);
-
-            foreach(EndpointInfo endpointInfo in currentSession.Endpoints)
-            {
-                Debug.Log("EndPoint: " + endpointInfo.type + ", version: " + endpointInfo.version);
-            }
         }
 
         private void HandleIncomingSAAQ(string json)
