@@ -89,6 +89,13 @@ namespace NX10
 
         public void StartSession(string email = null, string phoneNumber = null, Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
         {
+            if (email == null)
+                email = string.Empty;
+            if (phoneNumber == null)
+                phoneNumber = string.Empty;
+            if (metaData == null)
+                metaData = new Dictionary<string, object>();
+
             UserIdentifiers identifiers = new UserIdentifiers
             {
                 deviceId = SystemInfo.deviceUniqueIdentifier,
