@@ -23,7 +23,6 @@ namespace NX10
             {
                 AssetDatabase.CreateFolder("Assets", "NX10Config");
                 AssetDatabase.CreateFolder(CONFIG_FOLDER_PARENT, "Resources");
-                AssetDatabase.CreateFolder(CONFIG_FOLDER_PARENT, "Prefabs");
             }
 
             MigratePackageAssets();
@@ -38,46 +37,51 @@ namespace NX10
 
             Debug.Log("MyPackage: Default config created at " + CONFIG_PATH);
         }
-         
+
         private static void MigratePackageAssets()
         {
             string sourcePath = "Packages/com.nx10.sdk/Runtime/Prefabs";
-            string destinationPath = "Assets/NX10Config/Prefabs";
+            string destinationPath = "Assets/NX10Config/Resources";
 
-            if (!Directory.Exists(sourcePath) || Directory.GetFiles(sourcePath, "*.prefab").Length == 0)
-            {
-                return;
-            }
+            if (!Directory.Exists(sourcePath)) return;
 
+            // Ensure the destination folder exists
             if (!AssetDatabase.IsValidFolder(destinationPath))
             {
+                // It's better to use AssetDatabase to create folders within Assets
+                // to keep the .meta files healthy.
                 Directory.CreateDirectory(destinationPath);
                 AssetDatabase.Refresh();
             }
 
             string[] sourceFiles = Directory.GetFiles(sourcePath, "*.prefab");
-            bool movedAnything = false;
+            bool copiedAnything = false;
 
             foreach (string file in sourceFiles)
             {
                 string fileName = Path.GetFileName(file);
                 string destFile = $"{destinationPath}/{fileName}";
 
-                string error = AssetDatabase.MoveAsset(file, destFile);
-
-                if (string.IsNullOrEmpty(error))
+                // IMPORTANT: Check if the file already exists so you don't 
+                // overwrite the user's custom changes every time this runs.
+                if (File.Exists(destFile))
                 {
-                    Debug.Log($"[NX10] Successfully migrated: {fileName}");
-                    movedAnything = true;
+                    continue;
+                }
+
+                // Use CopyAsset instead of MoveAsset
+                if (AssetDatabase.CopyAsset(file, destFile))
+                {
+                    Debug.Log($"[NX10] Successfully copied: {fileName} to {destinationPath}");
+                    copiedAnything = true;
                 }
                 else
                 {
-                    Debug.LogWarning($"[NX10] Could not move {fileName}: {error}. " +
-                                    "The package might be read-only.");
+                    Debug.LogError($"[NX10] Failed to copy {fileName}.");
                 }
             }
 
-            if (movedAnything)
+            if (copiedAnything)
             {
                 AssetDatabase.Refresh();
             }
