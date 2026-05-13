@@ -26,8 +26,11 @@ namespace NX10
         {
             onSubmit = promptAnsweredAction;
 
-            questionText.text = promptData.questionText;
-            dismissButton.gameObject.SetActive(dismissable);
+            if(questionText)
+                questionText.text = promptData.questionText;
+
+            if(dismissButton)
+                dismissButton.gameObject.SetActive(dismissable);
 
             gameObject.SetActive(true);
         }

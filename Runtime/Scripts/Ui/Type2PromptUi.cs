@@ -5,19 +5,39 @@ using UnityEngine.UI;
 
 namespace NX10
 {
+    public enum ScreenOrientation
+    {
+        Landscape,
+        Portrait,
+    }
+
+    public enum Prompt2Type
+    {
+        MultipleSelect,
+        SingleSelect
+    }
+
+    [Serializable]
+    public class  Prompt2UiDefinition
+    {
+        public ScreenOrientation orientation;
+        public Prompt2Type type;
+        public Type2PromptPanelUi panelUi;
+    }
+
     public class Type2PromptUi : PromptUi
     {
-        [SerializeField] private PromptButton promptButtonBase;
-        [SerializeField] private Button submitButton;
+        [SerializeField] private List<Prompt2UiDefinition> uiDefinitions; 
+
+        private Vector2 lastScreenSize;
 
         private List<PromptButton> promptButtons = new List<PromptButton>();
 
         private SAAQBlock promptData;
         private bool dismissable;
 
-        private List<SAAQOption> selectedOptions;
-
         private SAAQAnswer currentAnswer;
+        private Type2PromptPanelUi currentPanel;
 
         private bool isMultiSelect
         {
@@ -38,72 +58,33 @@ namespace NX10
 
             this.promptData = promptData;
             this.dismissable = dismissable;
-            selectedOptions = new List<SAAQOption>();
 
             currentAnswer = new SAAQAnswer();
             currentAnswer.data.selectedValue = null;
 
-            promptButtonBase.gameObject.SetActive(true);
-            submitButton.gameObject.SetActive(isMultiSelect);
-            submitButton.interactable = false;
-
-            foreach(SAAQOption option in promptData.options)
-            {
-                PromptButton promptButton = Instantiate(promptButtonBase, promptButtonBase.transform.parent);
-                promptButtons.Add(promptButton);
-                promptButton.Initialise(option);
-                promptButton.pressed += ButtonPressed;
-            }
-
-            promptButtonBase.gameObject.SetActive(false);
+            currentPanel = GetCorrectPanel();
+            currentPanel.OnOpen(this, promptData, dismissable);
         }
 
         public override void OnClose()
         {
-            base.OnClose(); 
+            base.OnClose();
 
-            foreach(PromptButton promptButton in promptButtons)
-            {
-                promptButton.pressed -= ButtonPressed;
-                Destroy(promptButton.gameObject);
-            }
-
-            promptButtons.Clear();
+            currentPanel.OnClose();
         }
 
-        public void ButtonPressed(SAAQOption option)
+        public void SingleAnswerChosen(SAAQOption option, List<SAAQOption> selectedOptions)
         {
-            SelectOption(option);
+            currentAnswer.type = "answered";
+            CheckFollowUp(option, selectedOptions);
         }
 
-        private void SelectOption(SAAQOption option)
-        {
-            if (selectedOptions.Contains(option))
-            {
-                selectedOptions.Remove(option);
-            }
-            else
-            {
-                selectedOptions.Add(option);
-            }
-
-            if(isMultiSelect)
-            {
-                submitButton.interactable = (selectedOptions.Count > 0);
-            }
-            else
-            {
-                currentAnswer.type = "answered";
-                CheckFollowUp(option);
-            }
-        }
-
-        private void CheckFollowUp(SAAQOption option)
+        private void CheckFollowUp(SAAQOption option, List<SAAQOption> selectedOptions)
         {
             gameObject.SetActive(false);
-            if (option.followonQuestion != null)
+            if (option.followonQuestion.Count > 0)
             {
-                NX10Manager.Instance.ShowPrompt(option.followonQuestion[0], dismissable, (answer) =>
+                NX10Manager.Instance.ShowPrompt(option.followonQuestion[0], dismissable, (answer, displayTimestamp, answeredTimestamp) =>
                 {
                     SelectedFeeling selectedFeeling = new SelectedFeeling();
                     selectedFeeling.feelingType = option.feeling.feelingsType.ToString().ToLower();
@@ -127,7 +108,7 @@ namespace NX10
             }
             else
             {
-                SubmitAnswer();
+                SubmitAnswer(selectedOptions);
             }
         } 
 
@@ -136,7 +117,7 @@ namespace NX10
             OnDismiss(new SAAQAnswer());
         }
 
-        public void SubmitAnswer()
+        public void SubmitAnswer(List<SAAQOption> selectedOptions)
         {
             currentAnswer.data.selectedValues = new List<SelectedFeeling>();
             foreach (SAAQOption option in selectedOptions)
@@ -150,6 +131,15 @@ namespace NX10
 
             currentAnswer.type = "answered";
             Submit(currentAnswer);
+        }
+
+        private Type2PromptPanelUi GetCorrectPanel()
+        {
+            bool isLandscape = Screen.width > Screen.height;
+            ScreenOrientation screenOrientation = isLandscape ? ScreenOrientation.Landscape : ScreenOrientation.Portrait;
+            Prompt2Type prompt2Type = isMultiSelect ? Prompt2Type.MultipleSelect : Prompt2Type.SingleSelect;
+
+            return uiDefinitions.Find(item => item.type == prompt2Type && item.orientation == screenOrientation).panelUi;
         }
     }
 

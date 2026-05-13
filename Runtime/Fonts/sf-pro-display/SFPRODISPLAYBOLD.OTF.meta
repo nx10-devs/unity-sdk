@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 52e9d284494bf4a08ad970bd6ef3987b
+guid: 316db0616aa13e24ab1cee0c43241bb8
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -8,9 +8,8 @@ TrueTypeFontImporter:
   characterSpacing: 0
   characterPadding: 1
   includeFontData: 1
-  fontName: Vogue
   fontNames:
-  - Vogue
+  - SF Pro Display
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0
@@ -20,10 +19,3 @@ TrueTypeFontImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 98823
-  packageName: 'Match 3 Kit: Sweet Sugar Candy'
-  packageVersion: 1.7.7
-  assetPath: Assets/SweetSugar/Fonts/VOGUE BOLD-1.TTF
-  uploadId: 782516

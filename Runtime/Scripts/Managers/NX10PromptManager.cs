@@ -30,8 +30,7 @@ namespace NX10
         [SerializeField] private PromptUiController uiController;
         public PromptUiController PromptUiController => uiController;
 
-       
-
+      
         private void Start()
         {
             PromptUiController.Initialise(this);

@@ -155,9 +155,21 @@ namespace NX10
             analyticsManager.FireEvent("telemetry_ended");
         }
 
-        public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
+        public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer, string, string> promptAnsweredAction)
         {
-            promptManager.ShowPrompt(promptData, dismissable, promptAnsweredAction);
+            ShowPrompt(promptData.prompt, promptData.dismissable, promptAnsweredAction);
+        }
+
+        public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer, string, string> promptAnsweredAction)
+        {
+            string promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+
+            promptManager.ShowPrompt(promptData, dismissable, (answer) =>
+            {
+                string promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                promptAnsweredAction.Invoke(answer, promptDisplayTimestamp, promptAnswerTimestamp);
+            });
+
             analyticsManager.FireEvent("saaq_shown");
         }
 

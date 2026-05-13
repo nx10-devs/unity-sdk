@@ -23,6 +23,7 @@ namespace NX10
             {
                 AssetDatabase.CreateFolder("Assets", "NX10Config");
                 AssetDatabase.CreateFolder(CONFIG_FOLDER_PARENT, "Resources");
+                AssetDatabase.CreateFolder(CONFIG_FOLDER_PARENT, "Prefabs");
             }
 
             //MigratePackageAssets();
@@ -41,7 +42,7 @@ namespace NX10
         private static void MigratePackageAssets()
         {
             string sourcePath = "Packages/com.nx10.sdk/Runtime/Prefabs";
-            string destinationPath = "Assets/NX10Config/Resources";
+            string destinationPath = "Assets/NX10Config/Prefabs";
 
             if (!Directory.Exists(sourcePath) || Directory.GetFiles(sourcePath, "*.prefab").Length == 0)
             {

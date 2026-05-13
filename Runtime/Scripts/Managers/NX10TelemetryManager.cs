@@ -300,7 +300,7 @@ namespace NX10
             return (float)Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
         }
 
-        private void OnGUI()
+       /* private void OnGUI()
         {
             if (!canCollectTelemetryData || currentCollectionWindow == null)
             {
@@ -335,6 +335,6 @@ namespace NX10
             }
 #endif
             GUILayout.EndArea();
-        }
+        }*/
     }
 }

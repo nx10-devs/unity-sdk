@@ -22,6 +22,9 @@ namespace NX10
         public void Initialize(SessionStartData data)
         {
             Token = data.token;
+
+            Debug.Log(Token);
+
             _endpoints = data.endpoints ?? new List<EndpointInfo>();
 
             gyroFrequencyHz = data.deviceConfig.sensor.gyroscopeSampleHz;
