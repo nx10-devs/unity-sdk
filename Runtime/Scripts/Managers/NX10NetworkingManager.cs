@@ -261,8 +261,6 @@ namespace NX10
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
             };
 
-            Debug.Log(nx10jsonData);
-
             StartCoroutine(NX10PostRequest(analyticsEndpoint, nx10jsonData, (success, message) =>
             {
                 if (success)
