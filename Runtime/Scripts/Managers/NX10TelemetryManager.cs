@@ -35,8 +35,19 @@ namespace NX10
         private bool canCollectTouch => touchHZ != null;
         private bool canOpenWindow => acquisitionWindowSize != null;
 
+
+        private bool guiMenuToggle = false;
+
+        private float _holdTimer = 0f;
+        private const float TargetHoldTime = 3f;
+        private bool _hasTriggered = false;
+
         private void Awake()
         {
+#if UNITY_EDITOR
+            guiMenuToggle = true;
+#endif
+
 #if ENABLE_INPUT_SYSTEM
             if (Gyroscope.current != null)
                 InputSystem.EnableDevice(Gyroscope.current);
@@ -72,6 +83,43 @@ namespace NX10
         private void Update()
         {
             UpdateTelemetryCollectionWindow();
+            UpdateDebugToggle();
+        }
+
+        private void UpdateDebugToggle()
+        {
+            if (Touchscreen.current == null) return;
+
+            int activeTouches = 0;
+
+            foreach (var touch in Touchscreen.current.touches)
+            {
+                if (touch.press.isPressed)
+                {
+                    activeTouches++;
+                }
+            }
+
+            if (activeTouches == 3)
+            {
+                if (!_hasTriggered)
+                {
+                    _holdTimer += Time.deltaTime;
+
+                    if (_holdTimer >= TargetHoldTime)
+                    {
+                        guiMenuToggle = !guiMenuToggle; 
+
+                        _hasTriggered = true; 
+                    }
+                }
+            }
+            else
+            {
+                // Reset the timer and trigger state if they lift a finger or add a 4th
+                _holdTimer = 0f;
+                _hasTriggered = false;
+            }
         }
 
         public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? acquisitionWindowSize, float dpi)
@@ -300,22 +348,65 @@ namespace NX10
             return (float)Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
         }
 
-       /* private void OnGUI()
+        private void OnGUI()
         {
+            if (!guiMenuToggle)
+                return;
+
             if (!canCollectTelemetryData || currentCollectionWindow == null)
             {
                 GUI.Box(new Rect(40, 10, 250, 30), "Telemetry: Not Collecting");
                 return;
             }
 
-            GUI.Box(new Rect(40, 10, 350, 200), $"Telemetry Active ({touchHZ}Hz)");
+            GUI.Box(new Rect(40, 10, 350, 300), $"Telemetry Active ({touchHZ}Hz)");
 
-            GUILayout.BeginArea(new Rect(50, 40, 330, 160));
+            GUILayout.BeginArea(new Rect(50, 40, 330, 260));
             GUILayout.Label($"Window Start: {currentCollectionWindow.startTimestampISO}");
             GUILayout.Label($"Events Recorded: {currentCollectionWindow.inputEvents.Count}");
             GUILayout.Label($"DPI: {dpi}");
             GUILayout.Label($"Timer: {timer:F2}s / {acquisitionWindowSize}s");
 
+            GUILayout.Space(5);
+            GUILayout.Label("<b>Sensors:</b>");
+
+#if ENABLE_INPUT_SYSTEM
+            if (LinearAccelerationSensor.current != null)
+            {
+                var accel = LinearAccelerationSensor.current.acceleration.ReadValue();
+                GUILayout.Label($"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} m/s²");
+            }
+            else
+            {
+                GUILayout.Label("  Accel: Not Detected");
+            }
+
+            if (Gyroscope.current != null)
+            {
+       
+                var gyro = Gyroscope.current.angularVelocity.ReadValue();
+                GUILayout.Label($"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s");
+            }
+            else
+            {
+                GUILayout.Label("  Gyro: Not Detected");
+            }
+#else
+        
+        Vector3 accel = Input.acceleration;
+        GUILayout.Label($"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G");
+
+        if (SystemInfo.supportsGyroscope)
+        {
+            Vector3 gyro = Input.gyro.rotationRate; // or rotationRateUnbiased
+            GUILayout.Label($"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s");
+        }
+        else
+        {
+            GUILayout.Label("  Gyro: Not Supported");
+        }
+#endif
+           
             GUILayout.Space(10);
             GUILayout.Label("<b>Active Touches (Raw -> mm):</b>");
 
@@ -327,14 +418,14 @@ namespace NX10
                 GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm ({touch.phase})");
             }
 #else
-            foreach (var touch in Input.touches)
-            {
-                float xMm = PixelsToMillimeters(touch.position.x);
-                float yMm = PixelsToMillimeters(touch.position.y);
-                GUILayout.Label($"ID {touch.fingerId}: {xMm}mm, {yMm}mm ({touch.phase})");
-            }
+        foreach (var touch in Input.touches)
+        {
+            float xMm = PixelsToMillimeters(touch.position.x);
+            float yMm = PixelsToMillimeters(touch.position.y);
+            GUILayout.Label($"ID {touch.fingerId}: {xMm}mm, {yMm}mm ({touch.phase})");
+        }
 #endif
             GUILayout.EndArea();
-        }*/
+        }
     }
 }
