@@ -52,8 +52,8 @@ namespace NX10
             if (Gyroscope.current != null)
                 InputSystem.EnableDevice(Gyroscope.current);
 
-            if (LinearAccelerationSensor.current != null)
-                InputSystem.EnableDevice(LinearAccelerationSensor.current);
+            if (Accelerometer.current != null)
+                InputSystem.EnableDevice(Accelerometer.current);
 
             EnhancedTouchSupport.Enable();
 
@@ -248,9 +248,9 @@ namespace NX10
         {
             double offset = currentCollectionWindow.Offset().TotalMilliseconds;
 #if ENABLE_INPUT_SYSTEM
-            if (LinearAccelerationSensor.current != null)
+            if (Accelerometer.current != null)
             {
-                var accel = LinearAccelerationSensor.current.acceleration.ReadValue();
+                var accel = Accelerometer.current.acceleration.ReadValue();
                 currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
                 {
                     timestampOffsetMs = offset,
@@ -396,9 +396,9 @@ namespace NX10
                 lastSensorUpdateTime = Time.time;
 
 #if ENABLE_INPUT_SYSTEM
-                if (UnityEngine.InputSystem.LinearAccelerationSensor.current != null)
+                if (UnityEngine.InputSystem.Accelerometer.current != null)
                 {
-                    var accel = UnityEngine.InputSystem.LinearAccelerationSensor.current.acceleration.ReadValue();
+                    var accel = UnityEngine.InputSystem.Accelerometer.current.acceleration.ReadValue();
                     cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} m/s²";
                 }
                 else
