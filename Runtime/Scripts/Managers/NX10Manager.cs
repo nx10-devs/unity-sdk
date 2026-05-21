@@ -36,6 +36,7 @@ namespace NX10
         private NX10TelemetryManager telemetryManager;
         private NX10AnalyticsManager analyticsManager;
         private NX10AttributesManager attributesManager;
+        private NX10DebugManager debugManager;
 
         private Queue<NX10AnalyticsManager.NX10AnalyticsEvent> unSentEvents = new Queue<NX10AnalyticsManager.NX10AnalyticsEvent>();
 
@@ -50,6 +51,7 @@ namespace NX10
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
             analyticsManager = GetComponentInChildren<NX10AnalyticsManager>();
             attributesManager = GetComponentInChildren<NX10AttributesManager>();
+            debugManager = GetComponentInChildren<NX10DebugManager>();
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
             networkingManager.OnPromptRequested += PromptRequested;
@@ -125,6 +127,8 @@ namespace NX10
 
                 analyticsManager.FireEvent("session_started");
                 SendUnsentAnalytics();
+
+                debugManager.Initialise(telemetryManager);
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
