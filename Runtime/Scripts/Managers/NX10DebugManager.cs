@@ -152,9 +152,9 @@ namespace NX10
                 lastSensorUpdateTime = Time.time;
 
 #if ENABLE_INPUT_SYSTEM
-                if (UnityEngine.InputSystem.Accelerometer.current != null)
+                if (Accelerometer.current != null)
                 {
-                    var accel = UnityEngine.InputSystem.Accelerometer.current.acceleration.ReadValue();
+                    var accel = _telemetryManager.MapScreenAccelerometerWithoutOrientation(Accelerometer.current.acceleration.ReadValue());
                     cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} m/s²";
                 }
                 else

@@ -208,7 +208,7 @@ namespace NX10
 #if ENABLE_INPUT_SYSTEM
             if (Accelerometer.current != null)
             {
-                var accel = Accelerometer.current.acceleration.ReadValue();
+                Vector3 accel = MapScreenAccelerometerWithoutOrientation(Accelerometer.current.acceleration.ReadValue());
                 currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
                 {
                     timestampOffsetMs = offset,
@@ -304,6 +304,25 @@ namespace NX10
             float inches = pixels / dpi;
             float millimeters = inches * 25.4f;
             return (float)Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
+        }
+
+        public Vector3 MapScreenAccelerometerWithoutOrientation(Vector3 screenAccel)
+        {
+            switch (Screen.orientation)
+            {
+                case (UnityEngine.ScreenOrientation.LandscapeLeft):
+                    return new Vector3(-screenAccel.y, screenAccel.x, screenAccel.z);
+
+                case UnityEngine.ScreenOrientation.LandscapeRight:
+                    return new Vector3(screenAccel.y, -screenAccel.x, screenAccel.z);
+
+                case UnityEngine.ScreenOrientation.PortraitUpsideDown:
+                    return new Vector3(-screenAccel.x, -screenAccel.y, screenAccel.z);
+
+                case UnityEngine.ScreenOrientation.Portrait:
+                default:
+                    return screenAccel;
+            }
         }
     }
 }
