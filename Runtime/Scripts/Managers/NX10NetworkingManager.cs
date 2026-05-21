@@ -274,6 +274,56 @@ namespace NX10
             }, headers));
         }
 
+        public void RequestActivity(Action<KineticState> activityState)
+        {
+            string activityEndpoint = currentSession.GetEndpoint("activity", "v1");
+            NX10ActivityPayload activityPayload = new NX10ActivityPayload()
+            {
+                stationaryMaxThreshold = CurrentSession.stationaryThreshold.Value,
+                movingMinThreshold = CurrentSession.movingMinThreshold.Value,
+            };
+
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            string nx10jsonData = JsonConvert.SerializeObject(activityPayload);
+            StartCoroutine(NX10PostRequest(activityEndpoint, nx10jsonData, (success, message) =>
+            {
+                KineticState kineticState = KineticState.unknown;
+                if (success)
+                {
+                    kineticState = ParseActivityJson(message);
+                }
+               
+                activityState(kineticState);
+
+            }, headers));
+        }
+
+        public KineticState ParseActivityJson(string jsonString)
+        {
+            try
+            {
+                string sanitizedJson = jsonString.Replace("\"in hand\"", "\"inHand\"");
+
+                RootActivityResponse response = JsonConvert.DeserializeObject<RootActivityResponse>(sanitizedJson);
+
+                if (response != null && response.status == "success")
+                {
+                    KineticState state = response.data.device.kineticState;
+                    return state;
+                }
+
+                return KineticState.unknown;
+            }
+            catch (System.Exception e)
+            {
+                return KineticState.unknown;
+            }
+        }
+
         public IEnumerator NX10PostRequest(string uri, string jsonBody, System.Action<bool, string> onComplete = null, List<HeaderObject> additionalHeaders = null)
         {
             UnityWebRequest request = new UnityWebRequest(uri, "POST");

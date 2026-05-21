@@ -19,6 +19,12 @@ namespace NX10
 
         public float dpi;
 
+        private const string stationaryThresholdKey = "stationaryMaxThreshold";
+        private const string movingMinThresholdKey = "movingMinThreshold";
+
+        public float? stationaryThreshold { get; private set; }
+        public float? movingMinThreshold { get; private set; }
+
         public void Initialize(SessionStartData data)
         {
             Token = data.token;
@@ -41,6 +47,17 @@ namespace NX10
             {
                 dpi = Screen.dpi;
             }
+
+            if(data.deviceConfig.activity.thresholds.TryGetValue(stationaryThresholdKey, out float stationaryThreshold))
+            {
+                this.stationaryThreshold = stationaryThreshold;
+            }
+
+            if (data.deviceConfig.activity.thresholds.TryGetValue(movingMinThresholdKey, out float movingMinThreshold))
+            {
+                this.movingMinThreshold = movingMinThreshold;
+            }
+
         }
 
         public string GetEndpoint(string type, string version)

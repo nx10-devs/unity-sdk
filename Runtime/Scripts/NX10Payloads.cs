@@ -141,4 +141,11 @@ namespace NX10
         public string timestamp;
         public Dictionary<string, object> data;
     }
+
+    [Serializable]
+    public class NX10ActivityPayload
+    {
+        public float stationaryMaxThreshold;
+        public float movingMinThreshold;
+    }
 }

@@ -443,7 +443,8 @@ namespace NX10
             {
                 float xMm = PixelsToMillimeters(touch.screenPosition.x);
                 float yMm = PixelsToMillimeters(touch.screenPosition.y);
-                GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm ({touch.phase})", labelStyle);
+                float touchRadius = PixelsToMillimeters(touch.radius.x);
+                GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm (R: {touchRadius:F1}mm) ({touch.phase})", labelStyle);
             }
 #else
     foreach (var touch in Input.touches)

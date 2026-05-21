@@ -180,6 +180,14 @@ namespace NX10
             analyticsManager.FireEvent("saaq_shown");
         }
 
+        public void RequestActivity(Action<KineticState> activityState)
+        {
+            networkingManager.RequestActivity((state) =>
+            {
+                activityState(state);
+            });
+        }
+
         public void SendPromptAnswer(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
         {
             networkingManager.SendTriggeredSAAQData(answer, displayTimestamp, answerTimestamp, triggerId);

@@ -30,6 +30,7 @@ namespace NX10
     {
         public Sensors sensor;
         public DeviceSettings device;
+        public ActivtyThresholds activity;
     }
 
     [Serializable]
@@ -45,5 +46,11 @@ namespace NX10
     public class DeviceSettings
     {
         public Dictionary<string, float> deviceModelToDpiMap;
+    }
+
+    [Serializable]
+    public class ActivtyThresholds
+    {
+        public Dictionary<string, float> thresholds;
     }
 }
