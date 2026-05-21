@@ -180,11 +180,19 @@ namespace NX10
             analyticsManager.FireEvent("saaq_shown");
         }
 
-        public void RequestActivity(Action<KineticState> activityState)
+        public void RequestActivity(Action<KineticState> activityAction)
         {
             networkingManager.RequestActivity((state) =>
             {
-                activityState(state);
+                activityAction(state);
+            });
+        }
+
+        public void RequestAffect(Action<Affect, float> affectAndConfidenceAction)
+        {
+            networkingManager.RequestAffect((affect, confidence) =>
+            {
+                affectAndConfidenceAction(affect, confidence);
             });
         }
 

@@ -274,7 +274,7 @@ namespace NX10
             }, headers));
         }
 
-        public void RequestActivity(Action<KineticState> activityState)
+        public void RequestActivity(Action<KineticState> activityAction)
         {
             string activityEndpoint = currentSession.GetEndpoint("activity", "v1");
             NX10ActivityPayload activityPayload = new NX10ActivityPayload()
@@ -291,13 +291,13 @@ namespace NX10
             string nx10jsonData = JsonConvert.SerializeObject(activityPayload);
             StartCoroutine(NX10PostRequest(activityEndpoint, nx10jsonData, (success, message) =>
             {
-                KineticState kineticState = KineticState.unknown;
+                KineticState kineticState = KineticState.Unknown;
                 if (success)
                 {
                     kineticState = ParseActivityJson(message);
                 }
                
-                activityState(kineticState);
+                activityAction(kineticState);
 
             }, headers));
         }
@@ -306,9 +306,7 @@ namespace NX10
         {
             try
             {
-                string sanitizedJson = jsonString.Replace("\"in hand\"", "\"inHand\"");
-
-                RootActivityResponse response = JsonConvert.DeserializeObject<RootActivityResponse>(sanitizedJson);
+                RootActivityResponse response = JsonConvert.DeserializeObject<RootActivityResponse>(jsonString);
 
                 if (response != null && response.status == "success")
                 {
@@ -316,11 +314,64 @@ namespace NX10
                     return state;
                 }
 
-                return KineticState.unknown;
+                return KineticState.Unknown;
             }
             catch (System.Exception e)
             {
-                return KineticState.unknown;
+                return KineticState.Unknown;
+            }
+        }
+
+        public void RequestAffect(Action<Affect, float> affectAndConfidenceAction)
+        {
+            string affectEndpoint = currentSession.GetEndpoint("frustration", "v1");
+            NX10ActivityPayload activityPayload = new NX10ActivityPayload()
+            {
+                stationaryMaxThreshold = CurrentSession.stationaryThreshold.Value,
+                movingMinThreshold = CurrentSession.movingMinThreshold.Value,
+            };
+
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            StartCoroutine(NX10GetRequest(affectEndpoint, (success, message) =>
+            {
+                Affect affect = Affect.Unknown;
+                float confidence = 0;
+                if (success)
+                {
+                    affect = ParseAffectJson(message, out float conf);
+                    confidence = conf;
+                }
+
+                affectAndConfidenceAction(affect, confidence);
+
+            }, headers));
+        }
+
+        public Affect ParseAffectJson(string jsonString, out float confidence)
+        {
+            try
+            {
+                RootRedGreenResponse response = JsonConvert.DeserializeObject<RootRedGreenResponse>(jsonString);
+
+                if (response != null && response.status == "success")
+                {
+                    Affect state = response.data.currentAffect;
+                    confidence = response.data.confidence;
+
+                    return state;
+                }
+
+                confidence = 0.0f;
+                return Affect.Unknown;
+            }
+            catch (System.Exception e)
+            {
+                confidence = 0.0f;
+                return Affect.Unknown;
             }
         }
 
@@ -330,6 +381,42 @@ namespace NX10
             byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonBody);
 
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+            if (additionalHeaders != null)
+            {
+                foreach (HeaderObject headerObject in additionalHeaders)
+                {
+                    request.SetRequestHeader(headerObject.headerName, headerObject.headerValue);
+                }
+            }
+
+            bool success = false;
+            string responseMessage = "";
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                success = true;
+                responseMessage = request.downloadHandler.text;
+            }
+            else
+            {
+                Debug.LogError("Post failed:");
+                Debug.LogError("Result: " + request.result);
+                Debug.LogError("Error: " + request.error);
+                Debug.LogError("Response Code: " + request.responseCode);
+                Debug.LogError("Response Body: " + request.downloadHandler.text);
+            }
+
+            onComplete?.Invoke(success, responseMessage);
+        }
+
+        public IEnumerator NX10GetRequest(string uri, System.Action<bool, string> onComplete = null, List<HeaderObject> additionalHeaders = null)
+        {
+            UnityWebRequest request = new UnityWebRequest(uri, "GET");
+
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
             if (additionalHeaders != null)

@@ -1,18 +1,25 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using UnityEngine;
 
 namespace NX10
 {
     public enum KineticState
     {
-        unknown,
-        stationary,
-        [InspectorName("in hand")] inHand, 
-        moving
+        [System.Runtime.Serialization.EnumMember(Value = "unknown")]
+        Unknown,
+        [System.Runtime.Serialization.EnumMember(Value = "stationary")]
+        Stationary,
+        [System.Runtime.Serialization.EnumMember(Value = "in hand")]
+        InHand,
+        [System.Runtime.Serialization.EnumMember(Value = "moving")]
+        Moving
     }
 
     [System.Serializable]
     public class DeviceState
     {
+        [JsonConverter(typeof(StringEnumConverter))]
         public KineticState kineticState;
     }
 
