@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace NX10
 {
@@ -29,7 +30,18 @@ namespace NX10
 #endif
 
         [Header("Sensor Output")]
-        public Vector3 rotationRateUnbiased;
+        public Vector3 rotationRateUnbiased
+        {
+            get
+            {
+#if UNITY_IOS
+                NativeVector3 nativeVec = _GetNativeRotationRateUnbiased();
+                return new Vector3(ConvertToMetresPerSecondSquared(nativeVec.x), ConvertToMetresPerSecondSquared(nativeVec.y), ConvertToMetresPerSecondSquared(nativeVec.z));
+#else
+                return UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
+#endif
+            }
+        }
 
 
         private bool isRunning = false;
@@ -41,15 +53,6 @@ namespace NX10
         isRunning = true;
 #else
 #endif
-        }
-
-        void Update()
-        {
-            if (!isRunning) return;
-
-            NativeVector3 nativeVec = _GetNativeRotationRateUnbiased();
-
-            rotationRateUnbiased = new Vector3(ConvertToMetresPerSecondSquared(nativeVec.x), ConvertToMetresPerSecondSquared(nativeVec.y), ConvertToMetresPerSecondSquared(nativeVec.z));
         }
 
         private const float conversionFloat = 9.80665f;
