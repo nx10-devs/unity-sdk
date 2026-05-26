@@ -35,7 +35,7 @@ namespace NX10
         private void Awake()
         {
 #if UNITY_EDITOR
-            guiMenuToggle = true;
+            //guiMenuToggle = true;
 #endif
         }
 
@@ -154,7 +154,7 @@ namespace NX10
 #if ENABLE_INPUT_SYSTEM
                 if (Accelerometer.current != null)
                 {
-                    var accel = _telemetryManager.MapScreenAccelerometerWithoutOrientation(Accelerometer.current.acceleration.ReadValue());
+                    var accel = _telemetryManager.ConvertAccelerometerData(Accelerometer.current.acceleration.ReadValue());
                     cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} m/s²";
                 }
                 else
@@ -164,8 +164,7 @@ namespace NX10
 
                 if (UnityEngine.InputSystem.Gyroscope.current != null)
                 {
-                    var gyro = UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
-                    cachedGyroText = $"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s";
+                    cachedGyroText = $"  Gyro:  {_telemetryManager.nativeGyro.rotationRateUnbiased.x:F2}, {_telemetryManager.nativeGyro.rotationRateUnbiased.y:F2}, {_telemetryManager.nativeGyro.rotationRateUnbiased.z:F2} rad/s";
                 }
                 else
                 {

@@ -318,6 +318,7 @@ namespace NX10
             }
             catch (System.Exception e)
             {
+                Debug.LogException(e);
                 return KineticState.Unknown;
             }
         }
@@ -371,7 +372,11 @@ namespace NX10
             catch (System.Exception e)
             {
                 confidence = 0.0f;
+
+                Debug.LogException(e);
+
                 return Affect.Unknown;
+                
             }
         }
 

@@ -14,6 +14,8 @@ namespace NX10
 {
     public class NX10TelemetryManager : MonoBehaviour
     {
+        public NativeGyro nativeGyro { get; private set; }
+
         private bool canCollectTelemetryData;
         private bool isRunning;
         private NX10TelemetryWindow currentCollectionWindow;
@@ -51,6 +53,8 @@ namespace NX10
                 InputSystem.EnableDevice(Accelerometer.current);
 
             EnhancedTouchSupport.Enable();
+
+            nativeGyro = GetComponent<NativeGyro>();
 
             return;
 #endif
@@ -183,20 +187,19 @@ namespace NX10
 #if ENABLE_INPUT_SYSTEM
             if (Gyroscope.current != null)
             {
-                var gyro = Gyroscope.current.angularVelocity.ReadValue();
                 currentCollectionWindow.inputEvents.Add(new GyroEvent
                 {
                     timestampOffsetMs = offset,
-                    x = gyro.x,
-                    y = gyro.y,
-                    z = gyro.z
+                    x = nativeGyro.rotationRateUnbiased.x,
+                    y = nativeGyro.rotationRateUnbiased.y,
+                    z = nativeGyro.rotationRateUnbiased.z
                 });
             }
 #elif ENABLE_LEGACY_INPUT_MANAGER
         if (SystemInfo.supportsGyroscope)
         {
             currentCollectionWindow.inputEvents.Add(new GyroEvent {
-                timestampOffsetMs = offset, x = Input.gyro.rotationRate.x, y = Input.gyro.rotationRate.y, z = Input.gyro.rotationRate.z
+                timestampOffsetMs = offset, x = Input.gyro.rotationRateUnbiased.x, y = Input.gyro.rotationRateUnbiased.y, z = Input.gyro.rotationRateUnbiased.z
             });
         }
 #endif
@@ -208,7 +211,7 @@ namespace NX10
 #if ENABLE_INPUT_SYSTEM
             if (Accelerometer.current != null)
             {
-                Vector3 accel = MapScreenAccelerometerWithoutOrientation(Accelerometer.current.acceleration.ReadValue());
+                Vector3 accel = ConvertAccelerometerData(Accelerometer.current.acceleration.ReadValue());
                 currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
                 {
                     timestampOffsetMs = offset,
@@ -220,8 +223,9 @@ namespace NX10
 #elif ENABLE_LEGACY_INPUT_MANAGER
         if (SystemInfo.supportsGyroscope)
         {
+            Vector3 accel = ConvertAccelerometerData(Input.gyro.userAcceleration);
             currentCollectionWindow.inputEvents.Add(new AccelerometerEvent {
-                timestampOffsetMs = offset, x = Input.gyro.userAcceleration.x, y = Input.gyro.userAcceleration.y, z = Input.gyro.userAcceleration.z
+                timestampOffsetMs = offset, x = accel.x, y = accel.y, z = accel.z
             });
         }
 #endif
@@ -306,23 +310,30 @@ namespace NX10
             return (float)Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
         }
 
-        public Vector3 MapScreenAccelerometerWithoutOrientation(Vector3 screenAccel)
+        private const float metresPerSecondSquaredConverstion = 9.80665f;
+        public Vector3 ConvertAccelerometerData(Vector3 screenAccel)
         {
+            Vector3 convertedVector;
             switch (Screen.orientation)
             {
                 case (UnityEngine.ScreenOrientation.LandscapeLeft):
-                    return new Vector3(-screenAccel.y, screenAccel.x, screenAccel.z);
-
+                    convertedVector = new Vector3(-screenAccel.y, screenAccel.x, -screenAccel.z);
+                    break;
                 case UnityEngine.ScreenOrientation.LandscapeRight:
-                    return new Vector3(screenAccel.y, -screenAccel.x, screenAccel.z);
-
+                    convertedVector = new Vector3(screenAccel.y, -screenAccel.x, -screenAccel.z);
+                    break;
                 case UnityEngine.ScreenOrientation.PortraitUpsideDown:
-                    return new Vector3(-screenAccel.x, -screenAccel.y, screenAccel.z);
-
+                    convertedVector = new Vector3(-screenAccel.x, -screenAccel.y, -screenAccel.z);
+                    break;
                 case UnityEngine.ScreenOrientation.Portrait:
                 default:
-                    return screenAccel;
+                    convertedVector = screenAccel;
+                    break;
             }
+
+            convertedVector = convertedVector * metresPerSecondSquaredConverstion;
+            convertedVector = convertedVector.RoundToFivePlaces();
+            return convertedVector;
         }
     }
 }
