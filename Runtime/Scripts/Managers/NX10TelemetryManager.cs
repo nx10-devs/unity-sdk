@@ -237,6 +237,7 @@ namespace NX10
 #if ENABLE_INPUT_SYSTEM
             foreach (var touch in Touch.activeTouches)
             {
+                float majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
                     timestampOffsetMs = offset,
@@ -245,7 +246,7 @@ namespace NX10
                     touchObject = null,
                     xMm = PixelsToMillimeters(touch.screenPosition.x),
                     yMm = PixelsToMillimeters(touch.screenPosition.y),
-                    touchRadiusMm = PixelsToMillimeters(touch.radius.x)//touch.radius,
+                    touchRadiusMm = PixelsToMillimeters(majorRadius)//touch.radius,
                 });
             }
 
