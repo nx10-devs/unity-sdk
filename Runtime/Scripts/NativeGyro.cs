@@ -36,7 +36,7 @@ namespace NX10
             {
 #if UNITY_IOS
                 NativeVector3 nativeVec = _GetNativeRotationRateUnbiased();
-                return new Vector3(ConvertToMetresPerSecondSquared(nativeVec.x), ConvertToMetresPerSecondSquared(nativeVec.y), ConvertToMetresPerSecondSquared(nativeVec.z));
+                return new Vector3(nativeVec.x, nativeVec.y, nativeVec.z);
 #else
                 return UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
 #endif
@@ -53,13 +53,6 @@ namespace NX10
         isRunning = true;
 #else
 #endif
-        }
-
-        private const float conversionFloat = 9.80665f;
-        private float ConvertToMetresPerSecondSquared(float radsPerSecond)
-        {
-            float metresPerSecond = conversionFloat * radsPerSecond;
-            return (float)Math.Round(metresPerSecond, 5, MidpointRounding.AwayFromZero);
         }
 
         void OnDestroy()
