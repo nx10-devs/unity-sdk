@@ -58,7 +58,7 @@ namespace NX10
         private const float conversionFloat = 9.80665f;
         private float ConvertToMetresPerSecondSquared(float radsPerSecond)
         {
-            float metresPerSecond = conversionFloat * -radsPerSecond;
+            float metresPerSecond = conversionFloat * radsPerSecond;
             return (float)Math.Round(metresPerSecond, 5, MidpointRounding.AwayFromZero);
         }
 
