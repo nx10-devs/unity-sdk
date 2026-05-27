@@ -202,7 +202,8 @@ namespace NX10
             {
                 float xMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.x);
                 float yMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.y);
-                float touchRadius = _telemetryManager.PixelsToMillimeters(touch.radius.x);
+                float majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
+                float touchRadius = _telemetryManager.PixelsToMillimeters(majorRadius);
                 GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm (R: {touchRadius:F1}mm) ({touch.phase})", labelStyle);
             }
 #else
