@@ -20,7 +20,7 @@ struct NativeVector3 {
 
 + (instancetype)sharedInstance {
     static NativeGyro *sharedInstance = nil;
-    static dispatch_once_onceToken;
+    static dispatch_once_t onceToken; // Fixed syntax error here
     dispatch_once(&onceToken, ^{
         sharedInstance = [[self alloc] init];
     });
