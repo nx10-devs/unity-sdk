@@ -35,7 +35,7 @@ namespace NX10
         private void Awake()
         {
 #if UNITY_EDITOR
-            //guiMenuToggle = true;
+            guiMenuToggle = true;
 #endif
         }
 
@@ -204,7 +204,7 @@ namespace NX10
                 float yMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.y);
                 float majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
                 float touchRadius = _telemetryManager.PixelsToMillimeters(majorRadius);
-                GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm (R: {touchRadius:F1}mm) ({touch.phase})", labelStyle);
+                GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm  (R: {touch.radius.x + "," + touch.radius.y:F1} RAW ScreenSpace) (R: {touchRadius:F1}mm) ({touch.phase})", labelStyle);
             }
 #else
     foreach (var touch in Input.touches)
