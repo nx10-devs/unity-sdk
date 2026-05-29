@@ -209,6 +209,8 @@ namespace NX10
                 double radiusMm = _telemetryManager.PixelsToMillimeters(majorRadius);
 #if UNITY_IOS && !UNITY_EDITOR
                 radiusMm = _telemetryManager.MmPerPoint() * majorRadius;
+                radiusMm = Math.Round(radiusMm, 3, MidpointRounding.AwayFromZero);
+
 #endif
                 GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm  (R: {touch.radius.x + "," + touch.radius.y:F1} RAW ScreenSpace) (R: {radiusMm:F1}mm) ({touch.phase})", labelStyle);
             }

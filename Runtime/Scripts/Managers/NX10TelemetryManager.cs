@@ -243,6 +243,7 @@ namespace NX10
                 double radiusMm = PixelsToMillimeters(majorRadius);
 #if UNITY_IOS && !UNITY_EDITOR
                 radiusMm = MmPerPoint() * majorRadius;
+                radiusMm = Math.Round(radiusMm, 3, MidpointRounding.AwayFromZero);
 #endif
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
