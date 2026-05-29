@@ -127,7 +127,7 @@ namespace NX10
             labelStyle.richText = true; 
 
             GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
-            boxStyle.fontSize = 35;
+            boxStyle.fontSize = 25;
             boxStyle.fontStyle = FontStyle.Bold;
 
             if (!canCollectTelemetryData || currentCollectionWindow == null)
@@ -140,8 +140,6 @@ namespace NX10
 
             GUILayout.BeginArea(new Rect(padding + 15, padding + 45, boxWidth - 30, boxHeight - 60));
 
-            GUILayout.Label($"Window Start: {currentCollectionWindow.startTimestampISO}", labelStyle);
-            GUILayout.Label($"Events Recorded: {currentCollectionWindow.inputEvents.Count}", labelStyle);
             GUILayout.Label($"DPI: {dpi}", labelStyle);
 #if UNITY_IOS && !UNITY_EDITOR
             GUILayout.Label($"NativeScale: {_telemetryManager.nativeScale.GetNativeScale()}", labelStyle);
