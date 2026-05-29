@@ -34,7 +34,7 @@ namespace NX10
         {
             get
             {
-#if UNITY_IOS
+#if UNITY_IOS && !UNITY_EDITOR
                 NativeVector3 nativeVec = _GetNativeRotationRateUnbiased();
                 return new Vector3(nativeVec.x, nativeVec.y, nativeVec.z);
 #else

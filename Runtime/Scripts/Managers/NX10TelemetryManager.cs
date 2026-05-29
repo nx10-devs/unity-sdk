@@ -15,6 +15,7 @@ namespace NX10
     public class NX10TelemetryManager : MonoBehaviour
     {
         public NativeGyro nativeGyro { get; private set; }
+        public NativeScale nativeScale { get; private set; }
 
         private bool canCollectTelemetryData;
         private bool isRunning;
@@ -55,6 +56,7 @@ namespace NX10
             EnhancedTouchSupport.Enable();
 
             nativeGyro = GetComponent<NativeGyro>();
+            nativeScale = GetComponent<NativeScale>();
 
             return;
 #endif
@@ -238,6 +240,10 @@ namespace NX10
             foreach (var touch in Touch.activeTouches)
             {
                 float majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
+                double radiusMm = PixelsToMillimeters(majorRadius);
+#if UNITY_IOS && !UNITY_EDITOR
+                radiusMm = MmPerPoint() * majorRadius;
+#endif
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
                     timestampOffsetMs = offset,
@@ -246,12 +252,12 @@ namespace NX10
                     touchObject = null,
                     xMm = PixelsToMillimeters(touch.screenPosition.x),
                     yMm = PixelsToMillimeters(touch.screenPosition.y),
-                    touchRadiusMm = PixelsToMillimeters(majorRadius)//touch.radius,
+                    touchRadiusMm = radiusMm
                 });
             }
 
 #else
-        foreach (var touch in Input.touches)
+                foreach (var touch in Input.touches)
             {
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2 {
                     timestampOffsetMs = offset,
@@ -304,11 +310,17 @@ namespace NX10
             throw new NotImplementedException();
         }
 
-        public float PixelsToMillimeters(float pixels)
+        public double MmPerPoint()
         {
-            float inches = pixels / dpi;
-            float millimeters = inches * 25.4f;
-            return (float)Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
+            double nativeIOSScale = nativeScale.GetNativeScale();
+            return (nativeIOSScale / dpi) * 25.4;
+        }
+
+        public double PixelsToMillimeters(double pixels)
+        {
+            double inches = pixels / dpi;
+            double millimeters = inches * 25.4f;
+            return Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
         }
 
         private const float metresPerSecondSquaredConverstion = 9.80665f;

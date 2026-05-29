@@ -84,9 +84,9 @@ namespace NX10
         public string touchId;
         public string touchType;
         public string touchObject;
-        public float xMm;
-        public float yMm;
-        public float touchRadiusMm;
+        public double xMm;
+        public double yMm;
+        public double touchRadiusMm;
 
         public object[] ToArray()
         {

@@ -147,6 +147,7 @@ GameObject:
   - component: {fileID: 6618393820989119034}
   - component: {fileID: 4050984657845231266}
   - component: {fileID: 204267272418680}
+  - component: {fileID: 3756623070744214699}
   m_Layer: 0
   m_Name: NX10TelemetryManager
   m_TagString: Untagged
@@ -193,7 +194,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46f4ef83600346d418207b02e1375ab3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: NX10::NX10.NativeGyro
-  rotationRateUnbiased: {x: 0, y: 0, z: 0}
+--- !u!114 &3756623070744214699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4717045626657959527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 815c8c4e1db78ac4c946f64a41717946, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NX10::NX10.NativeScale
 --- !u!1 &5289940703915008594
 GameObject:
   m_ObjectHideFlags: 0
@@ -251,6 +263,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 58496801

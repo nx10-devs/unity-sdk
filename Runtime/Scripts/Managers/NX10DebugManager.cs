@@ -142,6 +142,9 @@ namespace NX10
             GUILayout.Label($"Window Start: {currentCollectionWindow.startTimestampISO}", labelStyle);
             GUILayout.Label($"Events Recorded: {currentCollectionWindow.inputEvents.Count}", labelStyle);
             GUILayout.Label($"DPI: {dpi}", labelStyle);
+#if UNITY_IOS && !UNITY_EDITOR
+            GUILayout.Label($"NativeScale: {_telemetryManager.nativeScale.GetNativeScale()}", labelStyle);
+#endif
             GUILayout.Label($"Timer: {timer:F2}s / {acquisitionWindowSize}s", labelStyle);
 
             GUILayout.Space(10);
@@ -200,17 +203,20 @@ namespace NX10
 #if ENABLE_INPUT_SYSTEM
             foreach (var touch in UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches)
             {
-                float xMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.x);
-                float yMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.y);
-                float majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
-                float touchRadius = _telemetryManager.PixelsToMillimeters(majorRadius);
-                GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm  (R: {touch.radius.x + "," + touch.radius.y:F1} RAW ScreenSpace) (R: {touchRadius:F1}mm) ({touch.phase})", labelStyle);
+                double xMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.x);
+                double yMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.y);
+                double majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
+                double radiusMm = _telemetryManager.PixelsToMillimeters(majorRadius);
+#if UNITY_IOS && !UNITY_EDITOR
+                radiusMm = _telemetryManager.MmPerPoint() * majorRadius;
+#endif
+                GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm  (R: {touch.radius.x + "," + touch.radius.y:F1} RAW ScreenSpace) (R: {radiusMm:F1}mm) ({touch.phase})", labelStyle);
             }
 #else
     foreach (var touch in Input.touches)
     {
-        float xMm = _telemetryManager.PixelsToMillimeters(touch.position.x);
-        float yMm = _telemetryManager.PixelsToMillimeters(touch.position.y);
+        double xMm = _telemetryManager.PixelsToMillimeters(touch.position.x);
+        double yMm = _telemetryManager.PixelsToMillimeters(touch.position.y);
         GUILayout.Label($"ID {touch.fingerId}: {xMm:F1}mm, {yMm:F1}mm ({touch.phase})", labelStyle);
     }
 #endif
