@@ -211,7 +211,7 @@ namespace NX10
                 radiusMm = Math.Round(radiusMm, 3, MidpointRounding.AwayFromZero);
 
 #endif
-                GUILayout.Label($"ID {touch.touchId}: {xMm:F1}mm, {yMm:F1}mm  (R: {touch.radius.x + "," + touch.radius.y:F1} RAW ScreenSpace) (R: {radiusMm:F1}mm) ({touch.phase})", labelStyle);
+                GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm  (R: {touch.radius.x + "," + touch.radius.y} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
             }
 #else
     foreach (var touch in Input.touches)
