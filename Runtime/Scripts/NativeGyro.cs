@@ -37,7 +37,7 @@ namespace NX10
 #if UNITY_IOS && !UNITY_EDITOR
                 NativeVector3 nativeVec = _GetNativeRotationRateUnbiased();
                 Vector3 rotation = new Vector3(nativeVec.x, nativeVec.y, nativeVec.z);
-                rotation.RoundToFivePlaces();
+                rotation = rotation.RoundToFivePlaces();
                 return rotation;
 #else
                 return UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();

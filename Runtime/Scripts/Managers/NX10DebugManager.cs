@@ -157,7 +157,7 @@ namespace NX10
                 if (Accelerometer.current != null)
                 {
                     var accel = _telemetryManager.ConvertAccelerometerData(Accelerometer.current.acceleration.ReadValue());
-                    cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} m/s²";
+                    cachedAccelText = $"  Accel: {accel.x}, {accel.y}, {accel.z} m/s²";
                 }
                 else
                 {
@@ -166,7 +166,7 @@ namespace NX10
 
                 if (UnityEngine.InputSystem.Gyroscope.current != null)
                 {
-                    cachedGyroText = $"  Gyro:  {_telemetryManager.nativeGyro.rotationRateUnbiased.x:F2}, {_telemetryManager.nativeGyro.rotationRateUnbiased.y:F2}, {_telemetryManager.nativeGyro.rotationRateUnbiased.z:F2} rad/s";
+                    cachedGyroText = $"  Gyro:  {_telemetryManager.nativeGyro.rotationRateUnbiased.x}, {_telemetryManager.nativeGyro.rotationRateUnbiased.y}, {_telemetryManager.nativeGyro.rotationRateUnbiased.z} rad/s";
                 }
                 else
                 {
