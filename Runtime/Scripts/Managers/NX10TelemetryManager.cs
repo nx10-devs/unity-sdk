@@ -192,9 +192,9 @@ namespace NX10
                 currentCollectionWindow.inputEvents.Add(new GyroEvent
                 {
                     timestampOffsetMs = offset,
-                    x = (float)Math.Round(nativeGyro.rotationRateUnbiased.x, 5, MidpointRounding.AwayFromZero),
-                    y = (float)Math.Round(nativeGyro.rotationRateUnbiased.y, 5, MidpointRounding.AwayFromZero),
-                    z = (float)Math.Round(nativeGyro.rotationRateUnbiased.z, 5, MidpointRounding.AwayFromZero),
+                    x = nativeGyro.rotationRateUnbiased.x,
+                    y = nativeGyro.rotationRateUnbiased.z,
+                    z = nativeGyro.rotationRateUnbiased.y,
                 });
             }
 #elif ENABLE_LEGACY_INPUT_MANAGER
