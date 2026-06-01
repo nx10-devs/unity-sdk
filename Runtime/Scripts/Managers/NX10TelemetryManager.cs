@@ -185,23 +185,26 @@ namespace NX10
 
         private void CollectGyroData()
         {
-            double offset = currentCollectionWindow.Offset().TotalMilliseconds;
+            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
 #if ENABLE_INPUT_SYSTEM
             if (Gyroscope.current != null)
             {
                 currentCollectionWindow.inputEvents.Add(new GyroEvent
                 {
                     timestampOffsetMs = offset,
-                    x = nativeGyro.rotationRateUnbiased.x,
-                    y = nativeGyro.rotationRateUnbiased.y,
-                    z = nativeGyro.rotationRateUnbiased.z
+                    x = (float)Math.Round(nativeGyro.rotationRateUnbiased.x, 5, MidpointRounding.AwayFromZero),
+                    y = (float)Math.Round(nativeGyro.rotationRateUnbiased.y, 5, MidpointRounding.AwayFromZero),
+                    z = (float)Math.Round(nativeGyro.rotationRateUnbiased.z, 5, MidpointRounding.AwayFromZero),
                 });
             }
 #elif ENABLE_LEGACY_INPUT_MANAGER
         if (SystemInfo.supportsGyroscope)
         {
             currentCollectionWindow.inputEvents.Add(new GyroEvent {
-                timestampOffsetMs = offset, x = Input.gyro.rotationRateUnbiased.x, y = Input.gyro.rotationRateUnbiased.y, z = Input.gyro.rotationRateUnbiased.z
+                timestampOffsetMs = offset,
+                x = (float)Math.Round(Input.gyro.rotationRateUnbiased.x, 5, MidpointRounding.AwayFromZero),
+                y = (float)Math.Round(Input.gyro.rotationRateUnbiased.y, 5, MidpointRounding.AwayFromZero),
+                z = (float)Math.Round(Input.gyro.rotationRateUnbiased.z, 5, MidpointRounding.AwayFromZero),
             });
         }
 #endif
@@ -209,7 +212,7 @@ namespace NX10
 
         private void CollectAccelData()
         {
-            double offset = currentCollectionWindow.Offset().TotalMilliseconds;
+            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
 #if ENABLE_INPUT_SYSTEM
             if (Accelerometer.current != null)
             {
@@ -227,7 +230,10 @@ namespace NX10
         {
             Vector3 accel = ConvertAccelerometerData(Input.gyro.userAcceleration);
             currentCollectionWindow.inputEvents.Add(new AccelerometerEvent {
-                timestampOffsetMs = offset, x = accel.x, y = accel.y, z = accel.z
+                timestampOffsetMs = offset,
+                x = (float)Math.Round(accel.x, 5, MidpointRounding.AwayFromZero),
+                x = (float)Math.Round(accel.y, 5, MidpointRounding.AwayFromZero),
+                x = (float)Math.Round(accel.z, 5, MidpointRounding.AwayFromZero),
             });
         }
 #endif
@@ -235,7 +241,7 @@ namespace NX10
 
         private void CollectTouchDataV2()
         {
-            double offset = currentCollectionWindow.Offset().TotalMilliseconds;
+            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero); 
 #if ENABLE_INPUT_SYSTEM
             foreach (var touch in Touch.activeTouches)
             {
