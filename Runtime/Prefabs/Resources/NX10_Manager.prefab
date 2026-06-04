@@ -103,7 +103,7 @@ GameObject:
   - component: {fileID: 1373705716446522769}
   - component: {fileID: 4913053498547072944}
   m_Layer: 5
-  m_Name: NX10BackendManager
+  m_Name: NX10NetworkingManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

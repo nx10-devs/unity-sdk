@@ -143,6 +143,16 @@ namespace NX10
     }
 
     [Serializable]
+    public class NX10EventsPayload
+    {
+        public string timestamp;
+        public string eventName;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, object> data;
+    }
+
+    [Serializable]
     public class NX10ActivityPayload
     {
         public float stationaryMaxThreshold;

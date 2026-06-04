@@ -134,6 +134,12 @@ namespace NX10
             });
         }
 
+        public void SendEvent(string eventName, Dictionary<string, object> eventData = null)
+        {
+            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            networkingManager.SendEvent(eventName, timeStamp, eventData);
+        }
+
         public void SetAttributes(Dictionary<string, object> attributes)
         {
             attributesManager.SetAttributes(attributes);

@@ -380,6 +380,40 @@ namespace NX10
             }
         }
 
+        public void SendEvent(string eventName, string timeStamp, Dictionary<string, object> eventData = null)
+        {
+            string eventsEndpoint = currentSession.GetEndpoint("events", "v1");
+            NX10EventsPayload eventsPayload = new NX10EventsPayload()
+            {
+                eventName = eventName,
+                timestamp = timeStamp,
+            };
+
+            if (eventData != null)
+            {
+                eventsPayload.data = eventData;
+            }
+
+            string nx10jsonData = JsonConvert.SerializeObject(eventsPayload);
+            Debug.Log(nx10jsonData);
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            StartCoroutine(NX10PostRequest(eventsEndpoint, nx10jsonData, (success, message) =>
+            {
+                if (success)
+                {
+
+                }
+                else
+                {
+
+                }
+            }, headers));
+        }
+
         public IEnumerator NX10PostRequest(string uri, string jsonBody, System.Action<bool, string> onComplete = null, List<HeaderObject> additionalHeaders = null)
         {
             UnityWebRequest request = new UnityWebRequest(uri, "POST");
