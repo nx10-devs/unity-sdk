@@ -74,8 +74,7 @@ namespace NX10
             string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
             StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payloadJson, (success, message) =>
             {
-                if (success)
-                    HandleIncomingSAAQ(message);
+                
 
             }, headers));
         }
@@ -144,6 +143,23 @@ namespace NX10
             }
 
             currentSession.Initialize(response.data);
+        }
+
+        public void CheckPrompt()
+        {
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            string saaqPollEndpoint = currentSession.GetEndpoint("polling/saaq-prompts", "v1");
+
+            StartCoroutine(NX10GetRequest(saaqPollEndpoint, (success, message) =>
+            {
+                if (success)
+                    HandleIncomingSAAQ(message);
+
+            }, headers));
         }
 
         private void HandleIncomingSAAQ(string json)
@@ -380,7 +396,7 @@ namespace NX10
             }
         }
 
-        public void SendEvent(string eventName, string timeStamp, Dictionary<string, object> eventData = null)
+        public void SendEvent(string eventName, string timeStamp, string outcome = null, Dictionary<string, object> eventData = null)
         {
             string eventsEndpoint = currentSession.GetEndpoint("events", "v1");
             NX10EventsPayload eventsPayload = new NX10EventsPayload()
@@ -392,6 +408,11 @@ namespace NX10
             if (eventData != null)
             {
                 eventsPayload.data = eventData;
+            }
+
+            if(outcome != null)
+            {
+                eventsPayload.outcome = outcome;
             }
 
             string nx10jsonData = JsonConvert.SerializeObject(eventsPayload);

@@ -28,9 +28,16 @@ namespace NX10
     [Serializable]
     public class DeviceConfig
     {
+        public SaaqConfig saaq;
         public Sensors sensor;
         public DeviceSettings device;
         public ActivtyThresholds activity;
+    }
+
+    [Serializable]
+    public class SaaqConfig
+    {
+        public float? saaqPollingPeriodSeconds;
     }
 
     [Serializable]

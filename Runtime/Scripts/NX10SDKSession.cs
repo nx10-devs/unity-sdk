@@ -17,6 +17,8 @@ namespace NX10
 
         public int? acquisitionWindowSize { get; private set; }
 
+        public float? saaqPollingPeriod { get; private set; }
+
         public float dpi;
 
         private const string stationaryThresholdKey = "stationaryMaxThreshold";
@@ -33,10 +35,23 @@ namespace NX10
 
             _endpoints = data.endpoints ?? new List<EndpointInfo>();
 
-            gyroFrequencyHz = data.deviceConfig.sensor.gyroscopeSampleHz;
-            accelFrequencyHz = data.deviceConfig.sensor.accelerometerSampleHz;
-            touchFrequencyHz = data.deviceConfig.sensor.touchSampleHz;
-            acquisitionWindowSize = data.deviceConfig.sensor.acquisitionWindowSize;
+            foreach(EndpointInfo ep in data.endpoints)
+            {
+                Debug.Log(ep.location);
+            }
+
+            if(data.deviceConfig.sensor != null)
+            {
+                gyroFrequencyHz = data.deviceConfig.sensor.gyroscopeSampleHz;
+                accelFrequencyHz = data.deviceConfig.sensor.accelerometerSampleHz;
+                touchFrequencyHz = data.deviceConfig.sensor.touchSampleHz;
+                acquisitionWindowSize = data.deviceConfig.sensor.acquisitionWindowSize;
+            }
+           
+            if(data.deviceConfig.saaq != null)
+            {
+                saaqPollingPeriod = data.deviceConfig.saaq.saaqPollingPeriodSeconds;
+            }
 
             string deviceModel = SystemInfo.deviceModel;
             if(data.deviceConfig.device.deviceModelToDpiMap.TryGetValue(deviceModel, out float value))

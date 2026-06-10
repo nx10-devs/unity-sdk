@@ -130,6 +130,11 @@ namespace NX10
 
                 debugManager.Initialise(telemetryManager);
 
+                if(session.saaqPollingPeriod.HasValue)
+                {
+                    promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
+                }
+
                 startSuccess?.Invoke(sessionStartSuccess);
             });
         }
@@ -137,7 +142,20 @@ namespace NX10
         public void SendEvent(string eventName, Dictionary<string, object> eventData = null)
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            networkingManager.SendEvent(eventName, timeStamp, eventData);
+            networkingManager.SendEvent(eventName, timeStamp, null, eventData);
+        }
+
+
+        public enum Outcome
+        {
+            Converted,
+            UnConverted
+        }
+
+        public void SendOutcomeEvent(string eventName, Outcome outcome, Dictionary<string, object> eventData = null)
+        {
+            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            networkingManager.SendEvent(eventName, timeStamp, outcome.ToString(), eventData);
         }
 
         public void SetAttributes(Dictionary<string, object> attributes)

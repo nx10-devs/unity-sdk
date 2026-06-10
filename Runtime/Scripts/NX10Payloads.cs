@@ -150,6 +150,9 @@ namespace NX10
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, object> data;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string outcome;
     }
 
     [Serializable]
