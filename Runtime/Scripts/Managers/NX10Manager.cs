@@ -145,7 +145,6 @@ namespace NX10
             networkingManager.SendEvent(eventName, timeStamp, null, eventData);
         }
 
-
         public enum Outcome
         {
             Converted,

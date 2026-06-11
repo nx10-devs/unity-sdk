@@ -152,7 +152,7 @@ namespace NX10
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
             };
 
-            string saaqPollEndpoint = currentSession.GetEndpoint("polling/saaq-prompts", "v1");
+            string saaqPollEndpoint = currentSession.GetEndpoint("saaq-polling", "v1");
 
             StartCoroutine(NX10GetRequest(saaqPollEndpoint, (success, message) =>
             {
