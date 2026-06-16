@@ -18,9 +18,9 @@ namespace NX10
             base.Initialise(promptManager);
         }
 
-        public override void OnOpen(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
+        public override void OnOpen(SAAQBlock promptData, float timer, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
-            base.OnOpen(promptData, dismissable, promptAnsweredAction);
+            base.OnOpen(promptData, timer, dismissable, promptAnsweredAction);
 
             currentAnswer = new SAAQAnswer();
 

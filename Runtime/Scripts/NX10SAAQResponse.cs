@@ -22,11 +22,17 @@ namespace NX10
         public SAAQBlock prompt;
     }
 
+    public enum DisplayBehaviour
+    {
+        DisplayForcedCountdown,
+        DisplayForcedImmediate,
+        DisplayOptionalCountdown
+    }
 
     [Serializable]
     public class SAAQDisplayBehaviour
     {
-        public string blockType;
+        public DisplayBehaviour displayBehaviour;
         public int timeoutSeconds;
         public string id;
     }

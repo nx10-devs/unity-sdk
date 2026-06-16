@@ -41,11 +41,11 @@ namespace NX10
             onSAAQSubmitted.Invoke(answer);
         }
 
-        public void ShowPrompt(SAAQBlock blockData, bool dismissable, System.Action<SAAQAnswer> promptAnsweredAction)
+        public void ShowPrompt(SAAQBlock blockData, float timer, bool dismissable, System.Action<SAAQAnswer> promptAnsweredAction)
         {
             PromptType promptType = ParsePromptType(blockData.blockType);
             currentPrompt = promptUiDict[promptType];
-            currentPrompt.OnOpen(blockData, dismissable, promptAnsweredAction);
+            currentPrompt.OnOpen(blockData, timer, dismissable, promptAnsweredAction);
         }
 
         private PromptType ParsePromptType(string promptType)

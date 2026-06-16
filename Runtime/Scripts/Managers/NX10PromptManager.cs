@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using UnityEngine;
 
 namespace NX10
@@ -112,9 +113,9 @@ namespace NX10
             }
         }
 
-        public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
+        public void ShowPrompt(SAAQBlock promptData, float timer, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
-            uiController.ShowPrompt(promptData, dismissable, (answer) =>
+            uiController.ShowPrompt(promptData, timer, dismissable, (answer) =>
             {
                 promptAnsweredAction(answer);
             });

@@ -35,6 +35,7 @@ namespace NX10
 
         private SAAQBlock promptData;
         private bool dismissable;
+        private float timer;
 
         private SAAQAnswer currentAnswer;
         private Type2PromptPanelUi currentPanel;
@@ -52,12 +53,13 @@ namespace NX10
             base.Initialise(promptManager);
         }
 
-        public override void OnOpen(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
+        public override void OnOpen(SAAQBlock promptData, float timer, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
-            base.OnOpen(promptData, dismissable, promptAnsweredAction);
+            base.OnOpen(promptData, timer, dismissable, promptAnsweredAction);
 
             this.promptData = promptData;
             this.dismissable = dismissable;
+            this.timer = timer;
 
             currentAnswer = new SAAQAnswer();
             currentAnswer.data.selectedValue = null;
@@ -84,7 +86,7 @@ namespace NX10
             gameObject.SetActive(false);
             if (option.followonQuestion.Count > 0)
             {
-                NX10Manager.Instance.ShowPrompt(option.followonQuestion[0], dismissable, (answer, displayTimestamp, answeredTimestamp) =>
+                NX10Manager.Instance.ShowPrompt(option.followonQuestion[0], timer, dismissable, (answer, displayTimestamp, answeredTimestamp) =>
                 {
                     SelectedFeeling selectedFeeling = new SelectedFeeling();
                     selectedFeeling.feelingType = option.feeling.feelingsType.ToString().ToLower();

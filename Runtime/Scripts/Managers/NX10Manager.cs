@@ -191,14 +191,14 @@ namespace NX10
 
         public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer, string, string> promptAnsweredAction)
         {
-            ShowPrompt(promptData.prompt, promptData.dismissable, promptAnsweredAction);
+            ShowPrompt(promptData.prompt, promptData.displayBehaviour.timeoutSeconds, promptData.dismissable, promptAnsweredAction);
         }
 
-        public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer, string, string> promptAnsweredAction)
+        public void ShowPrompt(SAAQBlock promptData, float timer, bool dismissable, Action<SAAQAnswer, string, string> promptAnsweredAction)
         {
             string promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-            promptManager.ShowPrompt(promptData, dismissable, (answer) =>
+            promptManager.ShowPrompt(promptData, timer, dismissable, (answer) =>
             {
                 string promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
                 promptAnsweredAction.Invoke(answer, promptDisplayTimestamp, promptAnswerTimestamp);
