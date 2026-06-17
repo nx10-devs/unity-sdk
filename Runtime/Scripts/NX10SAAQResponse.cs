@@ -18,7 +18,20 @@ namespace NX10
     {
         public string triggerID;
         public bool dismissable;
-        public SAAQDisplayBehaviour displayBehaviour;
+        public SAAQDisplayBehaviour[] displayBehavior;
+
+        public SAAQDisplayBehaviour ActiveDisplayBehaviour
+        {
+            get
+            {
+                if (displayBehavior != null && displayBehavior.Length > 0)
+                {
+                    return displayBehavior[0];
+                }
+                return null;
+            }
+        }
+
         public SAAQBlock prompt;
     }
 

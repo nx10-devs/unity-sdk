@@ -21,7 +21,7 @@ namespace NX10
                         GameObject sdkObject = Resources.Load<GameObject>("NX10_Manager");
                         GameObject instanceObject = UnityEngine.Object.Instantiate(sdkObject);
 
-                        instanceObject.hideFlags = HideFlags.HideInHierarchy;
+                        //instanceObject.hideFlags = HideFlags.HideInHierarchy;
                         DontDestroyOnLoad(instanceObject);
 
                         _instance = instanceObject.GetComponent<NX10Manager>();
@@ -191,7 +191,7 @@ namespace NX10
 
         public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer, string, string> promptAnsweredAction)
         {
-            ShowPrompt(promptData.prompt, promptData.displayBehaviour.timeoutSeconds, promptData.dismissable, promptAnsweredAction);
+            ShowPrompt(promptData.prompt, promptData.ActiveDisplayBehaviour.timeoutSeconds, promptData.dismissable, promptAnsweredAction);
         }
 
         public void ShowPrompt(SAAQBlock promptData, float timer, bool dismissable, Action<SAAQAnswer, string, string> promptAnsweredAction)

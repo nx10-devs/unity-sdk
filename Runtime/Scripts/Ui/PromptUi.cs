@@ -40,18 +40,18 @@ namespace NX10
                 displayTimeLeft -= Time.deltaTime;
                 if (displayTimeLeft <= 0)
                 {
-
+                    OnClose();
                 }
             }
         }
 
         private void UpdateTimerView()
         {
-            timerImage.fillAmount = displayTimeTotal / displayTimeLeft;
+            timerImage.fillAmount = displayTimeLeft / displayTimeTotal;
             timerText.text = FormatTime(displayTimeLeft);
         }
 
-        public static string FormatTime(float seconds, bool includeMs = false)
+        public static string FormatTime(float seconds)
         {
             bool isNegative = seconds < 0;
             float absoluteSeconds = Mathf.Abs(seconds);
@@ -63,11 +63,6 @@ namespace NX10
                 time.Minutes,
                 time.Seconds);
 
-            if (includeMs)
-            {
-                baseTime += string.Format(".{0:000}", time.Milliseconds);
-            }
-
             return isNegative ? $"-{baseTime}" : baseTime;
         }
 
@@ -75,14 +70,23 @@ namespace NX10
         {
             onSubmit = promptAnsweredAction;
 
-            if(timer > 0)
+            if (timer > 0)
             {
                 displayTimeTotal = timer;
                 displayTimeLeft = timer;
+
+                timerImage.gameObject.SetActive(true);
+                timerText.gameObject.SetActive(true);
+
                 shouldCountdown = true;
 
-            } else shouldCountdown = false;
-
+            }
+            else
+            {
+                shouldCountdown = false;
+                timerImage.gameObject.SetActive(false);
+                timerText.gameObject.SetActive(false);
+            }
 
             if (questionText)
                 questionText.text = promptData.questionText;
@@ -103,7 +107,7 @@ namespace NX10
             answer.type = "dismissed";
 
             onSubmit.Invoke(answer);
-            OnClose();
+            //OnClose();
         }
 
 
