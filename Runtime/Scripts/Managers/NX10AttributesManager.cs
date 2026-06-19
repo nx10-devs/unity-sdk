@@ -26,6 +26,11 @@ namespace NX10
             SendAttributes();
         }
 
+        public string GetAbTest()
+        {
+            return currentGameAttributes["session_abtest"].ToString();
+        }
+
         public void SetAttribute(string key, object value, bool sendAttributes = false)
         {
             if (!NX10Manager.Instance.Initialised)

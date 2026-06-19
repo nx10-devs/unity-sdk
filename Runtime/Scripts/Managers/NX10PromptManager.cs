@@ -48,6 +48,11 @@ namespace NX10
             StartPolling();
         }
 
+        public void CloseCurrent()
+        {
+            uiController.CloseCurrentPrompt();
+        }
+
         private void OnDisable()
         {
             _= StopPollingAsync();

@@ -139,6 +139,11 @@ namespace NX10
             });
         }
 
+        public void ClosePrompt()
+        {
+            promptManager.CloseCurrent();
+        }
+
         public void SendEvent(string eventName, Dictionary<string, object> eventData = null)
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
@@ -160,6 +165,11 @@ namespace NX10
         public void SetAttributes(Dictionary<string, object> attributes)
         {
             attributesManager.SetAttributes(attributes);
+        }
+
+        public string GetAbTest()
+        {
+            return attributesManager.GetAbTest();
         }
 
         public void SetAttribute(string attributeKey, object attributeValue)
