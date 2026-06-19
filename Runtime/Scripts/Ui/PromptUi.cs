@@ -53,17 +53,9 @@ namespace NX10
 
         public static string FormatTime(float seconds)
         {
-            bool isNegative = seconds < 0;
-            float absoluteSeconds = Mathf.Abs(seconds);
+            int wholeSeconds = Mathf.FloorToInt(seconds);
 
-            TimeSpan time = TimeSpan.FromSeconds(absoluteSeconds);
-
-            string baseTime = string.Format("{0:00}:{1:02}:{2:02}",
-                Mathf.FloorToInt((float)time.TotalHours),
-                time.Minutes,
-                time.Seconds);
-
-            return isNegative ? $"-{baseTime}" : baseTime;
+            return wholeSeconds.ToString("0") + "s";
         }
 
         public virtual void OnOpen(SAAQBlock promptData, float timer, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
