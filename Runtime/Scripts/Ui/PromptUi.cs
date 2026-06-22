@@ -41,6 +41,7 @@ namespace NX10
                 if (displayTimeLeft <= 0)
                 {
                     OnClose();
+                    NX10Manager.Instance.SendOutcomeEvent("ad_fully_watched", NX10Manager.Outcome.UnConverted);
                 }
             }
         }
