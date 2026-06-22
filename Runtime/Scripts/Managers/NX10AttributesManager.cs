@@ -28,7 +28,10 @@ namespace NX10
 
         public string GetAbTest()
         {
-            return currentGameAttributes["session_abtest"].ToString();
+            if (currentGameAttributes.ContainsKey("session_abtest"))
+                return currentGameAttributes["session_abtest"].ToString();
+
+            return string.Empty;
         }
 
         public void SetAttribute(string key, object value, bool sendAttributes = false)

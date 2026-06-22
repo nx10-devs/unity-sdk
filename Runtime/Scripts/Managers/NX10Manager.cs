@@ -146,6 +146,8 @@ namespace NX10
 
         public void SendEvent(string eventName, Dictionary<string, object> eventData = null)
         {
+            if (!Initialised) return;
+
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             networkingManager.SendEvent(eventName, timeStamp, null, eventData);
         }
