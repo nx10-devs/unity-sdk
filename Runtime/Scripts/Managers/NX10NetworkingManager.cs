@@ -403,6 +403,7 @@ namespace NX10
             {
                 eventName = eventName,
                 timestamp = timeStamp,
+                data = new Dictionary<string, object>()
             };
 
             if (eventData != null)
