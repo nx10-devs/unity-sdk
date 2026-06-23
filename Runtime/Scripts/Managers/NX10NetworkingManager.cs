@@ -403,18 +403,12 @@ namespace NX10
             {
                 eventName = eventName,
                 timestamp = timeStamp,
+                data = new Dictionary<string, object>()
             };
 
             if (eventData != null)
             {
                 eventsPayload.data = eventData;
-            }
-            else
-            {
-                if(outcome != null)
-                {
-                    eventsPayload.data = new Dictionary<string, object>();
-                }
             }
 
             if (outcome != null)
