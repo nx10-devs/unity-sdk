@@ -31,7 +31,7 @@ namespace NX10
 
         void CheckForDuplicateEventSystems()
         {
-            EventSystem[] eventSystems = FindObjectsByType<EventSystem>();
+            EventSystem[] eventSystems = FindObjectsByType<EventSystem>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
             if (eventSystems.Length > 1)
             {
