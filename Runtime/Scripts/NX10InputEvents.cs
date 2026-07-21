@@ -70,6 +70,24 @@ namespace NX10
     }
 
     [System.Serializable]
+    public class OrientationEvent : IInputEvent
+    {
+        public string type => "orient";
+        public double timestampOffsetMs { get; set; }
+        public string screenOrientation { get; set; }
+
+        public object[] ToArray()
+        {
+            return new object[]
+            {
+                    type,
+                    timestampOffsetMs,
+                    screenOrientation
+            };
+        }
+    }
+
+    [System.Serializable]
     public class MagnetometerEvent : IInputEvent
     {
         public string type => "mag";

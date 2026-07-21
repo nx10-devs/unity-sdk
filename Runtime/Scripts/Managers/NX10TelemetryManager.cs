@@ -31,7 +31,8 @@ namespace NX10
         public int? acquisitionWindowSize;
         public float? screenBrightnessDelta;
 
-        private float lastRecordedBrightness = -1f; 
+        private float lastRecordedBrightness = -1f;
+        private string lastRecordedOrientation = null;
 
         private float dpi;
 
@@ -98,6 +99,7 @@ namespace NX10
             if (canCollectTelemetryData && currentCollectionWindow != null)
             {
                 CheckAndCollectBrightnessData();
+                CheckAndCollectOrientationData();
             }
         }
 
@@ -163,6 +165,41 @@ namespace NX10
             }
         }
 
+        private void CheckAndCollectOrientationData()
+        {
+            string currentOrientation = MapScreenOrientation(Screen.orientation);
+
+            if (lastRecordedOrientation == null || lastRecordedOrientation != currentOrientation)
+            {
+                double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+
+                currentCollectionWindow.inputEvents.Add(new OrientationEvent
+                {
+                    timestampOffsetMs = offset,
+                    screenOrientation = currentOrientation
+                });
+
+                lastRecordedOrientation = currentOrientation;
+            }
+        }
+
+        private string MapScreenOrientation(UnityEngine.ScreenOrientation orientation)
+        {
+            switch (orientation)
+            {
+                case UnityEngine.ScreenOrientation.Portrait:
+                    return "vertical-up";
+                case UnityEngine.ScreenOrientation.PortraitUpsideDown:
+                    return "vertical-down";
+                case UnityEngine.ScreenOrientation.LandscapeLeft:
+                    return "horizontal-down"; 
+                case UnityEngine.ScreenOrientation.LandscapeRight:
+                    return "horizontal-up";   
+                default:
+                    return "vertical-up";
+            }
+        }
+
         public void SetTelemetryCollection(bool canCollect)
         {
             if(!NX10Manager.Instance.Initialised)
@@ -194,8 +231,9 @@ namespace NX10
             };
 
             lastRecordedBrightness = -1;
+            lastRecordedOrientation = null;
 
-            if(canCollectGyro)
+            if (canCollectGyro)
                 StartCoroutine(CollectionWorker(gyroHZ.Value, CollectGyroData));
 
             if(canCollectAccelerometer)
