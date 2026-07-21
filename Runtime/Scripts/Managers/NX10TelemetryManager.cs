@@ -52,6 +52,9 @@ namespace NX10
 
         private void Awake()
         {
+            lastRecordedBrightness = -1;
+            lastRecordedOrientation = null;
+
 #if ENABLE_INPUT_SYSTEM
             if (Gyroscope.current != null)
                 InputSystem.EnableDevice(Gyroscope.current);
@@ -230,9 +233,6 @@ namespace NX10
                 startTimestamp = DateTime.UtcNow,
                 inputEvents = new List<IInputEvent>()
             };
-
-            lastRecordedBrightness = -1;
-            lastRecordedOrientation = null;
 
             if (canCollectGyro)
                 StartCoroutine(CollectionWorker(gyroHZ.Value, CollectGyroData));
