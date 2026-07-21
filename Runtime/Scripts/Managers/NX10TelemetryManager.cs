@@ -27,7 +27,11 @@ namespace NX10
         public int? gyroHZ;
         public int? accelerometerHZ;
         public int? touchHZ;
+        public int? magnetometerHZ;
         public int? acquisitionWindowSize;
+        public float? screenBrightnessDelta;
+
+        private float lastRecordedBrightness = -1f; 
 
         private float dpi;
 
@@ -35,6 +39,7 @@ namespace NX10
         private bool canCollectAccelerometer => accelerometerHZ != null;
         private bool canCollectTouch => touchHZ != null;
         private bool canOpenWindow => acquisitionWindowSize != null;
+        private bool canCollectMagnetometer => magnetometerHZ != null;
 
         //these are used by debugmanager
         public bool CanCollectTelemetryData => canCollectTelemetryData;
@@ -53,6 +58,9 @@ namespace NX10
             if (Accelerometer.current != null)
                 InputSystem.EnableDevice(Accelerometer.current);
 
+            if (MagneticFieldSensor.current != null) 
+                InputSystem.EnableDevice(MagneticFieldSensor.current);
+
             EnhancedTouchSupport.Enable();
 
             nativeGyro = GetComponent<NativeGyro>();
@@ -64,6 +72,8 @@ namespace NX10
 #if ENABLE_LEGACY_INPUT_MANAGER
             if (SystemInfo.supportsGyroscope)
                 Input.gyro.enabled = true;
+
+            Input.compass.enabled = true;
 #endif
         }
 
@@ -84,13 +94,20 @@ namespace NX10
         private void Update()
         {
             UpdateTelemetryCollectionWindow();
+
+            if (canCollectTelemetryData && currentCollectionWindow != null)
+            {
+                CheckAndCollectBrightnessData();
+            }
         }
 
-        public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? acquisitionWindowSize, float dpi)
+        public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? magnetometerHz, float? screenBrightnessDelta, int? acquisitionWindowSize, float dpi)
         {
             this.gyroHZ = gyroHz;
             this.accelerometerHZ = accelerometerHz;
             this.touchHZ = touchHz;
+            this.magnetometerHZ = magnetometerHz;
+            this.screenBrightnessDelta = screenBrightnessDelta;
             this.acquisitionWindowSize = acquisitionWindowSize;
             this.dpi = dpi;
         }
@@ -126,6 +143,26 @@ namespace NX10
             }
         }
 
+        private void CheckAndCollectBrightnessData()
+        {
+            float currentBrightness = Screen.brightness;
+
+            if (currentBrightness < 0f) currentBrightness = 0.5f;
+
+            if (lastRecordedBrightness < 0f || Mathf.Abs(currentBrightness - lastRecordedBrightness) >= screenBrightnessDelta)
+            {
+                double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+
+                currentCollectionWindow.inputEvents.Add(new BrightnessEvent
+                {
+                    timestampOffsetMs = offset,
+                    screenBrightness = (float)Math.Round(currentBrightness, 2, MidpointRounding.AwayFromZero)
+                });
+
+                lastRecordedBrightness = currentBrightness;
+            }
+        }
+
         public void SetTelemetryCollection(bool canCollect)
         {
             if(!NX10Manager.Instance.Initialised)
@@ -156,13 +193,18 @@ namespace NX10
                 inputEvents = new List<IInputEvent>()
             };
 
+            lastRecordedBrightness = -1;
+
             if(canCollectGyro)
                 StartCoroutine(CollectionWorker(gyroHZ.Value, CollectGyroData));
 
             if(canCollectAccelerometer)
                 StartCoroutine(CollectionWorker(accelerometerHZ.Value, CollectAccelData));
 
-            if(canCollectTouch)
+            if (canCollectMagnetometer) 
+                StartCoroutine(CollectionWorker(magnetometerHZ.Value, CollectMagData));
+
+            if (canCollectTouch)
                 StartCoroutine(CollectionWorker(touchHZ.Value, CollectTouchDataV2));
         }
 
@@ -232,10 +274,37 @@ namespace NX10
             currentCollectionWindow.inputEvents.Add(new AccelerometerEvent {
                 timestampOffsetMs = offset,
                 x = (float)Math.Round(accel.x, 5, MidpointRounding.AwayFromZero),
-                x = (float)Math.Round(accel.y, 5, MidpointRounding.AwayFromZero),
-                x = (float)Math.Round(accel.z, 5, MidpointRounding.AwayFromZero),
+                y = (float)Math.Round(accel.y, 5, MidpointRounding.AwayFromZero),
+                z = (float)Math.Round(accel.z, 5, MidpointRounding.AwayFromZero),
             });
         }
+#endif
+        }
+
+        private void CollectMagData()
+        {
+            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+#if ENABLE_INPUT_SYSTEM
+            if (MagneticFieldSensor.current != null)
+            {
+                Vector3 rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
+                currentCollectionWindow.inputEvents.Add(new MagnetometerEvent
+                {
+                    timestampOffsetMs = offset,
+                    x = (float)Math.Round(rawMag.x, 1, MidpointRounding.AwayFromZero),
+                    y = (float)Math.Round(rawMag.y, 1, MidpointRounding.AwayFromZero),
+                    z = (float)Math.Round(rawMag.z, 1, MidpointRounding.AwayFromZero)
+                });
+            }
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            Vector3 rawMag = Input.compass.rawVector; 
+            currentCollectionWindow.inputEvents.Add(new MagnetometerEvent 
+            {
+                timestampOffsetMs = offset,
+                x = (float)Math.Round(rawMag.x, 1, MidpointRounding.AwayFromZero),
+                y = (float)Math.Round(rawMag.y, 1, MidpointRounding.AwayFromZero),
+                z = (float)Math.Round(rawMag.z, 1, MidpointRounding.AwayFromZero)
+            });
 #endif
         }
 

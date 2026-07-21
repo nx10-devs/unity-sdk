@@ -14,7 +14,8 @@ namespace NX10
         public int? gyroFrequencyHz { get; private set; }
         public int? accelFrequencyHz { get; private set; }
         public int? touchFrequencyHz { get; private set; }
-
+        public int? magnetometerFrequencyHz { get; private set; }
+        public float? screenBrightnessDelta { get; private set; }
         public int? acquisitionWindowSize { get; private set; }
 
         public float? saaqPollingPeriod { get; private set; }
@@ -46,6 +47,8 @@ namespace NX10
                 accelFrequencyHz = data.deviceConfig.sensor.accelerometerSampleHz;
                 touchFrequencyHz = data.deviceConfig.sensor.touchSampleHz;
                 acquisitionWindowSize = data.deviceConfig.sensor.acquisitionWindowSize;
+                magnetometerFrequencyHz = data.deviceConfig.sensor.magnetometerSampleHz;
+                screenBrightnessDelta = data.deviceConfig.sensor?.screenBrightnessDelta;
             }
            
             if(data.deviceConfig.saaq != null)
