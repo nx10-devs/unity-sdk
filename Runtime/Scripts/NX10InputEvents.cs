@@ -55,6 +55,7 @@ namespace NX10
     public class BrightnessEvent : IInputEvent
     {
         public string type => "bright";
+        public string eventVersion => "1";
         public double timestampOffsetMs { get; set; }
         public float screenBrightness { get; set; }
 
@@ -63,6 +64,7 @@ namespace NX10
             return new object[]
             {
                     type,
+                    eventVersion,
                     timestampOffsetMs,
                     screenBrightness
             };
@@ -73,6 +75,8 @@ namespace NX10
     public class OrientationEvent : IInputEvent
     {
         public string type => "orient";
+        public string eventVersion => "1";
+
         public double timestampOffsetMs { get; set; }
         public string screenOrientation { get; set; }
 
@@ -81,6 +85,7 @@ namespace NX10
             return new object[]
             {
                     type,
+                    eventVersion,
                     timestampOffsetMs,
                     screenOrientation
             };
@@ -91,6 +96,8 @@ namespace NX10
     public class MagnetometerEvent : IInputEvent
     {
         public string type => "mag";
+        public string eventVersion => "1";
+
         public double timestampOffsetMs { get; set; }
         public float x;
         public float y;
@@ -101,6 +108,7 @@ namespace NX10
             return new object[]
             {
                     type,
+                    eventVersion,
                     timestampOffsetMs,
                     x,
                     y,
