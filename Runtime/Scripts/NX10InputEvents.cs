@@ -52,6 +52,46 @@ namespace NX10
     }
 
     [System.Serializable]
+    public class BrightnessEvent : IInputEvent
+    {
+        public string type => "bright";
+        public double timestampOffsetMs { get; set; }
+        public float screenBrightness { get; set; }
+
+        public object[] ToArray()
+        {
+            return new object[]
+            {
+                    type,
+                    timestampOffsetMs,
+                    screenBrightness
+            };
+        }
+    }
+
+    [System.Serializable]
+    public class MagnetometerEvent : IInputEvent
+    {
+        public string type => "mag";
+        public double timestampOffsetMs { get; set; }
+        public float x;
+        public float y;
+        public float z;
+
+        public object[] ToArray()
+        {
+            return new object[]
+            {
+                    type,
+                    timestampOffsetMs,
+                    x,
+                    y,
+                    z,
+            };
+        }
+    }
+
+    [System.Serializable]
     public struct TouchInputEvent : IInputEvent
     {
         public string type => "touch";

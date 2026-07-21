@@ -47,6 +47,8 @@ namespace NX10
         public int? gyroscopeSampleHz;
         public int? accelerometerSampleHz;
         public int? acquisitionWindowSize;
+        public int? magnetometerSampleHz;
+        public float? screenBrightnessDelta;
     }
 
     [Serializable]
