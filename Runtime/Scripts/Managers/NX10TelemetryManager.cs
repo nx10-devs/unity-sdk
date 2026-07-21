@@ -167,7 +167,8 @@ namespace NX10
 
         private void CheckAndCollectOrientationData()
         {
-            string currentOrientation = MapScreenOrientation(Screen.orientation);
+            DeviceOrientation physicalOrientation = Input.deviceOrientation;
+            string currentOrientation = MapDeviceOrientation(physicalOrientation);
 
             if (lastRecordedOrientation == null || lastRecordedOrientation != currentOrientation)
             {
@@ -183,17 +184,17 @@ namespace NX10
             }
         }
 
-        private string MapScreenOrientation(UnityEngine.ScreenOrientation orientation)
+        private string MapDeviceOrientation(DeviceOrientation orientation)
         {
             switch (orientation)
             {
-                case UnityEngine.ScreenOrientation.Portrait:
+                case DeviceOrientation.Portrait:
                     return "vertical-up";
-                case UnityEngine.ScreenOrientation.PortraitUpsideDown:
+                case DeviceOrientation.PortraitUpsideDown:
                     return "vertical-down";
-                case UnityEngine.ScreenOrientation.LandscapeLeft:
+                case DeviceOrientation.LandscapeLeft:
                     return "horizontal-down"; 
-                case UnityEngine.ScreenOrientation.LandscapeRight:
+                case DeviceOrientation.LandscapeRight:
                     return "horizontal-up";   
                 default:
                     return "vertical-up";
