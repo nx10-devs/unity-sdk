@@ -261,7 +261,8 @@ namespace NX10
 
         private void SendTelemetryData(string timestamp)
         {
-            sendTelemetryDataRequest?.Invoke(timestamp, currentCollectionWindow.Offset().TotalMilliseconds, currentCollectionWindow.inputEvents);
+            if(currentCollectionWindow.inputEvents.Count >= 6)
+                sendTelemetryDataRequest?.Invoke(timestamp, currentCollectionWindow.Offset().TotalMilliseconds, currentCollectionWindow.inputEvents);
         }
 
         private void CollectGyroData()
