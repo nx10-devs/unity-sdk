@@ -9,7 +9,7 @@ namespace NX10
     public class NX10DebugManager : MonoBehaviour
     {
         private float lastSensorUpdateTime = -999f;
-        private string cachedAccelText = "Loading...";
+        private string cachedMagnText = "Loading...";
         private string cachedGyroText = "Loading...";
         private float lastApiUpdateTime = -10f; 
         private string cachedActivityText = "Activity: Fetching...";
@@ -36,7 +36,7 @@ namespace NX10
         private void Awake()
         {
 #if UNITY_EDITOR
-            //guiMenuToggle = true;
+            guiMenuToggle = true;
 #endif
         }
 
@@ -51,8 +51,8 @@ namespace NX10
             if (!initialised)
                 return;
 
-            //UpdateDebugToggle();
-            //UpdateApiCalls();
+            UpdateDebugToggle();
+            UpdateApiCalls();
         }
 
         private void UpdateApiCalls()
@@ -154,23 +154,14 @@ namespace NX10
                 lastSensorUpdateTime = Time.time;
 
 #if ENABLE_INPUT_SYSTEM
-                if (Accelerometer.current != null)
+                if (MagneticFieldSensor.current != null)
                 {
-                    var accel = _telemetryManager.ConvertAccelerometerData(Accelerometer.current.acceleration.ReadValue());
-                    cachedAccelText = $"  Accel: {accel.x}, {accel.y}, {accel.z} m/s²";
+                    Vector3 rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
+                    cachedMagnText = $"  Mag: {rawMag.x}, {rawMag.y}, {rawMag.z}";
                 }
                 else
                 {
-                    cachedAccelText = "  Accel: Not Detected";
-                }
-
-                if (UnityEngine.InputSystem.Gyroscope.current != null)
-                {
-                    cachedGyroText = $"  Gyro:  {_telemetryManager.nativeGyro.rotationRateUnbiased.x}, {_telemetryManager.nativeGyro.rotationRateUnbiased.y}, {_telemetryManager.nativeGyro.rotationRateUnbiased.z} rad/s";
-                }
-                else
-                {
-                    cachedGyroText = "  Gyro: Not Detected";
+                    cachedMagnText = "  Mag: Not Detected";
                 }
 #else
         Vector3 accel = Input.acceleration;
@@ -188,7 +179,7 @@ namespace NX10
 #endif
             }
 
-            GUILayout.Label(cachedAccelText, labelStyle);
+            GUILayout.Label(cachedMagnText, labelStyle);
             GUILayout.Label(cachedGyroText, labelStyle);
 
             GUILayout.Space(10);
