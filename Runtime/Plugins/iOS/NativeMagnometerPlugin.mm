@@ -32,9 +32,9 @@ extern "C" {
     void _GetMagnetometerData(float* x, float* y, float* z) {
         if (motionManager != nil && [motionManager isMagnetometerActive]) {
 	    CMCalibratedMagneticField calField = motionManager.deviceMotion.magneticField;
-            *x = (float)calField.x;
-            *y = (float)calField.y;
-            *z = (float)calField.z;
+            *x = (float)calField.field.x;
+            *y = (float)calField.field.y;
+            *z = (float)calField.field.z;
         } else {
             *x = 0.0f;
             *y = 0.0f;
