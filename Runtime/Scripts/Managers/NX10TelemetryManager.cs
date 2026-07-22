@@ -324,23 +324,32 @@ namespace NX10
         private void CollectMagData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-#if ENABLE_INPUT_SYSTEM
+            Vector3 rawMag = Vector3.zero;
+            bool hasData = false;
 
-            if(MagneticFieldSensor.current == null)
-            {
-                foreach (var device in InputSystem.devices)
-                {
-                    if (device is MagneticFieldSensor foundSensor)
-                    {
-                        InputSystem.EnableDevice(foundSensor);
-                        break;
-                    }
-                }
-            }
-
+#if UNITY_IOS && !UNITY_EDITOR
+    if (IOSMagnetometer.IsAvailable())
+    {
+        IOSMagnetometer.Start(); 
+        rawMag = IOSMagnetometer.GetRawData();
+        hasData = true;
+    }
+#elif ENABLE_INPUT_SYSTEM
             if (MagneticFieldSensor.current != null)
             {
-                Vector3 rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
+                if (!MagneticFieldSensor.current.enabled)
+                    UnityEngine.InputSystem.InputSystem.EnableDevice(MagneticFieldSensor.current);
+
+                rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
+                hasData = true;
+            }
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            rawMag = Input.compass.rawVector;
+            hasData = true;
+#endif
+
+            if (hasData)
+            {
                 currentCollectionWindow.inputEvents.Add(new MagnetometerEvent
                 {
                     timestampOffsetMs = offset,
@@ -349,16 +358,7 @@ namespace NX10
                     z = (float)Math.Round(rawMag.z, 1, MidpointRounding.AwayFromZero)
                 });
             }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-            Vector3 rawMag = Input.compass.rawVector; 
-            currentCollectionWindow.inputEvents.Add(new MagnetometerEvent 
-            {
-                timestampOffsetMs = offset,
-                x = (float)Math.Round(rawMag.x, 1, MidpointRounding.AwayFromZero),
-                y = (float)Math.Round(rawMag.y, 1, MidpointRounding.AwayFromZero),
-                z = (float)Math.Round(rawMag.z, 1, MidpointRounding.AwayFromZero)
-            });
-#endif
+
         }
 
         private void CollectTouchDataV2()
