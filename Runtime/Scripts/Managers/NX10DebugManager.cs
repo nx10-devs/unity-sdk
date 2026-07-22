@@ -153,17 +153,28 @@ namespace NX10
             {
                 lastSensorUpdateTime = Time.time;
 
-#if ENABLE_INPUT_SYSTEM
+#if UNITY_IOS && !UNITY_EDITOR
+    if (IOSMagnetometer.IsAvailable())
+    {
+        IOSMagnetometer.Start();
+        Vector3 rawMag = IOSMagnetometer.GetRawData();
+        cachedMagnText = $"  Mag (iOS Native): {rawMag.x:F1}, {rawMag.y:F1}, {rawMag.z:F1}";
+    }
+    else
+    {
+        cachedMagnText = "  Mag: Not Available";
+    }
+#elif ENABLE_INPUT_SYSTEM
                 if (MagneticFieldSensor.current != null)
                 {
                     Vector3 rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
-                    cachedMagnText = $"  Mag: {rawMag.x}, {rawMag.y}, {rawMag.z}";
+                    cachedMagnText = $"  Mag: {rawMag.x:F1}, {rawMag.y:F1}, {rawMag.z:F1}";
                 }
                 else
                 {
                     cachedMagnText = "  Mag: Not Detected";
                 }
-#else
+#elif ENABLE_LEGACY_INPUT_MANAGER
         Vector3 accel = Input.acceleration;
         cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G";
 
