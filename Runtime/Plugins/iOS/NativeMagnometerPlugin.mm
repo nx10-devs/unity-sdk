@@ -12,7 +12,7 @@ extern "C" {
 
         if ([motionManager isMagnetometerAvailable] && ![motionManager isMagnetometerActive]) {
             motionManager.magnetometerUpdateInterval = 0.02;
-            [motionManager startMagnetometerUpdates];
+            [motionManager startDeviceMotionUpdatesUsingReferenceFrame:CMAttitudeReferenceFrameXMagneticNorthZVertical];
         }
     }
 
@@ -31,10 +31,10 @@ extern "C" {
 
     void _GetMagnetometerData(float* x, float* y, float* z) {
         if (motionManager != nil && [motionManager isMagnetometerActive]) {
-            CMMagneticField field = motionManager.magnetometerData.magneticField;
-            *x = (float)field.x;
-            *y = (float)field.y;
-            *z = (float)field.z;
+	    CMCalibratedMagneticField calField = motionManager.deviceMotion.magneticField;
+            *x = (float)calField.x;
+            *y = (float)calField.y;
+            *z = (float)calField.z;
         } else {
             *x = 0.0f;
             *y = 0.0f;
