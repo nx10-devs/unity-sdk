@@ -325,6 +325,19 @@ namespace NX10
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
 #if ENABLE_INPUT_SYSTEM
+
+            if(MagneticFieldSensor.current == null)
+            {
+                foreach (var device in InputSystem.devices)
+                {
+                    if (device is MagneticFieldSensor foundSensor)
+                    {
+                        InputSystem.EnableDevice(foundSensor);
+                        break;
+                    }
+                }
+            }
+
             if (MagneticFieldSensor.current != null)
             {
                 Vector3 rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
