@@ -206,7 +206,7 @@ namespace NX10
 
         public void SetTelemetryCollection(bool canCollect)
         {
-            if(!NX10Manager.Instance.Initialised)
+            if(!NX10Manager.Instance.IsSessionValid && canCollect)
             {
                 Debug.LogError("NX10 Manager not initialised, ensure it is before starting a collection window");
                 return;
@@ -261,6 +261,9 @@ namespace NX10
 
         private void SendTelemetryData(string timestamp)
         {
+            if (!NX10Manager.Instance.IsSessionValid)
+                return;
+
             if(currentCollectionWindow.inputEvents.Count >= 6)
                 sendTelemetryDataRequest?.Invoke(timestamp, currentCollectionWindow.Offset().TotalMilliseconds, currentCollectionWindow.inputEvents);
         }

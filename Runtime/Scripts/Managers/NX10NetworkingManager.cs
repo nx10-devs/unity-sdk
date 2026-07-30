@@ -398,9 +398,9 @@ namespace NX10
 
         public void SendEvent(string eventName, string timeStamp, string outcome = null, Dictionary<string, object> eventData = null)
         {
-            if (!NX10Manager.Instance.Initialised)
+            if (!NX10Manager.Instance.IsSessionValid)
             {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before sending event");
+                Debug.LogWarning("NX10 Manager not initialised, ensure it is before sending event");
                 return;
             }
 

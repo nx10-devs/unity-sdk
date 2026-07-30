@@ -41,6 +41,15 @@ namespace NX10
         private Queue<NX10AnalyticsManager.NX10AnalyticsEvent> unSentEvents = new Queue<NX10AnalyticsManager.NX10AnalyticsEvent>();
 
         public bool Initialised { get; private set; }
+        private bool SessionExpired { get; set; }
+
+        public bool IsSessionValid
+        {
+            get
+            {
+                return Initialised && !SessionExpired;
+            }
+        }
 
         public event Action<SAAQData> OnPromptRequested;
 
@@ -121,6 +130,7 @@ namespace NX10
             networkingManager.StartSession(sessionConfig, (sessionStartSuccess) =>
             {
                 Initialised = sessionStartSuccess;
+                SessionExpired = false;
 
                 NX10SDKSession session = networkingManager.CurrentSession;
                 telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
@@ -139,6 +149,12 @@ namespace NX10
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
+        }
+
+        public void StopSession()
+        {
+            SessionExpired = true;
+            StopTelemetry();
         }
 
         public void SendEvent(string eventName, Dictionary<string, object> eventData = null)

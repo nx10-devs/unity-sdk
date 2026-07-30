@@ -18,7 +18,7 @@ namespace NX10
                 SetAttribute(key, value);
             }
 
-            if (!NX10Manager.Instance.Initialised)
+            if (!NX10Manager.Instance.IsSessionValid)
             {
                 return;
             }
@@ -28,9 +28,9 @@ namespace NX10
 
         public void SetAttribute(string key, object value, bool sendAttributes = false)
         {
-            if (!NX10Manager.Instance.Initialised)
+            if (!NX10Manager.Instance.IsSessionValid)
             {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before setting an attribute");
+                Debug.LogWarning("NX10 Manager not initialised, ensure it is before setting an attribute");
                 return;
             }
 
@@ -49,9 +49,9 @@ namespace NX10
 
         public void RemoveAttribute(string key)
         {
-            if (!NX10Manager.Instance.Initialised)
+            if (!NX10Manager.Instance.IsSessionValid)
             {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before removing an attribute");
+                Debug.LogError("NX10 Session not valid, ensure it is before removing an attribute");
                 return;
             }
 
@@ -64,9 +64,9 @@ namespace NX10
 
         public void ClearAttributes()
         {
-            if (!NX10Manager.Instance.Initialised)
+            if (!NX10Manager.Instance.IsSessionValid)
             {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before clearing attributes");
+                Debug.LogError("NX10 Session not Valid, ensure it is before clearing attributes");
                 return;
             }
 
