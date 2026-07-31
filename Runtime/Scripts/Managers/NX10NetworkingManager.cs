@@ -446,7 +446,7 @@ namespace NX10
         public void PersonalDataRequested(bool dryRun, string timeStamp, Action<bool, string> completedAction)
         {
             string prefix = NX10RuntimeConfig.IngestionPrefix;
-            string url = prefix + "compliance-v1/access";
+            string url = prefix + "compliance/access";
             NX10DataPayload payload = new NX10DataPayload()
             {
                 datetimeRequested = timeStamp,
@@ -462,7 +462,16 @@ namespace NX10
 
             StartCoroutine(NX10PostRequest(url, nx10jsonData, (success, message) =>
             {
-                completedAction.Invoke(success, message);
+                if (success)
+                {
+                    RootDataRequestResponse response = JsonConvert.DeserializeObject<RootDataRequestResponse>(message);
+                    completedAction.Invoke(success, response.data.requestUrl);
+                }
+                else
+                {
+                    completedAction.Invoke(success, "");
+                }
+
 
             }, headers));
         }
@@ -470,7 +479,7 @@ namespace NX10
         public void PersonalDataDeletionRequested(bool dryRun, string timeStamp, Action<bool> completedAction)
         {
             string prefix = NX10RuntimeConfig.IngestionPrefix;
-            string url = prefix + "compliance-v1/forget";
+            string url = prefix + "compliance/forget";
             NX10DataPayload payload = new NX10DataPayload()
             {
                 datetimeRequested = timeStamp,
