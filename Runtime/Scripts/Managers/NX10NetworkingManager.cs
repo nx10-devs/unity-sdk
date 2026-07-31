@@ -452,7 +452,7 @@ namespace NX10
                 email = email,
                 datetimeRequested = timeStamp,
                 dryRun = true,
-                callbackUrl = ""
+                callbackUrl = "https://example-consumer-site.com/compliance-webhook"
             };
 
             string nx10jsonData = JsonConvert.SerializeObject(payload);
@@ -484,7 +484,7 @@ namespace NX10
                 email = email,
                 datetimeRequested = timeStamp,
                 dryRun = true,
-                callbackUrl = ""
+                callbackUrl = "https://example-consumer-site.com/compliance-webhook"
             };
 
             string nx10jsonData = JsonConvert.SerializeObject(payload);
