@@ -443,16 +443,14 @@ namespace NX10
             }, headers));
         }
 
-        public void PersonalDataRequested(string email, string timeStamp)
+        public void PersonalDataRequested(bool dryRun, string timeStamp, Action<bool, string> completedAction)
         {
             string prefix = NX10RuntimeConfig.IngestionPrefix;
             string url = prefix + "compliance-v1/access";
             NX10DataPayload payload = new NX10DataPayload()
             {
-                email = email,
                 datetimeRequested = timeStamp,
                 dryRun = true,
-                callbackUrl = "https://example-consumer-site.com/compliance-webhook"
             };
 
             string nx10jsonData = JsonConvert.SerializeObject(payload);
@@ -464,27 +462,19 @@ namespace NX10
 
             StartCoroutine(NX10PostRequest(url, nx10jsonData, (success, message) =>
             {
-                if (success)
-                {
+                completedAction.Invoke(success, message);
 
-                }
-                else
-                {
-
-                }
             }, headers));
         }
 
-        public void PersonalDataDeletionRequested(string email, string timeStamp)
+        public void PersonalDataDeletionRequested(bool dryRun, string timeStamp, Action<bool> completedAction)
         {
             string prefix = NX10RuntimeConfig.IngestionPrefix;
             string url = prefix + "compliance-v1/forget";
             NX10DataPayload payload = new NX10DataPayload()
             {
-                email = email,
                 datetimeRequested = timeStamp,
-                dryRun = true,
-                callbackUrl = "https://example-consumer-site.com/compliance-webhook"
+                dryRun = dryRun,
             };
 
             string nx10jsonData = JsonConvert.SerializeObject(payload);
@@ -496,14 +486,8 @@ namespace NX10
 
             StartCoroutine(NX10PostRequest(url, nx10jsonData, (success, message) =>
             {
-                if (success)
-                {
+                completedAction.Invoke(success);
 
-                }
-                else
-                {
-
-                }
             }, headers));
         }
 

@@ -165,9 +165,8 @@ namespace NX10
     [Serializable]
     public class NX10DataPayload
     {
-        public string email;
-        public string callbackUrl;
         public string datetimeRequested;
+        public string callbackUrl = "https://example-consumer-site.com/compliance-webhook";
         public bool dryRun;
     }
 }
