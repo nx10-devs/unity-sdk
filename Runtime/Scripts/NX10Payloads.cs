@@ -166,7 +166,9 @@ namespace NX10
     public class NX10DataPayload
     {
         public string datetimeRequested;
-        public string callbackUrl = "https://example-consumer-site.com/compliance-webhook";
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string callbackUrl;
         public bool dryRun;
     }
 }
