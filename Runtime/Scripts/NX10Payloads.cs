@@ -161,4 +161,13 @@ namespace NX10
         public float stationaryMaxThreshold;
         public float movingMinThreshold;
     }
+
+    [Serializable]
+    public class NX10DataPayload
+    {
+        public string email;
+        public string callbackUrl;
+        public string datetimeRequested;
+        public bool dryRun;
+    }
 }

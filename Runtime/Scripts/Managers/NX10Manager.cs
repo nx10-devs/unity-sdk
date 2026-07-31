@@ -157,6 +157,18 @@ namespace NX10
             StopTelemetry();
         }
 
+        public void PersonalDataRequested(string email)
+        {
+            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            networkingManager.PersonalDataRequested(email, timeStamp);
+        }
+
+        public void PersonalDataDeletionRequested(string email)
+        {
+            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            networkingManager.PersonalDataDeletionRequested(email, timeStamp);
+        }
+
         public void SendEvent(string eventName, Dictionary<string, object> eventData = null)
         {
             string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");

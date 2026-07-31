@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+using static System.Net.WebRequestMethods;
 
 namespace NX10
 {
@@ -430,6 +431,70 @@ namespace NX10
             };
 
             StartCoroutine(NX10PostRequest(eventsEndpoint, nx10jsonData, (success, message) =>
+            {
+                if (success)
+                {
+
+                }
+                else
+                {
+
+                }
+            }, headers));
+        }
+
+        public void PersonalDataRequested(string email, string timeStamp)
+        {
+            string prefix = NX10RuntimeConfig.IngestionPrefix;
+            string url = prefix + "compliance-v1/access";
+            NX10DataPayload payload = new NX10DataPayload()
+            {
+                email = email,
+                datetimeRequested = timeStamp,
+                dryRun = true,
+                callbackUrl = ""
+            };
+
+            string nx10jsonData = JsonConvert.SerializeObject(payload);
+
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            StartCoroutine(NX10PostRequest(url, nx10jsonData, (success, message) =>
+            {
+                if (success)
+                {
+
+                }
+                else
+                {
+
+                }
+            }, headers));
+        }
+
+        public void PersonalDataDeletionRequested(string email, string timeStamp)
+        {
+            string prefix = NX10RuntimeConfig.IngestionPrefix;
+            string url = prefix + "compliance-v1/forget";
+            NX10DataPayload payload = new NX10DataPayload()
+            {
+                email = email,
+                datetimeRequested = timeStamp,
+                dryRun = true,
+                callbackUrl = ""
+            };
+
+            string nx10jsonData = JsonConvert.SerializeObject(payload);
+
+            List<HeaderObject> headers = new List<HeaderObject>()
+            {
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+            };
+
+            StartCoroutine(NX10PostRequest(url, nx10jsonData, (success, message) =>
             {
                 if (success)
                 {
