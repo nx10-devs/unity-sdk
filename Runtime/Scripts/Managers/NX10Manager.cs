@@ -70,7 +70,7 @@ namespace NX10
             attributesManager.sendAttributesRequest += SendAttributeRequest;
         }
 
-        private void OnGUI()
+       /* private void OnGUI()
         {
             GUILayout.BeginArea(new Rect(10, 10, 200, 150));
             GUILayout.Label("<b>Cooldown Tester</b>");
@@ -93,7 +93,7 @@ namespace NX10
             }
 
             GUILayout.EndArea();
-        }
+        }*/
 
         private void SendAttributeRequest(Dictionary<string, object> attributes)
         {
