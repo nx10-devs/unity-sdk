@@ -65,4 +65,26 @@ namespace NX10
         public string displayName;
         public string suggestedEmoji;
     }
+
+    [Serializable]
+    public class CooldownResponse
+    {
+        public string status;
+        public CooldownData data = null;
+    }
+
+    [Serializable]
+    public class CooldownData
+    {
+        public CooldownType kind;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public double durationSeconds; 
+    }
+
+    public enum CooldownType
+    {
+        Nudge,
+        Cooldown
+    }
 }

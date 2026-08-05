@@ -1,9 +1,11 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.Networking;
 using static System.Net.WebRequestMethods;
@@ -30,6 +32,7 @@ namespace NX10
         public NX10SDKSession CurrentSession => currentSession;
 
         public Action<SAAQData> OnPromptRequested;
+        public Action<CooldownData> OnCooldownRequested;
 
         public void SendAttributes(Dictionary<string, object> currentGameAttributes)
         {
@@ -165,12 +168,32 @@ namespace NX10
 
         private void HandleIncomingSAAQ(string json)
         {
-            SAAQResponse request = JsonConvert.DeserializeObject<SAAQResponse>(json);
-
-            if (request.status == "success" && request.HasPrompt)
+            if (TryDeserialize(json, out CooldownResponse cooldown) && cooldown.status == "success")
             {
-                Debug.Log($"Trigger Received: {request.data.prompt.questionText}");
-                OnPromptRequested.Invoke(request.data);
+                OnCooldownRequested?.Invoke(cooldown.data);
+                return;
+            }
+
+            if (TryDeserialize(json, out SAAQResponse response) && response.status == "success" && response.HasPrompt)
+            {
+
+                Debug.Log($"Trigger Received: {response.data.prompt.questionText}");
+                OnPromptRequested?.Invoke(response.data);
+                return;
+            }
+        }
+
+        private bool TryDeserialize<T>(string json, out T result)
+        {
+            try
+            {
+                result = JsonConvert.DeserializeObject<T>(json);
+                return result != null;
+            }
+            catch (JsonException)
+            {
+                result = default;
+                return false;
             }
         }
 

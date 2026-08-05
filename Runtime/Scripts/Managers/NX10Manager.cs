@@ -52,6 +52,7 @@ namespace NX10
         }
 
         public event Action<SAAQData> OnPromptRequested;
+        public event Action<CooldownData> OnCooldownRequested;
 
         protected void Awake()
         {
@@ -64,8 +65,34 @@ namespace NX10
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
             networkingManager.OnPromptRequested += PromptRequested;
+            networkingManager.OnCooldownRequested += CooldownRequested;
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
             attributesManager.sendAttributesRequest += SendAttributeRequest;
+        }
+
+        private void OnGUI()
+        {
+            GUILayout.BeginArea(new Rect(10, 10, 200, 150));
+            GUILayout.Label("<b>Cooldown Tester</b>");
+
+            if (GUILayout.Button("Send Nudge"))
+            {
+                OnCooldownRequested?.Invoke(new CooldownData
+                {
+                    kind = CooldownType.Nudge,
+                });
+            }
+
+            if (GUILayout.Button("Send Cooldown"))
+            {
+                OnCooldownRequested?.Invoke(new CooldownData
+                {
+                    kind = CooldownType.Cooldown,
+                    durationSeconds = 100.0 
+                });
+            }
+
+            GUILayout.EndArea();
         }
 
         private void SendAttributeRequest(Dictionary<string, object> attributes)
@@ -266,6 +293,11 @@ namespace NX10
         private void PromptRequested(SAAQData promptData)
         {
             OnPromptRequested?.Invoke(promptData);
+        }
+
+        private void CooldownRequested(CooldownData cooldownData)
+        {
+            OnCooldownRequested?.Invoke(cooldownData);
         }
     }
 }

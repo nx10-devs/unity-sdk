@@ -361,7 +361,6 @@ namespace NX10
                     z = (float)Math.Round(rawMag.z, 1, MidpointRounding.AwayFromZero)
                 });
             }
-
         }
 
         private void CollectTouchDataV2()
