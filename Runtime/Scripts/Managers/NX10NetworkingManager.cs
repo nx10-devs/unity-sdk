@@ -1,14 +1,11 @@
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using UnityEditor.PackageManager.Requests;
 using UnityEngine;
 using UnityEngine.Networking;
-using static System.Net.WebRequestMethods;
 
 namespace NX10
 {
