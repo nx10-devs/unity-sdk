@@ -171,7 +171,7 @@ namespace NX10
 
                 if(session.saaqPollingPeriod.HasValue)
                 {
-                    //promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
+                    promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
                 }
 
                 startSuccess?.Invoke(sessionStartSuccess);

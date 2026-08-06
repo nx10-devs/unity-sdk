@@ -165,7 +165,9 @@ namespace NX10
 
         private void HandleIncomingSAAQ(string json)
         {
-            if (TryDeserialize(json, out CooldownResponse cooldown) && cooldown.status == "success")
+            Debug.Log("Handling SAAQ " + json);
+
+            if (TryDeserialize(json, out CooldownResponse cooldown) && cooldown.status == "success" && cooldown.data != null)
             {
                 OnCooldownRequested?.Invoke(cooldown.data);
                 return;
