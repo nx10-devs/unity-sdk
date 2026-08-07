@@ -2,6 +2,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -37,7 +39,7 @@ namespace NX10
             {
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
             };
-
+            
             string attributesEndPoint = currentSession.GetEndpoint("attributes", "v1");
             string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
             NX10AttributesPayload attributesPayload = new NX10AttributesPayload()
@@ -57,11 +59,25 @@ namespace NX10
             }, headers));
         }
 
+        public byte[] CompressStringToGzip(string text)
+        {
+            byte[] rawData = Encoding.UTF8.GetBytes(text);
+            using (MemoryStream outputStream = new MemoryStream())
+            {
+                using (GZipStream gzipStream = new GZipStream(outputStream, CompressionMode.Compress, true))
+                {
+                    gzipStream.Write(rawData, 0, rawData.Length);
+                }
+                return outputStream.ToArray();
+            }
+        }
+
         public void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
             List<HeaderObject> headers = new List<HeaderObject>()
             {
-                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
+                new HeaderObject("Authorization", "Bearer " + currentSession.Token),
+                new HeaderObject("Content-Encoding", "gzip"),
             };
 
             string telemetryV2EndPoint = currentSession.GetEndpoint("telemetry", "v2");
@@ -73,7 +89,8 @@ namespace NX10
             };
 
             string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
-            StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payloadJson, (success, message) =>
+            byte[] compressedData = CompressStringToGzip(payloadJson);
+            StartCoroutine(NX10PostRequest(telemetryV2EndPoint, compressedData, (success, message) =>
             {
                 
 
@@ -520,6 +537,43 @@ namespace NX10
                 completedAction.Invoke(success);
 
             }, headers));
+        }
+
+        public IEnumerator NX10PostRequest(string uri, byte[] bodyData, System.Action<bool, string> onComplete = null, List<HeaderObject> additionalHeaders = null)
+        {
+            UnityWebRequest request = new UnityWebRequest(uri, "POST");
+
+            request.uploadHandler = new UploadHandlerRaw(bodyData);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+            if (additionalHeaders != null)
+            {
+                foreach (HeaderObject headerObject in additionalHeaders)
+                {
+                    request.SetRequestHeader(headerObject.headerName, headerObject.headerValue);
+                }
+            }
+
+            bool success = false;
+            string responseMessage = "";
+
+            yield return request.SendWebRequest();
+
+            if (request.result == UnityWebRequest.Result.Success)
+            {
+                success = true;
+                responseMessage = request.downloadHandler.text;
+            }
+            else
+            {
+                Debug.LogError("Post failed:");
+                Debug.LogError("Result: " + request.result);
+                Debug.LogError("Error: " + request.error);
+                Debug.LogError("Response Code: " + request.responseCode);
+                Debug.LogError("Response Body: " + request.downloadHandler.text);
+            }
+
+            onComplete?.Invoke(success, responseMessage);
         }
 
         public IEnumerator NX10PostRequest(string uri, string jsonBody, System.Action<bool, string> onComplete = null, List<HeaderObject> additionalHeaders = null)
