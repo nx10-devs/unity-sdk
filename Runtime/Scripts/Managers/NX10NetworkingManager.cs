@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -72,28 +73,34 @@ namespace NX10
             }
         }
 
-        public void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
+        public async void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
+            string token = currentSession.Token;
+            string telemetryV2EndPoint = currentSession.GetEndpoint("telemetry", "v2");
+            IInputEvent[] inputEventsSnapshot = inputEvents.ToArray();
+
+            byte[] compressedData = await Task.Run(() =>
+            {
+                NX10TelemetryPayload telemetryPayload = new NX10TelemetryPayload()
+                {
+                    bts = windowStartTimestamp,
+                    ets = windowEndOffset,
+                    d = inputEventsSnapshot.Select(e => e.ToArray()).ToArray(),
+                };
+
+                string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
+                return CompressStringToGzip(payloadJson);
+            });
+
             List<HeaderObject> headers = new List<HeaderObject>()
             {
-                new HeaderObject("Authorization", "Bearer " + currentSession.Token),
+                new HeaderObject("Authorization", "Bearer " + token),
                 new HeaderObject("Content-Encoding", "gzip"),
             };
 
-            string telemetryV2EndPoint = currentSession.GetEndpoint("telemetry", "v2");
-            NX10TelemetryPayload telemetryPayload = new NX10TelemetryPayload()
-            {
-                bts = windowStartTimestamp,
-                ets = windowEndOffset,
-                d = inputEvents.Select(e => e.ToArray()).ToArray(),
-            };
-
-            string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
-            byte[] compressedData = CompressStringToGzip(payloadJson);
             StartCoroutine(NX10PostRequest(telemetryV2EndPoint, compressedData, (success, message) =>
             {
                 
-
             }, headers));
         }
 
