@@ -79,29 +79,53 @@ namespace NX10
             string telemetryV2EndPoint = currentSession.GetEndpoint("telemetry", "v2");
             IInputEvent[] inputEventsSnapshot = inputEvents.ToArray();
 
-            byte[] compressedData = await Task.Run(() =>
-            {
-                NX10TelemetryPayload telemetryPayload = new NX10TelemetryPayload()
-                {
-                    bts = windowStartTimestamp,
-                    ets = windowEndOffset,
-                    d = inputEventsSnapshot.Select(e => e.ToArray()).ToArray(),
-                };
-
-                string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
-                return CompressStringToGzip(payloadJson);
-            });
-
             List<HeaderObject> headers = new List<HeaderObject>()
             {
                 new HeaderObject("Authorization", "Bearer " + token),
-                new HeaderObject("Content-Encoding", "gzip"),
             };
 
-            StartCoroutine(NX10PostRequest(telemetryV2EndPoint, compressedData, (success, message) =>
+            if (CurrentSession.telemetryCompression.Value)
             {
-                
-            }, headers));
+                byte[] compressedData = await Task.Run(() =>
+                {
+                    NX10TelemetryPayload telemetryPayload = new NX10TelemetryPayload()
+                    {
+                        bts = windowStartTimestamp,
+                        ets = windowEndOffset,
+                        d = inputEventsSnapshot.Select(e => e.ToArray()).ToArray(),
+                    };
+
+                    string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
+                    return CompressStringToGzip(payloadJson);
+                });
+
+                headers.Add(new HeaderObject("Content-Encoding", "gzip"));
+
+                StartCoroutine(NX10PostRequest(telemetryV2EndPoint, compressedData, (success, message) =>
+                {
+
+                }, headers));
+            }
+            else
+            {
+                string payload = await Task.Run(() =>
+                {
+                    NX10TelemetryPayload telemetryPayload = new NX10TelemetryPayload()
+                    {
+                        bts = windowStartTimestamp,
+                        ets = windowEndOffset,
+                        d = inputEventsSnapshot.Select(e => e.ToArray()).ToArray(),
+                    };
+
+                    string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
+                    return payloadJson;
+                });
+
+                StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payload, (success, message) =>
+                {
+
+                }, headers));
+            }
         }
 
         public void StartSession(SessionConfig sessionConfig, Action<bool> sessionStartSuccess)
@@ -182,27 +206,36 @@ namespace NX10
             StartCoroutine(NX10GetRequest(saaqPollEndpoint, (success, message) =>
             {
                 if (success)
-                    HandleIncomingSAAQ(message);
+                    _= HandleIncomingSAAQ(message);
 
             }, headers));
         }
 
-        private void HandleIncomingSAAQ(string json)
+        private async Task HandleIncomingSAAQ(string json)
         {
-            Debug.Log("Handling SAAQ " + json);
-
-            if (TryDeserialize(json, out CooldownResponse cooldown) && cooldown.status == "success" && cooldown.data != null)
+            var (isCooldown, cooldownData, isPrompt, promptData) = await Task.Run(() =>
             {
-                OnCooldownRequested?.Invoke(cooldown.data);
-                return;
+                if (TryDeserialize(json, out CooldownResponse cooldown) && cooldown?.status == "success" && cooldown.data != null)
+                {
+                    return (true, cooldown.data, false, (SAAQData)null);
+                }
+
+                if (TryDeserialize(json, out SAAQResponse response) && response?.status == "success" && response.HasPrompt == true)
+                {
+                    return (false, (CooldownData)null, true, response.data);
+                }
+
+                return (false, (CooldownData)null, false, (SAAQData)null);
+            });
+
+            if (isCooldown)
+            {
+                OnCooldownRequested?.Invoke(cooldownData);
             }
-
-            if (TryDeserialize(json, out SAAQResponse response) && response.status == "success" && response.HasPrompt)
+            else if (isPrompt)
             {
-
-                Debug.Log($"Trigger Received: {response.data.prompt.questionText}");
-                OnPromptRequested?.Invoke(response.data);
-                return;
+                Debug.Log($"Trigger Received: {promptData.prompt.questionText}");
+                OnPromptRequested?.Invoke(promptData);
             }
         }
 
