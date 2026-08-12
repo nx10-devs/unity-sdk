@@ -19,6 +19,7 @@ namespace NX10
         public int? acquisitionWindowSize { get; private set; }
 
         public float? saaqPollingPeriod { get; private set; }
+        public bool? telemetryCompression {  get; private set; }
 
         public float dpi;
 
@@ -49,6 +50,7 @@ namespace NX10
                 acquisitionWindowSize = data.deviceConfig.sensor.acquisitionWindowSize;
                 magnetometerFrequencyHz = data.deviceConfig.sensor.magnetometerSampleHz;
                 screenBrightnessDelta = data.deviceConfig.sensor?.screenBrightnessDelta;
+                telemetryCompression = data.deviceConfig.sensor.compressTelemetry;
             }
            
             if(data.deviceConfig.saaq != null)

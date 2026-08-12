@@ -30,6 +30,7 @@ namespace NX10
         public int? magnetometerHZ;
         public int? acquisitionWindowSize;
         public float? screenBrightnessDelta;
+        public bool? compressTelemetry;
 
         private float lastRecordedBrightness = -1f;
         private string lastRecordedOrientation = null;
@@ -106,7 +107,7 @@ namespace NX10
             }
         }
 
-        public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? magnetometerHz, float? screenBrightnessDelta, int? acquisitionWindowSize, float dpi)
+        public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? magnetometerHz, float? screenBrightnessDelta, int? acquisitionWindowSize, bool? compressTelemetry, float dpi)
         {
             this.gyroHZ = gyroHz;
             this.accelerometerHZ = accelerometerHz;
@@ -114,6 +115,8 @@ namespace NX10
             this.magnetometerHZ = magnetometerHz;
             this.screenBrightnessDelta = screenBrightnessDelta;
             this.acquisitionWindowSize = acquisitionWindowSize;
+            this.compressTelemetry = compressTelemetry;
+
             this.dpi = dpi;
         }
 
@@ -271,6 +274,7 @@ namespace NX10
         private void CollectGyroData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+
 #if ENABLE_INPUT_SYSTEM
             if (Gyroscope.current != null)
             {

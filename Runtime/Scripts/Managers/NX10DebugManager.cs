@@ -1,3 +1,5 @@
+#if UNITY_EDITOR || DEBUG
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -225,3 +227,4 @@ namespace NX10
         }
     }
 }
+#endif

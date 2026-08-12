@@ -49,6 +49,7 @@ namespace NX10
         public int? acquisitionWindowSize;
         public int? magnetometerSampleHz;
         public float? screenBrightnessDelta;
+        public bool? compressTelemetry;
     }
 
     [Serializable]
