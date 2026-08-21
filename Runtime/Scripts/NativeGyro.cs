@@ -29,7 +29,6 @@ namespace NX10
         private static NativeVector3 _GetNativeRotationRateUnbiased() { return new NativeVector3(); }
 #endif
 
-        [Header("Sensor Output")]
         public Vector3 rotationRateUnbiased
         {
             get
