@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace NX10
@@ -93,6 +94,12 @@ namespace NX10
             GUILayout.EndArea();
         }*/
 
+        public string GetCurrentTimestamp()
+        {
+            return DateTime.UtcNow
+                .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+        }
+
         private void SendAttributeRequest(Dictionary<string, object> attributes)
         {
             networkingManager.SendAttributes(attributes);
@@ -182,19 +189,19 @@ namespace NX10
 
         public void PersonalDataRequested(bool dryRun, System.Action<bool, string> completedAction)
         {
-            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string timeStamp = GetCurrentTimestamp();
             networkingManager.PersonalDataRequested(dryRun, timeStamp, completedAction);
         }
 
         public void PersonalDataDeletionRequested(bool dryRun, System.Action<bool> completedAction)
         {
-            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string timeStamp = GetCurrentTimestamp();
             networkingManager.PersonalDataDeletionRequested(dryRun, timeStamp, completedAction);
         }
 
         public void SendEvent(string eventName, Dictionary<string, object> eventData = null)
         {
-            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string timeStamp = GetCurrentTimestamp();
             networkingManager.SendEvent(eventName, timeStamp, null, eventData);
         }
 
@@ -206,7 +213,7 @@ namespace NX10
 
         public void SendOutcomeEvent(string eventName, Outcome outcome, Dictionary<string, object> eventData = null)
         {
-            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string timeStamp = GetCurrentTimestamp();
             networkingManager.SendEvent(eventName, timeStamp, outcome.ToString(), eventData);
         }
 
@@ -249,11 +256,11 @@ namespace NX10
 
         public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer, string, string> promptAnsweredAction)
         {
-            string promptDisplayTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string promptDisplayTimestamp = GetCurrentTimestamp();
 
             promptManager.ShowPrompt(promptData, dismissable, (answer) =>
             {
-                string promptAnswerTimestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                string promptAnswerTimestamp = GetCurrentTimestamp();
                 promptAnsweredAction.Invoke(answer, promptDisplayTimestamp, promptAnswerTimestamp);
             });
 

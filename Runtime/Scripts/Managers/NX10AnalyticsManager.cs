@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace NX10
@@ -15,7 +16,8 @@ namespace NX10
             {
                 this.eventName = eventName;
                 this.sourceName = sourceName;
-                this.timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                this.timeStamp = DateTime.UtcNow.ToUniversalTime()
+                    .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
                 this.data = data;
             }
 

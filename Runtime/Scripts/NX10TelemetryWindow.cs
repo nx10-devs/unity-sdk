@@ -1,12 +1,14 @@
 using NX10;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 public class NX10TelemetryWindow : IDisposable
 {
     public DateTime startTimestamp;
-    public string startTimestampISO => startTimestamp.ToString(("yyyy-MM-ddTHH:mm:ss.fffZ"));
+    public string startTimestampISO => startTimestamp
+                .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
 
     public List<IInputEvent> inputEvents = new List<IInputEvent>();
 

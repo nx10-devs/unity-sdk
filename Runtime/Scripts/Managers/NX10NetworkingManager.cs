@@ -42,7 +42,7 @@ namespace NX10
             };
             
             string attributesEndPoint = currentSession.GetEndpoint("attributes", "v1");
-            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string timestamp = NX10Manager.Instance.GetCurrentTimestamp();
             NX10AttributesPayload attributesPayload = new NX10AttributesPayload()
             {
                 timestamp = timestamp,
@@ -268,13 +268,13 @@ namespace NX10
 
         public void SendTriggeredSAAQData(SAAQAnswer answer, string displayTimestamp, string closedTimestamp, string triggerId)
         {
-            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string timestamp = NX10Manager.Instance.GetCurrentTimestamp();
             string saaqEndpoint = currentSession.GetEndpoint("saaq-triggered", "v1");
             NX10SAAQTriggeredPayload payload = new NX10SAAQTriggeredPayload()
             {
                 triggerID = triggerId,
                 answer = answer,
-                deviceSendTimestamp = timeStamp,
+                deviceSendTimestamp = timestamp,
                 promptDisplayTimestamp = displayTimestamp,
                 promptClosedTimestamp = closedTimestamp,
                 metaData = new Dictionary<string, object>()
@@ -302,11 +302,11 @@ namespace NX10
 
         public void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)
         {
-            string timeStamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            string timestamp = NX10Manager.Instance.GetCurrentTimestamp();
             string saaqEndpoint = currentSession.GetEndpoint("saaq", "v1");
             NX10SAAQPayload saaqPayload = new NX10SAAQPayload()
             {
-                deviceSendTimestamp = timeStamp,
+                deviceSendTimestamp = timestamp,
                 promptDisplayTimestamp = promptDisplayTimestamp,
                 promptAnswerTimestamp = prompAnswerTimestamp,
                 feeling = feeling,

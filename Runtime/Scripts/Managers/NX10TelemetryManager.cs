@@ -255,6 +255,7 @@ namespace NX10
             if (currentCollectionWindow == null) return;
 
             SendTelemetryData(currentCollectionWindow.startTimestampISO);
+
             currentCollectionWindow.Dispose();
             currentCollectionWindow = null;
             timer -= acquisitionWindowSize.Value;
