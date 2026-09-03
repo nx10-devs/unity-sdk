@@ -258,7 +258,7 @@ namespace NX10
 
             currentCollectionWindow.Dispose();
             currentCollectionWindow = null;
-            timer -= acquisitionWindowSize.Value;
+            timer = 0;
 
             StopAllCoroutines();
         }
