@@ -44,6 +44,8 @@ namespace NX10
         public string osVersion;
         public string deviceVersion;
         public string deviceVariant;
+        public string timezone;
+        public string locale;
     }
 
     [Serializable]

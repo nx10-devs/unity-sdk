@@ -134,6 +134,8 @@ namespace NX10
             string apiKey = NX10RuntimeConfig.ApiKey;
             string endpoint = NX10RuntimeConfig.SessionStartEndpoint;
 
+            NativeDeviceSettings nativeDeviceSettings = GetComponent<NativeDeviceSettings>();
+
             PackageRuntimeData packageData = Resources.Load<PackageRuntimeData>("NX10PackageVersion");
 
             if (apiKey == string.Empty || endpoint == string.Empty)
@@ -145,7 +147,10 @@ namespace NX10
                 os = GetOSName(),
                 osVersion = SystemInfo.operatingSystem,
                 deviceVersion = SystemInfo.deviceModel,
-                deviceVariant = SystemInfo.deviceName
+                deviceVariant = SystemInfo.deviceName,
+
+                timezone = nativeDeviceSettings.TimeZone,
+                locale = nativeDeviceSettings.Locale,
             };
 
             SDKData sdkData = new SDKData
