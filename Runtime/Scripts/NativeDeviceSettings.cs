@@ -31,10 +31,47 @@ public class NativeDeviceSettings : MonoBehaviour
         }
     }
 
+    private GUIStyle labelStyle;
+    private GUIStyle boxStyle;
+
     void Awake()
     {
         Debug.Log($"[DeviceSettings] BCP-47 Locale: {Locale}");
         Debug.Log($"[DeviceSettings] IANA TimeZone: {TimeZone}");
+    }
+
+    void OnGUI()
+    {
+        if (labelStyle == null)
+        {
+            labelStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 18,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.white }
+            };
+
+            boxStyle = new GUIStyle(GUI.skin.box)
+            {
+                padding = new RectOffset(12, 12, 12, 12)
+            };
+        }
+
+        float targetWidth = 1080f;
+        float scale = Screen.width / targetWidth;
+        scale = Mathf.Clamp(scale, 1f, 3f);
+
+        Matrix4x4 savedMatrix = GUI.matrix;
+        GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
+
+        // Draw overlay box in top-left corner
+        GUILayout.BeginArea(new Rect(10, 10, 320, 90), boxStyle);
+        GUILayout.Label($"Locale (BCP-47): {Locale}", labelStyle);
+        GUILayout.Space(4);
+        GUILayout.Label($"TimeZone (IANA): {TimeZone}", labelStyle);
+        GUILayout.EndArea();
+
+        GUI.matrix = savedMatrix;
     }
 
     private string GetNativeLocale()
