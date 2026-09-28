@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 06e19e481cebd80439937ff98bc29cbb, type: 3}
   m_Name: NX10PackageVersion
   m_EditorClassIdentifier: NX10::NX10.PackageRuntimeData
-  version: 0.0.3
+  version: 0.0.4
