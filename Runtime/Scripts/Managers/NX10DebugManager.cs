@@ -38,7 +38,7 @@ namespace NX10
         private void Awake()
         {
 #if UNITY_EDITOR
-            //guiMenuToggle = true;
+            guiMenuToggle = true;
 #endif
         }
 
@@ -53,7 +53,7 @@ namespace NX10
             if (!initialised)
                 return;
 
-            //UpdateDebugToggle();
+            UpdateDebugToggle();
             //UpdateApiCalls();
         }
 
