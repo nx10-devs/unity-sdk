@@ -130,20 +130,16 @@ namespace NX10
             networkingManager.SendAnalytics(analyticsEvent.eventName, analyticsEvent.sourceName, analyticsEvent.timeStamp, analyticsEvent.data);
         }
 
-        public void StartSession(string email = null, string phoneNumber = null, Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
+        public void StartSession(Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
         {
-            if (email == null)
-                email = string.Empty;
-            if (phoneNumber == null)
-                phoneNumber = string.Empty;
             if (metaData == null)
                 metaData = new Dictionary<string, object>();
 
             UserIdentifiers identifiers = new UserIdentifiers
             {
                 deviceId = SystemInfo.deviceUniqueIdentifier,
-                email = email,
-                phoneNumber = phoneNumber,
+                email = string.Empty,
+                phoneNumber = string.Empty,
             };
 
             AppProvidedData appProvided = new AppProvidedData
@@ -169,7 +165,53 @@ namespace NX10
                     session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
                     session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
 
-                analyticsManager.FireEvent("session_started");
+                SendUnsentAnalytics();
+
+                if (session.saaqPollingPeriod.HasValue)
+                {
+                    promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
+                }
+
+                startSuccess?.Invoke(sessionStartSuccess);
+            });
+        }
+
+        [Obsolete("Start Session now should only take metadata and a success action", false)]
+        public void StartSession(string input1 = null, string input2 = null, Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
+        {
+            if (metaData == null)
+                metaData = new Dictionary<string, object>();
+
+            UserIdentifiers identifiers = new UserIdentifiers
+            {
+                deviceId = SystemInfo.deviceUniqueIdentifier,
+                email = string.Empty,
+                phoneNumber = string.Empty,
+            };
+
+            AppProvidedData appProvided = new AppProvidedData
+            {
+                metaData = metaData,
+                applicationVersion = Application.version,
+                buildNumber = Application.buildGUID
+            };
+
+            SessionConfig sessionConfig = new SessionConfig
+            {
+                Identifiers = identifiers,
+                AppProvidedData = appProvided
+            };
+
+            networkingManager.StartSession(sessionConfig, (sessionStartSuccess) =>
+            {
+                Initialised = sessionStartSuccess;
+                SessionExpired = false;
+
+                NX10SDKSession session = networkingManager.CurrentSession;
+                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
+                    session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
+                    session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
+
                 SendUnsentAnalytics();
 
                 if(session.saaqPollingPeriod.HasValue)
@@ -240,13 +282,11 @@ namespace NX10
         public void StartTelemetry()
         {
             telemetryManager.SetTelemetryCollection(true);
-            analyticsManager.FireEvent("telemetry_started");
         }
 
         public void StopTelemetry()
         {
             telemetryManager.SetTelemetryCollection(false);
-            analyticsManager.FireEvent("telemetry_ended");
         }
 
         public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer, string, string> promptAnsweredAction)
@@ -263,8 +303,6 @@ namespace NX10
                 string promptAnswerTimestamp = GetCurrentTimestamp();
                 promptAnsweredAction.Invoke(answer, promptDisplayTimestamp, promptAnswerTimestamp);
             });
-
-            analyticsManager.FireEvent("saaq_shown");
         }
 
         public void RequestActivity(Action<KineticState> activityAction)
