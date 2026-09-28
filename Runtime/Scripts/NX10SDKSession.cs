@@ -33,14 +33,7 @@ namespace NX10
         {
             Token = data.token;
 
-            Debug.Log(Token);
-
             _endpoints = data.endpoints ?? new List<EndpointInfo>();
-
-            foreach(EndpointInfo ep in data.endpoints)
-            {
-                Debug.Log(ep.location);
-            }
 
             if(data.deviceConfig.sensor != null)
             {

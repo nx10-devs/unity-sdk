@@ -50,7 +50,6 @@ namespace NX10
             };
 
             string attributeJson = JsonConvert.SerializeObject(attributesPayload);
-            Debug.Log(attributeJson);
             StartCoroutine(NX10PostRequest(attributesEndPoint, attributeJson, (success, message) =>
             {
                 if (success)
@@ -508,7 +507,6 @@ namespace NX10
             }
 
             string nx10jsonData = JsonConvert.SerializeObject(eventsPayload);
-            Debug.Log(nx10jsonData);
             List<HeaderObject> headers = new List<HeaderObject>()
             {
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
