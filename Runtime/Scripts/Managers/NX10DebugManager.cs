@@ -1,4 +1,4 @@
-#if UNITY_EDITOR || DEBUG
+//#if UNITY_EDITOR || DEBUG
 
 using System;
 using System.Collections.Generic;
@@ -227,4 +227,4 @@ namespace NX10
         }
     }
 }
-#endif
+//#endif
