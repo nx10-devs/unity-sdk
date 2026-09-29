@@ -86,7 +86,8 @@ namespace NX10
         {
             isRunning = true;
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR && ENABLE_INPUT_SYSTEM
+
             TouchSimulation.Enable();
 #endif
         }
