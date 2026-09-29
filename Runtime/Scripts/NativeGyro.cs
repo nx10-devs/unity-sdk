@@ -52,13 +52,13 @@ namespace NX10
             switch (Screen.orientation)
             {
                 case (UnityEngine.ScreenOrientation.LandscapeLeft):
-                    convertedVector = new Vector3(-screenGyro.y, screenGyro.x, -screenGyro.z);
+                    convertedVector = new Vector3(-screenGyro.x, screenGyro.y, screenGyro.z);
                     break;
                 case UnityEngine.ScreenOrientation.LandscapeRight:
-                    convertedVector = new Vector3(screenGyro.y, -screenGyro.x, -screenGyro.z);
+                    convertedVector = new Vector3(screenGyro.x, -screenGyro.y, screenGyro.z);
                     break;
                 case UnityEngine.ScreenOrientation.PortraitUpsideDown:
-                    convertedVector = new Vector3(-screenGyro.x, -screenGyro.y, -screenGyro.z);
+                    convertedVector = new Vector3(-screenGyro.x, -screenGyro.y, screenGyro.z);
                     break;
                 case UnityEngine.ScreenOrientation.Portrait:
                 default:
