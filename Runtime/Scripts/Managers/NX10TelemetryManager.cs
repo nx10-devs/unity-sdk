@@ -382,6 +382,7 @@ namespace NX10
 #elif UNITY_ANDROID && !UNITY_EDITOR
                 majorRadius *= Mathf.Min(Screen.width, Screen.height);
                 radiusMm = majorRadius;
+                radiusMm = Math.Round(radiusMm, 4, MidpointRounding.AwayFromZero);
 #endif
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
