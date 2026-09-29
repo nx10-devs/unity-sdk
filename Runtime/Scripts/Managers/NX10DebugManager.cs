@@ -232,7 +232,8 @@ namespace NX10
 #elif UNITY_ANDROID// && !UNITY_EDITOR
                 if(majorRadius <= 1)
                 majorRadius *= Mathf.Min(Screen.width, Screen.height);
-                radiusMm = _telemetryManager.PixelsToMillimeters(majorRadius);
+                radiusMm = majorRadius;
+                radiusMm = Math.Round(radiusMm, 4, MidpointRounding.AwayFromZero);
 #endif
                 GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm  (R: {touch.radius.x + "," + touch.radius.y} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
             }

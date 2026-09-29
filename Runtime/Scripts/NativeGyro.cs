@@ -40,10 +40,34 @@ namespace NX10
                 return rotation;
 #else
                 Vector3 rotation = UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
-                rotation = new Vector3(rotation.y, -rotation.x, rotation.z);
+                rotation = ConvertGyroData(rotation);
                 return rotation;
 #endif
             }
+        }
+
+        public Vector3 ConvertGyroData(Vector3 screenGyro)
+        {
+            Vector3 convertedVector;
+            switch (Screen.orientation)
+            {
+                case (UnityEngine.ScreenOrientation.LandscapeLeft):
+                    convertedVector = new Vector3(-screenGyro.y, screenGyro.x, -screenGyro.z);
+                    break;
+                case UnityEngine.ScreenOrientation.LandscapeRight:
+                    convertedVector = new Vector3(screenGyro.y, -screenGyro.x, -screenGyro.z);
+                    break;
+                case UnityEngine.ScreenOrientation.PortraitUpsideDown:
+                    convertedVector = new Vector3(-screenGyro.x, -screenGyro.y, -screenGyro.z);
+                    break;
+                case UnityEngine.ScreenOrientation.Portrait:
+                default:
+                    convertedVector = screenGyro;
+                    break;
+            }
+
+            convertedVector = convertedVector.RoundToFivePlaces();
+            return convertedVector;
         }
 
 

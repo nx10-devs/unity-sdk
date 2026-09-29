@@ -283,8 +283,8 @@ namespace NX10
                 {
                     timestampOffsetMs = offset,
                     x = nativeGyro.rotationRateUnbiased.x,
-                    y = nativeGyro.rotationRateUnbiased.z,
-                    z = nativeGyro.rotationRateUnbiased.y,
+                    y = nativeGyro.rotationRateUnbiased.y,
+                    z = nativeGyro.rotationRateUnbiased.z,
                 });
             }
 #elif ENABLE_LEGACY_INPUT_MANAGER
