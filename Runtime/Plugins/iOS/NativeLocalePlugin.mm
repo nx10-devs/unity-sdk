@@ -1,4 +1,4 @@
-#import <Foundation/Foundation.Foundation.h>
+#import <Foundation/Foundation.h>
 
 extern "C" {
     // Helper method to convert NSString to C string for C# interop
