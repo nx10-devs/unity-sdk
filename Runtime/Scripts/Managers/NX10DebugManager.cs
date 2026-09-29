@@ -177,9 +177,8 @@ namespace NX10
                     cachedGyroText = "  Gyro: Not Detected";
                 }
 
-                if(UnityEngine.InputSystem.MagneticFieldSensor.current != null)
-                {
-                    var rawMag = Vector3.zero;
+               
+                var rawMag = Vector3.zero;
 #if UNITY_IOS && !UNITY_EDITOR
     if (IOSMagnetometer.IsAvailable())
     {
@@ -196,10 +195,7 @@ namespace NX10
 #endif
                     cachedMagText = $"  Mag:  {rawMag.x}, {rawMag.y}, {rawMag.z} rad/s";
                 }
-                else
-                {
-                    cachedMagText = "  Mag: Not Detected";
-                }
+                
 #else
         Vector3 accel = Input.acceleration;
         cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G";
