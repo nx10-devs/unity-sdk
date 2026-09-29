@@ -218,6 +218,7 @@ namespace NX10
 
             GUILayout.Label(cachedAccelText, labelStyle);
             GUILayout.Label(cachedGyroText, labelStyle);
+            GUILayout.Label(cachedMagText, labelStyle);
 
             GUILayout.Space(15);
             GUILayout.Label("<b>Active Touches (Raw -> mm):</b>", labelStyle);
