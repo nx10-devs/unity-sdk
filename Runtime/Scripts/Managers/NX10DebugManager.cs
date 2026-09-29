@@ -178,7 +178,7 @@ namespace NX10
                 }
 
                
-                var rawMag = Vector3.zero;
+                    var rawMag = Vector3.zero;
 #if UNITY_IOS && !UNITY_EDITOR
     if (IOSMagnetometer.IsAvailable())
     {
@@ -210,7 +210,6 @@ namespace NX10
             cachedGyroText = "  Gyro: Not Supported";
         }
 #endif
-            }
 
             GUILayout.Label(cachedAccelText, labelStyle);
             GUILayout.Label(cachedGyroText, labelStyle);
