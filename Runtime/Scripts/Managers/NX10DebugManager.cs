@@ -13,9 +13,11 @@ namespace NX10
         private float lastSensorUpdateTime = -999f;
         private string cachedAccelText = "Loading...";
         private string cachedGyroText = "Loading...";
+        private string cachedMagText = "Loading...";
         private float lastApiUpdateTime = -10f; 
         private string cachedActivityText = "Activity: Fetching...";
         private string cachedAffectText = "Affect: Fetching...";
+        
 
         private bool guiMenuToggle = false;
 
@@ -174,6 +176,30 @@ namespace NX10
                 {
                     cachedGyroText = "  Gyro: Not Detected";
                 }
+
+                if(UnityEngine.InputSystem.MagneticFieldSensor.current != null)
+                {
+                    var rawMag = Vector3.zero;
+#if UNITY_IOS && !UNITY_EDITOR
+    if (IOSMagnetometer.IsAvailable())
+    {
+        IOSMagnetometer.Start(); 
+        rawMag = IOSMagnetometer.GetRawData();
+    }
+#elif ENABLE_INPUT_SYSTEM
+                    if (MagneticFieldSensor.current != null)
+                    {
+                        rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
+                    }
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            rawMag = Input.compass.rawVector;
+#endif
+                    cachedMagText = $"  Mag:  {rawMag.x}, {rawMag.y}, {rawMag.z} rad/s";
+                }
+                else
+                {
+                    cachedMagText = "  Mag: Not Detected";
+                }
 #else
         Vector3 accel = Input.acceleration;
         cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G";
@@ -193,11 +219,6 @@ namespace NX10
             GUILayout.Label(cachedAccelText, labelStyle);
             GUILayout.Label(cachedGyroText, labelStyle);
 
-            GUILayout.Space(10);
-            GUILayout.Label("<b>NX10 Status (Updates every 10s):</b>", labelStyle);
-            GUILayout.Label($"  {cachedActivityText}", labelStyle);
-            GUILayout.Label($"  {cachedAffectText}", labelStyle);
-
             GUILayout.Space(15);
             GUILayout.Label("<b>Active Touches (Raw -> mm):</b>", labelStyle);
 
@@ -212,6 +233,10 @@ namespace NX10
                 radiusMm = _telemetryManager.MmPerPoint() * majorRadius;
                 radiusMm = Math.Round(radiusMm, 3, MidpointRounding.AwayFromZero);
 
+#elif UNITY_ANDROID// && !UNITY_EDITOR
+                if(majorRadius <= 1)
+                majorRadius *= Mathf.Min(Screen.width, Screen.height);
+                radiusMm = _telemetryManager.PixelsToMillimeters(majorRadius);
 #endif
                 GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm  (R: {touch.radius.x + "," + touch.radius.y} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
             }
