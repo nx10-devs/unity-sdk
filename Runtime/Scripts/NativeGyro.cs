@@ -39,7 +39,9 @@ namespace NX10
                 rotation = rotation.RoundToFivePlaces();
                 return rotation;
 #else
-                return UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
+                Vector3 rotation = UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
+                rotation = new Vector3(rotation.y, -rotation.x, rotation.z);
+                return rotation;
 #endif
             }
         }
