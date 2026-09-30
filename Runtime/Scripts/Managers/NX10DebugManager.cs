@@ -1,5 +1,3 @@
-//#if UNITY_EDITOR || DEBUG
-
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,9 +17,6 @@ namespace NX10
         private string cachedGyroText = "Loading...";
         private string cachedMagText = "Loading...";
         private float lastApiUpdateTime = -10f;
-        private string cachedActivityText = "Activity: Fetching...";
-        private string cachedAffectText = "Affect: Fetching...";
-
 
         private bool guiMenuToggle = false;
 
@@ -198,7 +193,6 @@ namespace NX10
                 }
             }
 
-            // 2. RENDER GUI LABELS EVERY FRAME
             GUILayout.Label(cachedAccelText, labelStyle);
             GUILayout.Label(cachedGyroText, labelStyle);
             GUILayout.Label(cachedMagText, labelStyle);
@@ -206,36 +200,12 @@ namespace NX10
             GUILayout.Space(15);
             GUILayout.Label("<b>Active Touches (Raw -> mm):</b>", labelStyle);
 
-#if ENABLE_INPUT_SYSTEM
-            foreach (var touch in UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches)
+            foreach (NativeTouch.TouchObject touch in _telemetryManager.nativeTouch.Touches)
             {
-                double xMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.x);
-                double yMm = _telemetryManager.PixelsToMillimeters(touch.screenPosition.y);
-                double majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
-                double radiusMm = _telemetryManager.PixelsToMillimeters(majorRadius);
-#if UNITY_IOS && !UNITY_EDITOR
-                radiusMm = _telemetryManager.MmPerPoint() * majorRadius;
-                radiusMm = Math.Round(radiusMm, 3, MidpointRounding.AwayFromZero);
-#elif UNITY_ANDROID
-                if (majorRadius <= 1)
-                    majorRadius *= Mathf.Min(Screen.width, Screen.height);
-                radiusMm = majorRadius;
-                radiusMm = Math.Round(radiusMm, 4, MidpointRounding.AwayFromZero);
-#endif
-                GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm  (R: {touch.radius.x + "," + touch.radius.y} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
+                GUILayout.Label($"ID {touch.touchId}: {touch.x}mm, {touch.y}mm  (R: {touch.touchRadius}) ({touch.touchType})", labelStyle);
             }
-#else
-            foreach (var touch in Input.touches)
-            {
-                double xMm = _telemetryManager.PixelsToMillimeters(touch.position.x);
-                double yMm = _telemetryManager.PixelsToMillimeters(touch.position.y);
-                double radiusMm = _telemetryManager.PixelsToMillimeters(touch.radius);
-                GUILayout.Label($"ID {touch.fingerId}: {xMm}mm, {yMm}mm  (R: {touch.radius} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
-            }
-#endif
 
             GUILayout.EndArea();
         }
     }
 }
-//#endif

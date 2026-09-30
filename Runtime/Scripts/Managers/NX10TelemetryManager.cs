@@ -7,7 +7,6 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Gyroscope = UnityEngine.InputSystem.Gyroscope;
-using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 #endif
 
 namespace NX10
@@ -18,6 +17,7 @@ namespace NX10
         public NativeScale nativeScale { get; private set; }
         public NativeAccelerometer nativeAccelerometer { get; private set; }
         public NativeMagnetometer nativeMagnetometer { get; private set; }
+        public NativeTouch nativeTouch { get; private set; }
 
         private bool canCollectTelemetryData;
         private bool isRunning;
@@ -62,6 +62,7 @@ namespace NX10
             nativeAccelerometer = GetComponent<NativeAccelerometer>();
             nativeMagnetometer = GetComponent<NativeMagnetometer>();
             nativeScale = GetComponent<NativeScale>();
+            nativeTouch = GetComponent<NativeTouch>();
 
 #if ENABLE_INPUT_SYSTEM
             if (Gyroscope.current != null)
@@ -125,6 +126,8 @@ namespace NX10
             this.compressTelemetry = compressTelemetry;
 
             this.dpi = dpi;
+
+            nativeTouch.Initialise(nativeScale, dpi);
         }
 
         private IEnumerator CollectionWorker(float frequency, System.Action collectionMethod)
@@ -327,98 +330,19 @@ namespace NX10
         private void CollectTouchDataV2()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero); 
-#if ENABLE_INPUT_SYSTEM
-            foreach (var touch in Touch.activeTouches)
+            foreach(NativeTouch.TouchObject touchObject in nativeTouch.Touches)
             {
-                float majorRadius = Mathf.Max(touch.radius.x, touch.radius.y);
-                double radiusMm = PixelsToMillimeters(majorRadius);
-#if UNITY_IOS && !UNITY_EDITOR
-                radiusMm = MmPerPoint() * majorRadius;
-                radiusMm = Math.Round(radiusMm, 3, MidpointRounding.AwayFromZero);
-#elif UNITY_ANDROID && !UNITY_EDITOR
-                majorRadius *= Mathf.Min(Screen.width, Screen.height);
-                radiusMm = majorRadius;
-                radiusMm = Math.Round(radiusMm, 4, MidpointRounding.AwayFromZero);
-#endif
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
                     timestampOffsetMs = offset,
-                    touchId = touch.touchId.ToString(),
-                    touchType = ConvertTouchPhaseToTouchType(touch.phase),
+                    touchId = touchObject.touchId,
+                    touchType = touchObject.touchType,
                     touchObject = null,
-                    xMm = PixelsToMillimeters(touch.screenPosition.x),
-                    yMm = PixelsToMillimeters(touch.screenPosition.y),
-                    touchRadiusMm = radiusMm
+                    xMm = touchObject.x,
+                    yMm = touchObject.y,
+                    touchRadiusMm = touchObject.touchRadius
                 });
             }
-
-#else
-            foreach (var touch in Input.touches)
-            {
-                currentCollectionWindow.inputEvents.Add(new TouchInputEventV2 {
-                    timestampOffsetMs = offset,
-                    touchId = touch.fingerId.ToString(),
-                    touchType = ConvertTouchPhaseToTouchType(touch.phase),
-                    touchObject = null,
-                    xMm = PixelsToMillimeters(touch.position.x),
-                    yMm = PixelsToMillimeters(touch.position.y),
-                    touchRadiusMm = PixelsToMillimeters(touch.radius),
-                });
-            }
-#endif
         }
-
-#if ENABLE_INPUT_SYSTEM
-        private string ConvertTouchPhaseToTouchType(UnityEngine.InputSystem.TouchPhase touchPhase)
-        {
-            switch (touchPhase)
-            {
-                case UnityEngine.InputSystem.TouchPhase.Began:
-                    return "down";
-                case UnityEngine.InputSystem.TouchPhase.Ended:
-                    return "up";
-                case UnityEngine.InputSystem.TouchPhase.Moved:
-                    return "move";
-                case UnityEngine.InputSystem.TouchPhase.Stationary:
-                    return "stationary";
-                case UnityEngine.InputSystem.TouchPhase.Canceled:
-                    return "cancelled";
-            }
-
-            throw new NotImplementedException();
-        }
-#endif
-
-        private string ConvertTouchPhaseToTouchType(UnityEngine.TouchPhase touchPhase)
-        {
-            switch (touchPhase)
-            {
-                case UnityEngine.TouchPhase.Began:
-                    return "down";
-                case UnityEngine.TouchPhase.Ended:
-                    return "up";
-                case UnityEngine.TouchPhase.Moved:
-                    return "move";
-                case UnityEngine.TouchPhase.Stationary:
-                    return "stationary";
-                case UnityEngine.TouchPhase.Canceled:
-                    return "cancelled";
-            }
-
-            throw new NotImplementedException();
-        }
-
-        public double MmPerPoint()
-        {
-            double nativeIOSScale = nativeScale.GetNativeScale();
-            return (nativeIOSScale / dpi) * 25.4;
-        }
-
-        public double PixelsToMillimeters(double pixels)
-        {
-            double inches = pixels / dpi;
-            double millimeters = inches * 25.4f;
-            return Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
-        }        
     }
 }
