@@ -3,8 +3,10 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.EnhancedTouch;
+
+
+//using UnityEngine.InputSystem;
+//using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace NX10
 {
@@ -14,10 +16,10 @@ namespace NX10
         private string cachedAccelText = "Loading...";
         private string cachedGyroText = "Loading...";
         private string cachedMagText = "Loading...";
-        private float lastApiUpdateTime = -10f; 
+        private float lastApiUpdateTime = -10f;
         private string cachedActivityText = "Activity: Fetching...";
         private string cachedAffectText = "Affect: Fetching...";
-        
+
 
         private bool guiMenuToggle = false;
 
@@ -74,16 +76,17 @@ namespace NX10
 
                 NX10Manager.Instance.RequestAffect((affect, confidence) =>
                 {
-                    cachedAffectText = $"Affect: {affect} ({confidence})"; 
+                    cachedAffectText = $"Affect: {affect} ({confidence})";
                 });
             }
         }
 
         private void UpdateDebugToggle()
         {
-            if (Touchscreen.current == null) return;
-
             int activeTouches = 0;
+
+#if ENABLE_INPUT_SYSTEM
+            if (Touchscreen.current == null) return;
 
             foreach (var touch in Touchscreen.current.touches)
             {
@@ -92,6 +95,12 @@ namespace NX10
                     activeTouches++;
                 }
             }
+#else
+            foreach(var touch in Input.touches)
+            {
+                activeTouches++;
+            }
+#endif
 
             if (activeTouches == 3)
             {
@@ -127,8 +136,8 @@ namespace NX10
             float boxHeight = Screen.height - (padding * 2);
 
             GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.fontSize = 60; 
-            labelStyle.richText = true; 
+            labelStyle.fontSize = 60;
+            labelStyle.richText = true;
 
             GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
             boxStyle.fontSize = 25;
@@ -197,26 +206,26 @@ namespace NX10
                 }
                 
 #else
-        Vector3 accel = Input.acceleration;
-        cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G";
+                Vector3 accel = Input.acceleration;
+                cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G";
 
-        if (SystemInfo.supportsGyroscope)
-        {
-            Vector3 gyro = Input.gyro.rotationRate;
-            cachedGyroText = $"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s";
-        }
-        else
-        {
-            cachedGyroText = "  Gyro: Not Supported";
-        }
+                if (SystemInfo.supportsGyroscope)
+                {
+                    Vector3 gyro = Input.gyro.rotationRate;
+                    cachedGyroText = $"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s";
+                }
+                else
+                {
+                    cachedGyroText = "  Gyro: Not Supported";
+                }
 #endif
 
-            GUILayout.Label(cachedAccelText, labelStyle);
-            GUILayout.Label(cachedGyroText, labelStyle);
-            GUILayout.Label(cachedMagText, labelStyle);
+                GUILayout.Label(cachedAccelText, labelStyle);
+                GUILayout.Label(cachedGyroText, labelStyle);
+                GUILayout.Label(cachedMagText, labelStyle);
 
-            GUILayout.Space(15);
-            GUILayout.Label("<b>Active Touches (Raw -> mm):</b>", labelStyle);
+                GUILayout.Space(15);
+                GUILayout.Label("<b>Active Touches (Raw -> mm):</b>", labelStyle);
 
 #if ENABLE_INPUT_SYSTEM
             foreach (var touch in UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches)
@@ -238,14 +247,15 @@ namespace NX10
                 GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm  (R: {touch.radius.x + "," + touch.radius.y} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
             }
 #else
-    foreach (var touch in Input.touches)
-    {
-        double xMm = _telemetryManager.PixelsToMillimeters(touch.position.x);
-        double yMm = _telemetryManager.PixelsToMillimeters(touch.position.y);
-        GUILayout.Label($"ID {touch.fingerId}: {xMm:F1}mm, {yMm:F1}mm ({touch.phase})", labelStyle);
-    }
+                foreach (var touch in Input.touches)
+                {
+                    double xMm = _telemetryManager.PixelsToMillimeters(touch.position.x);
+                    double yMm = _telemetryManager.PixelsToMillimeters(touch.position.y);
+                    GUILayout.Label($"ID {touch.fingerId}: {xMm:F1}mm, {yMm:F1}mm ({touch.phase})", labelStyle);
+                }
 #endif
-            GUILayout.EndArea();
+                GUILayout.EndArea();
+            }
         }
     }
 }
