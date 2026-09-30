@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 //using UnityEngine.InputSystem;
@@ -125,23 +126,24 @@ namespace NX10
 
         private void OnGUI()
         {
-            if (!guiMenuToggle)
-                return;
-
-            if (!initialised)
+            if (!guiMenuToggle || !initialised)
                 return;
 
             float padding = 20f;
             float boxWidth = Screen.width * 0.5f;
             float boxHeight = Screen.height - (padding * 2);
 
-            GUIStyle labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.fontSize = 60;
-            labelStyle.richText = true;
+            GUIStyle labelStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 60,
+                richText = true
+            };
 
-            GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
-            boxStyle.fontSize = 25;
-            boxStyle.fontStyle = FontStyle.Bold;
+            GUIStyle boxStyle = new GUIStyle(GUI.skin.box)
+            {
+                fontSize = 25,
+                fontStyle = FontStyle.Bold
+            };
 
             if (!canCollectTelemetryData || currentCollectionWindow == null)
             {
@@ -162,6 +164,7 @@ namespace NX10
             GUILayout.Space(10);
             GUILayout.Label("<b>Sensors (Updates every 2s):</b>", labelStyle);
 
+            // 1. UPDATE CACHED SENSOR STRINGS (Every 2 Seconds)
             if (Time.time - lastSensorUpdateTime >= 2f)
             {
                 lastSensorUpdateTime = Time.time;
@@ -186,46 +189,50 @@ namespace NX10
                     cachedGyroText = "  Gyro: Not Detected";
                 }
 
-               
-                    var rawMag = Vector3.zero;
+                var rawMag = Vector3.zero;
 #if UNITY_IOS && !UNITY_EDITOR
-    if (IOSMagnetometer.IsAvailable())
-    {
-        IOSMagnetometer.Start(); 
-        rawMag = IOSMagnetometer.GetRawData();
-    }
-#elif ENABLE_INPUT_SYSTEM
-                    if (MagneticFieldSensor.current != null)
-                    {
-                        rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
-                    }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-            rawMag = Input.compass.rawVector;
-#endif
-                    cachedMagText = $"  Mag:  {rawMag.x}, {rawMag.y}, {rawMag.z} rad/s";
+                if (IOSMagnetometer.IsAvailable())
+                {
+                    IOSMagnetometer.Start(); 
+                    rawMag = IOSMagnetometer.GetRawData();
                 }
-                
+#elif ENABLE_INPUT_SYSTEM
+                if (MagneticFieldSensor.current != null)
+                {
+                    rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
+                }
+#elif ENABLE_LEGACY_INPUT_MANAGER
+                rawMag = Input.compass.rawVector;
+#endif
+                cachedMagText = $"  Mag:   {rawMag.x}, {rawMag.y}, {rawMag.z} rad/s";
 #else
-                Vector3 accel = Input.acceleration;
+                Vector3 accel = _telemetryManager.ConvertAccelerometerData(Input.acceleration);
+                accel = accel.RoundToFivePlaces();
                 cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G";
 
                 if (SystemInfo.supportsGyroscope)
                 {
-                    Vector3 gyro = Input.gyro.rotationRate;
+                    Vector3 gyro = Input.gyro.rotationRateUnbiased;
+                    gyro = gyro.RoundToFivePlaces();
                     cachedGyroText = $"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s";
                 }
                 else
                 {
                     cachedGyroText = "  Gyro: Not Supported";
                 }
+
+                Vector3 mag = Input.compass.rawVector;
+                cachedMagText = $"  Mag:   {mag.x}, {mag.y}, {mag.z} rad/s";
 #endif
+            }
 
-                GUILayout.Label(cachedAccelText, labelStyle);
-                GUILayout.Label(cachedGyroText, labelStyle);
-                GUILayout.Label(cachedMagText, labelStyle);
+            // 2. RENDER GUI LABELS EVERY FRAME
+            GUILayout.Label(cachedAccelText, labelStyle);
+            GUILayout.Label(cachedGyroText, labelStyle);
+            GUILayout.Label(cachedMagText, labelStyle);
 
-                GUILayout.Space(15);
-                GUILayout.Label("<b>Active Touches (Raw -> mm):</b>", labelStyle);
+            GUILayout.Space(15);
+            GUILayout.Label("<b>Active Touches (Raw -> mm):</b>", labelStyle);
 
 #if ENABLE_INPUT_SYSTEM
             foreach (var touch in UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches)
@@ -237,25 +244,25 @@ namespace NX10
 #if UNITY_IOS && !UNITY_EDITOR
                 radiusMm = _telemetryManager.MmPerPoint() * majorRadius;
                 radiusMm = Math.Round(radiusMm, 3, MidpointRounding.AwayFromZero);
-
-#elif UNITY_ANDROID// && !UNITY_EDITOR
-                if(majorRadius <= 1)
-                majorRadius *= Mathf.Min(Screen.width, Screen.height);
+#elif UNITY_ANDROID
+                if (majorRadius <= 1)
+                    majorRadius *= Mathf.Min(Screen.width, Screen.height);
                 radiusMm = majorRadius;
                 radiusMm = Math.Round(radiusMm, 4, MidpointRounding.AwayFromZero);
 #endif
                 GUILayout.Label($"ID {touch.touchId}: {xMm}mm, {yMm}mm  (R: {touch.radius.x + "," + touch.radius.y} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
             }
 #else
-                foreach (var touch in Input.touches)
-                {
-                    double xMm = _telemetryManager.PixelsToMillimeters(touch.position.x);
-                    double yMm = _telemetryManager.PixelsToMillimeters(touch.position.y);
-                    GUILayout.Label($"ID {touch.fingerId}: {xMm:F1}mm, {yMm:F1}mm ({touch.phase})", labelStyle);
-                }
-#endif
-                GUILayout.EndArea();
+            foreach (var touch in Input.touches)
+            {
+                double xMm = _telemetryManager.PixelsToMillimeters(touch.position.x);
+                double yMm = _telemetryManager.PixelsToMillimeters(touch.position.y);
+                double radiusMm = _telemetryManager.PixelsToMillimeters(touch.radius);
+                GUILayout.Label($"ID {touch.fingerId}: {xMm}mm, {yMm}mm  (R: {touch.radius} RAW ScreenSpace) (R: {radiusMm}mm) ({touch.phase})", labelStyle);
             }
+#endif
+
+            GUILayout.EndArea();
         }
     }
 }

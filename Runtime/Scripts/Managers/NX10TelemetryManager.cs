@@ -319,7 +319,7 @@ namespace NX10
 #elif ENABLE_LEGACY_INPUT_MANAGER
         if (SystemInfo.supportsGyroscope)
         {
-            Vector3 accel = ConvertAccelerometerData(Input.gyro.userAcceleration);
+            Vector3 accel = ConvertAccelerometerData(Input.acceleration);
             currentCollectionWindow.inputEvents.Add(new AccelerometerEvent {
                 timestampOffsetMs = offset,
                 x = (float)Math.Round(accel.x, 5, MidpointRounding.AwayFromZero),
@@ -398,7 +398,7 @@ namespace NX10
             }
 
 #else
-                foreach (var touch in Input.touches)
+            foreach (var touch in Input.touches)
             {
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2 {
                     timestampOffsetMs = offset,
