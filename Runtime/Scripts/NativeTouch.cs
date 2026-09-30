@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem.EnhancedTouch;
 
 
 #if ENABLE_INPUT_SYSTEM
@@ -51,6 +50,7 @@ namespace NX10
                         touchRadius = ConvertPixelRadToMM(touch.radius)
 #elif UNITY_ANDROID
                         touchRadius = Math.Round(Mathf.Max(touch.radius.x, touch.radius.y), 3, MidpointRounding.AwayFromZero)
+#endif
                     };
                     
                     touches.Add(obj);

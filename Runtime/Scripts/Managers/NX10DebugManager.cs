@@ -66,15 +66,7 @@ namespace NX10
             {
                 lastApiUpdateTime = Time.time;
 
-                NX10Manager.Instance.RequestActivity((state) =>
-                {
-                    cachedActivityText = $"Activity: {state}";
-                });
-
-                NX10Manager.Instance.RequestAffect((affect, confidence) =>
-                {
-                    cachedAffectText = $"Affect: {affect} ({confidence})";
-                });
+                
             }
         }
 
