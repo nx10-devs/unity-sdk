@@ -57,6 +57,7 @@ namespace NX10
                 return rotation;
 #elif ENABLE_INPUT_SYSTEM
                 Vector3 rotation = UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadUnprocessedValue();
+                rotation = rotation.RoundToFivePlaces();
                 return rotation;
 #elif ENABLE_LEGACY_INPUT_MANAGER
                 Vector3 rotation = Input.gyro.rotationRateUnbiased;
