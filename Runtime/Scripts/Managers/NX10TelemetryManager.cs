@@ -16,6 +16,8 @@ namespace NX10
     {
         public NativeGyro nativeGyro { get; private set; }
         public NativeScale nativeScale { get; private set; }
+        public NativeAccelerometer nativeAccelerometer { get; private set; }
+        public NativeMagnetometer nativeMagnetometer { get; private set; }
 
         private bool canCollectTelemetryData;
         private bool isRunning;
@@ -57,6 +59,8 @@ namespace NX10
             lastRecordedOrientation = null;
 
             nativeGyro = GetComponent<NativeGyro>();
+            nativeAccelerometer = GetComponent<NativeAccelerometer>();
+            nativeMagnetometer = GetComponent<NativeMagnetometer>();
             nativeScale = GetComponent<NativeScale>();
 
 #if ENABLE_INPUT_SYSTEM
@@ -278,98 +282,44 @@ namespace NX10
         private void CollectGyroData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-
-#if ENABLE_INPUT_SYSTEM
-            if (Gyroscope.current != null)
+            if(nativeGyro.GyroSupported)
             {
                 currentCollectionWindow.inputEvents.Add(new GyroEvent
                 {
                     timestampOffsetMs = offset,
-                    x = nativeGyro.rotationRateUnbiased.x,
-                    y = nativeGyro.rotationRateUnbiased.y,
-                    z = nativeGyro.rotationRateUnbiased.z,
+                    x = nativeGyro.GyroRotationRate.x,
+                    y = nativeGyro.GyroRotationRate.y,
+                    z = nativeGyro.GyroRotationRate.z,
                 });
             }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-            if (SystemInfo.supportsGyroscope)
-            {
-                Vector3 rotationRateUnbiased = Input.gyro.rotationRateUnbiased;
-                rotationRateUnbiased = nativeGyro.ConvertGyroData(rotationRateUnbiased);
-                rotationRateUnbiased = rotationRateUnbiased.RoundToFivePlaces();
-                currentCollectionWindow.inputEvents.Add(new GyroEvent {
-                    timestampOffsetMs = offset,
-                    x = rotationRateUnbiased.x,
-                    y = rotationRateUnbiased.y,
-                    z = rotationRateUnbiased.z,
-                });
-            }
-#endif
         }
 
         private void CollectAccelData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-#if ENABLE_INPUT_SYSTEM
-            if (Accelerometer.current != null)
+            if(nativeAccelerometer.AccSupported)
             {
-                Vector3 accel = ConvertAccelerometerData(Accelerometer.current.acceleration.ReadValue());
                 currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
                 {
                     timestampOffsetMs = offset,
-                    x = accel.x,
-                    y = accel.y,
-                    z = accel.z
+                    x = nativeAccelerometer.AccAcceleration.x,
+                    y = nativeAccelerometer.AccAcceleration.y,
+                    z = nativeAccelerometer.AccAcceleration.z
                 });
             }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-        if (SystemInfo.supportsGyroscope)
-        {
-            Vector3 accel = ConvertAccelerometerData(Input.acceleration);
-            currentCollectionWindow.inputEvents.Add(new AccelerometerEvent {
-                timestampOffsetMs = offset,
-                x = (float)Math.Round(accel.x, 5, MidpointRounding.AwayFromZero),
-                y = (float)Math.Round(accel.y, 5, MidpointRounding.AwayFromZero),
-                z = (float)Math.Round(accel.z, 5, MidpointRounding.AwayFromZero),
-            });
-        }
-#endif
         }
 
         private void CollectMagData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            Vector3 rawMag = Vector3.zero;
-            bool hasData = false;
-
-#if UNITY_IOS && !UNITY_EDITOR
-    if (IOSMagnetometer.IsAvailable())
-    {
-        IOSMagnetometer.Start(); 
-        rawMag = IOSMagnetometer.GetRawData();
-        hasData = true;
-    }
-#elif ENABLE_INPUT_SYSTEM
-            if (MagneticFieldSensor.current != null)
-            {
-                if (!MagneticFieldSensor.current.enabled)
-                    UnityEngine.InputSystem.InputSystem.EnableDevice(MagneticFieldSensor.current);
-
-                rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
-                hasData = true;
-            }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-            rawMag = Input.compass.rawVector;
-            hasData = true;
-#endif
-
-            if (hasData)
+            if(nativeMagnetometer.MagSupported)
             {
                 currentCollectionWindow.inputEvents.Add(new MagnetometerEvent
                 {
                     timestampOffsetMs = offset,
-                    x = (float)Math.Round(rawMag.x, 1, MidpointRounding.AwayFromZero),
-                    y = (float)Math.Round(rawMag.y, 1, MidpointRounding.AwayFromZero),
-                    z = (float)Math.Round(rawMag.z, 1, MidpointRounding.AwayFromZero)
+                    x = nativeMagnetometer.RawMag.x,
+                    y = nativeMagnetometer.RawMag.y,
+                    z = nativeMagnetometer.RawMag.z,
                 });
             }
         }
@@ -469,37 +419,6 @@ namespace NX10
             double inches = pixels / dpi;
             double millimeters = inches * 25.4f;
             return Math.Round(millimeters, 3, MidpointRounding.AwayFromZero);
-        }
-
-        private const float metresPerSecondSquaredConverstion = 9.80665f;
-        public Vector3 ConvertAccelerometerData(Vector3 screenAccel)
-        {
-            if (!Input.compensateSensors) return screenAccel;
-
-
-            Vector3 convertedVector;
-            switch (Screen.orientation)
-            {
-                case (UnityEngine.ScreenOrientation.LandscapeLeft):
-                    convertedVector = new Vector3(-screenAccel.y, screenAccel.x, -screenAccel.z);
-                    break;
-                case UnityEngine.ScreenOrientation.LandscapeRight:
-                    convertedVector = new Vector3(screenAccel.y, -screenAccel.x, -screenAccel.z);
-                    break;
-                case UnityEngine.ScreenOrientation.PortraitUpsideDown:
-                    convertedVector = new Vector3(screenAccel.x, screenAccel.y, -screenAccel.z);
-                    break;
-                case UnityEngine.ScreenOrientation.Portrait:
-                    convertedVector = new Vector3(-screenAccel.x, -screenAccel.y, -screenAccel.z);
-                    break;
-                default:
-                    convertedVector = screenAccel;
-                    break;
-            }
-
-            convertedVector = convertedVector * metresPerSecondSquaredConverstion;
-            convertedVector = convertedVector.RoundToFivePlaces();
-            return convertedVector;
-        }
+        }        
     }
 }

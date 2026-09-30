@@ -32,7 +32,21 @@ namespace NX10
         private static NativeVector3 _GetNativeRotationRateUnbiased() { return new NativeVector3(); }
 #endif
 
-        public Vector3 rotationRateUnbiased
+        public bool GyroSupported
+        {
+
+            get
+            {
+#if ENABLE_INPUT_SYSTEM
+                return UnityEngine.InputSystem.Gyroscope.current != null;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+                return SystemInfo.supportsGyroscope;
+#endif
+            }
+            
+        }
+
+        public Vector3 GyroRotationRate
         {
             get
             {
@@ -42,8 +56,12 @@ namespace NX10
                 rotation = rotation.RoundToFivePlaces();
                 return rotation;
 #elif ENABLE_INPUT_SYSTEM
-                Vector3 rotation = UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
+                Vector3 rotation = UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadUnprocessedValue();
+                return rotation;
+#elif ENABLE_LEGACY_INPUT_MANAGER
+                Vector3 rotation = Input.gyro.rotationRateUnbiased;
                 rotation = ConvertGyroData(rotation);
+                rotation = rotation.RoundToFivePlaces();
                 return rotation;
 #endif
 

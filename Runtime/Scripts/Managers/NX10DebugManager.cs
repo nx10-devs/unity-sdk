@@ -6,8 +6,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 
-//using UnityEngine.InputSystem;
-//using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 namespace NX10
 {
@@ -164,15 +164,13 @@ namespace NX10
             GUILayout.Space(10);
             GUILayout.Label("<b>Sensors (Updates every 2s):</b>", labelStyle);
 
-            // 1. UPDATE CACHED SENSOR STRINGS (Every 2 Seconds)
             if (Time.time - lastSensorUpdateTime >= 2f)
             {
                 lastSensorUpdateTime = Time.time;
 
-#if ENABLE_INPUT_SYSTEM
-                if (Accelerometer.current != null)
+                if (_telemetryManager.nativeAccelerometer.AccSupported)
                 {
-                    var accel = _telemetryManager.ConvertAccelerometerData(Accelerometer.current.acceleration.ReadValue());
+                    var accel = _telemetryManager.nativeAccelerometer.AccAcceleration;
                     cachedAccelText = $"  Accel: {accel.x}, {accel.y}, {accel.z} m/s²";
                 }
                 else
@@ -180,50 +178,23 @@ namespace NX10
                     cachedAccelText = "  Accel: Not Detected";
                 }
 
-                if (UnityEngine.InputSystem.Gyroscope.current != null)
+                if (_telemetryManager.nativeGyro.GyroSupported)
                 {
-                    cachedGyroText = $"  Gyro:  {_telemetryManager.nativeGyro.rotationRateUnbiased.x}, {_telemetryManager.nativeGyro.rotationRateUnbiased.y}, {_telemetryManager.nativeGyro.rotationRateUnbiased.z} rad/s";
+                    cachedGyroText = $"  Gyro:  {_telemetryManager.nativeGyro.GyroRotationRate.x}, {_telemetryManager.nativeGyro.GyroRotationRate.y}, {_telemetryManager.nativeGyro.GyroRotationRate.z} rad/s";
                 }
                 else
                 {
                     cachedGyroText = "  Gyro: Not Detected";
                 }
 
-                var rawMag = Vector3.zero;
-#if UNITY_IOS && !UNITY_EDITOR
-                if (IOSMagnetometer.IsAvailable())
+                if (_telemetryManager.nativeMagnetometer.MagSupported)
                 {
-                    IOSMagnetometer.Start(); 
-                    rawMag = IOSMagnetometer.GetRawData();
-                }
-#elif ENABLE_INPUT_SYSTEM
-                if (MagneticFieldSensor.current != null)
-                {
-                    rawMag = MagneticFieldSensor.current.magneticField.ReadValue();
-                }
-#elif ENABLE_LEGACY_INPUT_MANAGER
-                rawMag = Input.compass.rawVector;
-#endif
-                cachedMagText = $"  Mag:   {rawMag.x}, {rawMag.y}, {rawMag.z} rad/s";
-#else
-                Vector3 accel = _telemetryManager.ConvertAccelerometerData(Input.acceleration);
-                accel = accel.RoundToFivePlaces();
-                cachedAccelText = $"  Accel: {accel.x:F2}, {accel.y:F2}, {accel.z:F2} G";
-
-                if (SystemInfo.supportsGyroscope)
-                {
-                    Vector3 gyro = _telemetryManager.nativeGyro.ConvertGyroData(Input.gyro.rotationRateUnbiased);
-                    gyro = gyro.RoundToFivePlaces();
-                    cachedGyroText = $"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s";
+                    cachedMagText = $"  Mag:  {_telemetryManager.nativeMagnetometer.RawMag.x}, {_telemetryManager.nativeMagnetometer.RawMag.y}, {_telemetryManager.nativeMagnetometer.RawMag.z} rad/s";
                 }
                 else
                 {
-                    cachedGyroText = "  Gyro: Not Supported";
+                    cachedMagText = "  Mag: Not Detected";
                 }
-
-                Vector3 mag = Input.compass.rawVector;
-                cachedMagText = $"  Mag:   {mag.x}, {mag.y}, {mag.z} rad/s";
-#endif
             }
 
             // 2. RENDER GUI LABELS EVERY FRAME

@@ -161,6 +161,8 @@ GameObject:
   - component: {fileID: 4050984657845231266}
   - component: {fileID: 204267272418680}
   - component: {fileID: 3756623070744214699}
+  - component: {fileID: 6573625977136051519}
+  - component: {fileID: 2128525724237858747}
   m_Layer: 0
   m_Name: NX10TelemetryManager
   m_TagString: Untagged
@@ -219,6 +221,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 815c8c4e1db78ac4c946f64a41717946, type: 3}
   m_Name: 
   m_EditorClassIdentifier: NX10::NX10.NativeScale
+--- !u!114 &6573625977136051519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4717045626657959527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b994957ea07e0934ea0c4647e3e59715, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NX10::NX10.NativeAccelerometer
+--- !u!114 &2128525724237858747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4717045626657959527}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac3e73c78e65dfa4d85d5c7b2edaf627, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NX10::NX10.NativeMagnetometer
 --- !u!1 &5289940703915008594
 GameObject:
   m_ObjectHideFlags: 0
