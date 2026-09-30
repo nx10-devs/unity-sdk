@@ -212,7 +212,7 @@ namespace NX10
 
                 if (SystemInfo.supportsGyroscope)
                 {
-                    Vector3 gyro = Input.gyro.rotationRateUnbiased;
+                    Vector3 gyro = _telemetryManager.nativeGyro.ConvertGyroData(Input.gyro.rotationRateUnbiased);
                     gyro = gyro.RoundToFivePlaces();
                     cachedGyroText = $"  Gyro:  {gyro.x:F2}, {gyro.y:F2}, {gyro.z:F2} rad/s";
                 }

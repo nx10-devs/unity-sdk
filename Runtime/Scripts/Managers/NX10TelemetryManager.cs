@@ -56,6 +56,9 @@ namespace NX10
             lastRecordedBrightness = -1;
             lastRecordedOrientation = null;
 
+            nativeGyro = GetComponent<NativeGyro>();
+            nativeScale = GetComponent<NativeScale>();
+
 #if ENABLE_INPUT_SYSTEM
             if (Gyroscope.current != null)
                 InputSystem.EnableDevice(Gyroscope.current);
@@ -68,8 +71,7 @@ namespace NX10
 
             EnhancedTouchSupport.Enable();
 
-            nativeGyro = GetComponent<NativeGyro>();
-            nativeScale = GetComponent<NativeScale>();
+           
 
             return;
 #endif
@@ -289,15 +291,18 @@ namespace NX10
                 });
             }
 #elif ENABLE_LEGACY_INPUT_MANAGER
-        if (SystemInfo.supportsGyroscope)
-        {
-            currentCollectionWindow.inputEvents.Add(new GyroEvent {
-                timestampOffsetMs = offset,
-                x = (float)Math.Round(Input.gyro.rotationRateUnbiased.x, 5, MidpointRounding.AwayFromZero),
-                y = (float)Math.Round(Input.gyro.rotationRateUnbiased.y, 5, MidpointRounding.AwayFromZero),
-                z = (float)Math.Round(Input.gyro.rotationRateUnbiased.z, 5, MidpointRounding.AwayFromZero),
-            });
-        }
+            if (SystemInfo.supportsGyroscope)
+            {
+                Vector3 rotationRateUnbiased = Input.gyro.rotationRateUnbiased;
+                rotationRateUnbiased = nativeGyro.ConvertGyroData(rotationRateUnbiased);
+                rotationRateUnbiased = rotationRateUnbiased.RoundToFivePlaces();
+                currentCollectionWindow.inputEvents.Add(new GyroEvent {
+                    timestampOffsetMs = offset,
+                    x = rotationRateUnbiased.x,
+                    y = rotationRateUnbiased.y,
+                    z = rotationRateUnbiased.z,
+                });
+            }
 #endif
         }
 
@@ -469,6 +474,9 @@ namespace NX10
         private const float metresPerSecondSquaredConverstion = 9.80665f;
         public Vector3 ConvertAccelerometerData(Vector3 screenAccel)
         {
+            if (!Input.compensateSensors) return screenAccel;
+
+
             Vector3 convertedVector;
             switch (Screen.orientation)
             {
@@ -479,9 +487,11 @@ namespace NX10
                     convertedVector = new Vector3(screenAccel.y, -screenAccel.x, -screenAccel.z);
                     break;
                 case UnityEngine.ScreenOrientation.PortraitUpsideDown:
-                    convertedVector = new Vector3(-screenAccel.x, -screenAccel.y, -screenAccel.z);
+                    convertedVector = new Vector3(screenAccel.x, screenAccel.y, -screenAccel.z);
                     break;
                 case UnityEngine.ScreenOrientation.Portrait:
+                    convertedVector = new Vector3(-screenAccel.x, -screenAccel.y, -screenAccel.z);
+                    break;
                 default:
                     convertedVector = screenAccel;
                     break;

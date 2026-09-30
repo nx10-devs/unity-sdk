@@ -53,6 +53,8 @@ namespace NX10
 
         public Vector3 ConvertGyroData(Vector3 screenGyro)
         {
+            if (!Input.compensateSensors) return screenGyro;
+
             Vector3 convertedVector;
             switch (Screen.orientation)
             {
