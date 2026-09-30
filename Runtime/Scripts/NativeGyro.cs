@@ -1,7 +1,10 @@
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
+
+#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+#endif
 
 namespace NX10
 {
@@ -38,11 +41,13 @@ namespace NX10
                 Vector3 rotation = new Vector3(nativeVec.x, nativeVec.y, nativeVec.z);
                 rotation = rotation.RoundToFivePlaces();
                 return rotation;
-#else
+#elif ENABLE_INPUT_SYSTEM
                 Vector3 rotation = UnityEngine.InputSystem.Gyroscope.current.angularVelocity.ReadValue();
                 rotation = ConvertGyroData(rotation);
                 return rotation;
 #endif
+
+                return Vector3.zero;
             }
         }
 

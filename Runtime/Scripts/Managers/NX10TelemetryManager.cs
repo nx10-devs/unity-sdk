@@ -413,6 +413,7 @@ namespace NX10
 #endif
         }
 
+#if ENABLE_INPUT_SYSTEM
         private string ConvertTouchPhaseToTouchType(UnityEngine.InputSystem.TouchPhase touchPhase)
         {
             switch (touchPhase)
@@ -431,6 +432,7 @@ namespace NX10
 
             throw new NotImplementedException();
         }
+#endif
 
         private string ConvertTouchPhaseToTouchType(UnityEngine.TouchPhase touchPhase)
         {
