@@ -34,6 +34,7 @@ namespace NX10
 #if UNITY_IOS
                 accel *= -metresPerSecondSquaredConverstion;
 #endif
+//Strange twist here, Android seemingly gives us the value in m/s2 which is odd as all other values given in gs
                 accel = accel.RoundToFivePlaces();
                 return accel;
 #elif ENABLE_LEGACY_INPUT_MANAGER
