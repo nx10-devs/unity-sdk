@@ -31,6 +31,9 @@ namespace NX10
 
 #if ENABLE_INPUT_SYSTEM
                 Vector3 accel = Accelerometer.current.acceleration.ReadUnprocessedValue();
+#if UNITY_IOS
+                accel *= -metresPerSecondSquaredConverstion;
+#endif
                 accel = accel.RoundToFivePlaces();
                 return accel;
 #elif ENABLE_LEGACY_INPUT_MANAGER
@@ -45,7 +48,6 @@ namespace NX10
         public Vector3 ConvertAccelerometerData(Vector3 screenAccel)
         {
             if (!Input.compensateSensors) return screenAccel;
-
 
             Vector3 convertedVector;
             switch (Screen.orientation)
