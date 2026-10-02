@@ -48,9 +48,16 @@ namespace NX10
 
         public Vector3 ConvertAccelerometerData(Vector3 screenAccel)
         {
-            if (!Input.compensateSensors) return screenAccel;
-
             Vector3 convertedVector;
+
+            if (!Input.compensateSensors)
+            {
+                convertedVector = screenAccel * -metresPerSecondSquaredConverstion;
+                convertedVector = convertedVector.RoundToFivePlaces();
+
+                return convertedVector;
+            }
+
             switch (Screen.orientation)
             {
                 case (UnityEngine.ScreenOrientation.LandscapeLeft):
