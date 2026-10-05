@@ -1,0 +1,176 @@
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+
+namespace NX10
+{
+    [Serializable]
+    public class NX10SessionStartPayload
+    {
+        public string apiKey;
+        public UserIdentifiers identifiers;
+        public SDKData sdkProvided;
+        public AppProvidedData appProvided;
+    }
+
+    [Serializable]
+    public class SessionConfig
+    {
+        public UserIdentifiers Identifiers;
+        public AppProvidedData AppProvidedData;
+    }
+
+    [Serializable]
+    public class UserIdentifiers
+    {
+        public string deviceId;
+        public string email;
+        public string phoneNumber;
+    }
+
+    [Serializable]
+    public class SDKData
+    {
+        public DeviceInfo device;
+        public string sdkVersion;
+        public string sdkType;
+    }
+
+    [Serializable]
+    public class DeviceInfo
+    {
+        public string type;
+        public string os;
+        public string osVersion;
+        public string deviceVersion;
+        public string deviceVariant;
+        public string timezone;
+        public string locale;
+    }
+
+    [Serializable]
+    public class AppProvidedData
+    {
+        public Dictionary<string, object> metaData;
+        public string applicationVersion;
+        public string buildNumber;
+    }
+
+    [System.Serializable]
+    public class NX10TelemetryPayload
+    {
+        public string bts;
+        public double ets;
+        public object[][] d;
+    }
+
+    [System.Serializable]
+    public class NX10SAAQPayload
+    {
+        public string deviceSendTimestamp;
+        public string promptDisplayTimestamp;
+        public string promptAnswerTimestamp;
+        public string feeling;
+        public string saaqType;
+        public string feelingContext;
+        public string feelingFor;
+        public Dictionary<string, object> metaData = new Dictionary<string, object>();
+    }
+
+    [Serializable]
+    public class NX10SAAQTriggeredPayload
+    {
+        public string triggerID;
+        public SAAQAnswer answer;
+        public string deviceSendTimestamp;
+        public string promptDisplayTimestamp;
+        public string promptClosedTimestamp;
+        public Dictionary<string, object> metaData = new Dictionary<string, object>();
+    }
+
+    [Serializable]
+    public class SAAQAnswer
+    {
+        public string type; // "answered" or "dismissed"
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public SAAQAnswerData data;
+
+        public SAAQAnswer()
+        {
+            data = new SAAQAnswerData();
+        }
+    }
+
+    [Serializable]
+    public class SAAQAnswerData
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? selectedValue;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<SelectedFeeling> selectedValues;
+    }
+
+    [Serializable]
+    public class SelectedFeeling
+    {
+        public string feelingType;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public FollowonAnswer followonAnswer;
+    }
+
+    [Serializable]
+    public class FollowonAnswer
+    {
+        public int selectedValue;
+    }
+
+    [Serializable]
+    public class NX10AnalyticsPayload
+    {
+        public string eventName;
+        public string sourceName;
+        public string clientTimestamp;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, object> eventData;
+    }
+
+    [Serializable]
+    public class NX10AttributesPayload
+    {
+        public string timestamp;
+        public Dictionary<string, object> data;
+    }
+
+    [Serializable]
+    public class NX10EventsPayload
+    {
+        public string timestamp;
+        public string eventName;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, object> data;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string outcome;
+    }
+
+    [Serializable]
+    public class NX10ActivityPayload
+    {
+        public float stationaryMaxThreshold;
+        public float movingMinThreshold;
+    }
+
+    [Serializable]
+    public class NX10DataPayload
+    {
+        public string datetimeRequested;
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string callbackUrl;
+        public bool dryRun;
+    }
+}
