@@ -40,9 +40,10 @@ namespace NX10
 #elif ENABLE_LEGACY_INPUT_MANAGER
                 Vector3 accel = ConvertAccelerometerData(Input.acceleration);
                 return accel;
-#endif
+#else
 
                 return Vector3.zero;
+#endif
             }
         }
 

@@ -76,12 +76,8 @@ namespace NX10
 
             EnhancedTouchSupport.Enable();
 
-           
+#elif ENABLE_LEGACY_INPUT_MANAGER
 
-            return;
-#endif
-
-#if ENABLE_LEGACY_INPUT_MANAGER
             if (SystemInfo.supportsGyroscope)
                 Input.gyro.enabled = true;
 

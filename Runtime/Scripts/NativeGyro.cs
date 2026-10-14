@@ -64,9 +64,10 @@ namespace NX10
                 rotation = ConvertGyroData(rotation);
                 rotation = rotation.RoundToFivePlaces();
                 return rotation;
-#endif
+#else
 
                 return Vector3.zero;
+#endif
             }
         }
 
