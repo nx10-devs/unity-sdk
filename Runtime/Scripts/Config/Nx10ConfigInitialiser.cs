@@ -25,7 +25,7 @@ namespace NX10
                 AssetDatabase.CreateFolder(CONFIG_FOLDER_PARENT, "Resources");
             }
 
-            MigratePackageAssets();
+            //MigratePackageAssets();
 
             var existingConfig = AssetDatabase.LoadAssetAtPath<NX10Config>(CONFIG_PATH);
             if (existingConfig != null)
