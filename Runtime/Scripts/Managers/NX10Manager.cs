@@ -172,10 +172,10 @@ namespace NX10
 
                 SendUnsentAnalytics();
 
-                if (session.saaqPollingPeriod.HasValue)
+                /*if (session.saaqPollingPeriod.HasValue)
                 {
                     promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
-                }
+                }*/
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
@@ -219,10 +219,10 @@ namespace NX10
 
                 SendUnsentAnalytics();
 
-                if(session.saaqPollingPeriod.HasValue)
+                /*if(session.saaqPollingPeriod.HasValue)
                 {
                     promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
-                }
+                }*/
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
