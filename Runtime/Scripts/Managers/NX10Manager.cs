@@ -228,6 +228,11 @@ namespace NX10
             });
         }
 
+        public void ShouldShowAd(Action<bool> shouldShowAd)
+        {
+            networkingManager.AdRequested(shouldShowAd);
+        }
+
         public void StopSession()
         {
             SessionExpired = true;
