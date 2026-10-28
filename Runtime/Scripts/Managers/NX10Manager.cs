@@ -228,7 +228,7 @@ namespace NX10
             });
         }
 
-        public void ShouldShowAd(Action<bool> shouldShowAd)
+        public void ShouldShowAd(Action<bool, float> shouldShowAd)
         {
             networkingManager.AdRequested(shouldShowAd);
         }
