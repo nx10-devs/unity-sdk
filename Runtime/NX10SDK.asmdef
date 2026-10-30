@@ -4,7 +4,9 @@
     "references": [
         "Unity.TextMeshPro",
         "Unity.Newtonsoft.Json",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.InferenceEngine",
+        ""
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
