@@ -37,6 +37,7 @@ namespace NX10
         private NX10TelemetryManager telemetryManager;
         private NX10AnalyticsManager analyticsManager;
         private NX10AttributesManager attributesManager;
+        private NX10InferenceManager inferenceManager;
         //private NX10DebugManager debugManager;
 
         private Queue<NX10AnalyticsManager.NX10AnalyticsEvent> unSentEvents = new Queue<NX10AnalyticsManager.NX10AnalyticsEvent>();
@@ -62,6 +63,7 @@ namespace NX10
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
             analyticsManager = GetComponentInChildren<NX10AnalyticsManager>();
             attributesManager = GetComponentInChildren<NX10AttributesManager>();
+            inferenceManager = GetComponentInChildren<NX10InferenceManager>();
             //debugManager = GetComponentInChildren<NX10DebugManager>();
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
@@ -69,36 +71,7 @@ namespace NX10
             networkingManager.OnCooldownRequested += CooldownRequested;
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
             attributesManager.sendAttributesRequest += SendAttributeRequest;
-
-
-            //debugManager.Initialise(telemetryManager);
         }
-
-       /* private void OnGUI()
-        {
-            GUILayout.BeginArea(new Rect(10, 10, 200, 150));
-            GUILayout.Label("<b>Cooldown Tester</b>");
-
-            if (GUILayout.Button("Send Nudge"))
-            {
-                OnCooldownRequested?.Invoke(new CooldownData
-                {
-                    kind = CooldownType.Nudge,
-                });
-            }
-
-            if (GUILayout.Button("Send Cooldown"))
-            {
-                OnCooldownRequested?.Invoke(new CooldownData
-                {
-                    kind = CooldownType.Cooldown,
-                    durationSeconds = 100.0 
-                });
-            }
-
-            GUILayout.EndArea();
-        }*/
-
         public string GetCurrentTimestamp()
         {
             return DateTime.UtcNow
@@ -170,12 +143,9 @@ namespace NX10
                     session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
                     session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
 
-                SendUnsentAnalytics();
+                _= inferenceManager.InitializeModelAsync(session.GetAdPropensityUrl("adPropensity-randomClassifier", "1"));
 
-                /*if (session.saaqPollingPeriod.HasValue)
-                {
-                    promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
-                }*/
+                SendUnsentAnalytics();
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
@@ -219,18 +189,21 @@ namespace NX10
 
                 SendUnsentAnalytics();
 
-                /*if(session.saaqPollingPeriod.HasValue)
-                {
-                    promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
-                }*/
-
                 startSuccess?.Invoke(sessionStartSuccess);
             });
         }
 
-        public void ShouldShowAd(Action<bool, float> shouldShowAd)
+        public void ShouldShowAd(Action<bool, float[]> shouldShowAd)
         {
-            networkingManager.AdRequested(shouldShowAd);
+            inferenceManager.RunInference((result =>
+            {
+                foreach (var item in result)
+                {
+                    Debug.Log(item);
+                }
+
+                shouldShowAd?.Invoke(true, result); 
+            }));
         }
 
         public void StopSession()
