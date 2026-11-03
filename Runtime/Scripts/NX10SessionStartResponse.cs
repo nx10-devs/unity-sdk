@@ -15,6 +15,7 @@ namespace NX10
         public string token;
         public DeviceConfig deviceConfig;
         public List<EndpointInfo> endpoints;
+        public InferenceModels models;
     }
 
     [Serializable]
@@ -62,5 +63,20 @@ namespace NX10
     public class ActivtyThresholds
     {
         public Dictionary<string, float> thresholds;
+    }
+
+    [Serializable]
+    public class InferenceModels
+    {
+        public ModelDefinition[] adPropensity;
+    }
+
+    [Serializable]
+    public class ModelDefinition
+    {
+        public string name;
+        public string version;
+        public string downloadUrl;
+        public string[] arguments;
     }
 }
