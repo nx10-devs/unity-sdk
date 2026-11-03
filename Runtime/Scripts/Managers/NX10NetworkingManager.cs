@@ -501,7 +501,7 @@ namespace NX10
                 eventsPayload.data = eventData;
             }
 
-            if(outcome != null)
+            if (outcome != null)
             {
                 eventsPayload.outcome = outcome;
             }
@@ -522,29 +522,6 @@ namespace NX10
                 {
 
                 }
-            }, headers));
-        }
-
-        public void AdRequested(Action<bool, float> shouldShow)
-        {
-            string url = currentSession.GetEndpoint("ad_request", "v1");
-            List<HeaderObject> headers = new List<HeaderObject>()
-            {
-                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
-            };
-
-            StartCoroutine(NX10GetRequest(url, (success, message) =>
-            {
-                if(success)
-                {
-                    NX10AdRequestResponse.RootAdRequestResponse response = JsonConvert.DeserializeObject<NX10AdRequestResponse.RootAdRequestResponse>(message);
-                    shouldShow.Invoke(response.data.shouldShowAd, response.data.confidence);
-                }
-                else
-                {
-                    shouldShow.Invoke(true, 0.0f);
-                }
-
             }, headers));
         }
 
