@@ -68,7 +68,7 @@ namespace NX10
     [Serializable]
     public class InferenceModels
     {
-        public ModelDefinition[] adPropensity;
+        public List<ModelDefinition> adPropensity;
     }
 
     [Serializable]
@@ -77,6 +77,6 @@ namespace NX10
         public string name;
         public string version;
         public string downloadUrl;
-        public string[] arguments;
+        public List<string> arguments;
     }
 }

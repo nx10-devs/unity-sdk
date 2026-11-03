@@ -10,6 +10,7 @@ namespace NX10
         public IReadOnlyList<EndpointInfo> Endpoints => _endpoints;
 
         private List<EndpointInfo> _endpoints = new List<EndpointInfo>();
+        private List<ModelDefinition> _ad_propensity_models = new List<ModelDefinition>();
 
         public int? gyroFrequencyHz { get; private set; }
         public int? accelFrequencyHz { get; private set; }
@@ -34,6 +35,7 @@ namespace NX10
             Token = data.token;
 
             _endpoints = data.endpoints ?? new List<EndpointInfo>();
+            _ad_propensity_models =  data.models.adPropensity ?? new List<ModelDefinition>();
 
             if(data.deviceConfig.sensor != null)
             {
@@ -76,6 +78,11 @@ namespace NX10
         public string GetEndpoint(string type, string version)
         {
             return _endpoints.FindAll(e => e.type == type)?.FirstOrDefault(e => e.version == version)?.location;
+        }
+
+        public string GetAdPropensityUrl(string name, string version)
+        {
+            return _ad_propensity_models.FindAll(e => e.name == name)?.FirstOrDefault(e => e.version == version)?.downloadUrl;
         }
 
         public void Clear()
