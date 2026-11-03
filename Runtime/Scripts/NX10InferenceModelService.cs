@@ -1,10 +1,12 @@
 using System;
+using System.Collections;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Networking;
-using Unity.InferenceEngine;
 
 namespace NX10
 {
@@ -39,10 +41,6 @@ namespace NX10
         /// Downloads the model from a remote URL to persistent storage (if not already cached)
         /// and initializes the inference worker.
         /// </summary>
-        /// <param name="url">The direct URL to the .onnx or .sentis model.</param>
-        /// <param name="fileName">Optional local filename. If null, extracted from the URL or generated.</param>
-        /// <param name="forceRedownload">If true, overwrites any existing cached file.</param>
-        /// <param name="ct">Cancellation token to cancel downloads cleanly.</param>
         public async Task<bool> LoadFromUrlAsync(
             string url,
             string fileName = null,
@@ -85,9 +83,7 @@ namespace NX10
             }
         }
 
-        /// <summary>
-        /// Synchronously loads a model already present on disk.
-        /// </summary>
+        
         public void LoadFromFile(string filePath)
         {
             if (!File.Exists(filePath))
@@ -100,24 +96,37 @@ namespace NX10
             _worker = new Worker(_runtimeModel, _backendType);
         }
 
-        /// <summary>
-        /// Executes inference on the provided raw input and shape.
-        /// </summary>
-        public float[] Predict(float[] rawInput, TensorShape shape, string outputName = null)
+        public IEnumerator Predict(
+            Action<float[]> onComplete,
+            float maxMsPerFrame = 2.0f,
+            Tensor inputTensor = null,
+            string outputName = null)
         {
             if (_worker == null)
-            {
-                throw new InvalidOperationException("Worker is not initialized. Call LoadFromUrlAsync or LoadFromFile first.");
-            }
+                throw new InvalidOperationException("Worker is not initialized.");
 
-            using var inputTensor = new Tensor<float>(shape, rawInput);
-            _worker.Schedule(inputTensor);
+            IEnumerator executor = inputTensor != null
+                ? _worker.ScheduleIterable(inputTensor)
+                : _worker.ScheduleIterable();
+
+            var stopwatch = new Stopwatch();
+
+            while (executor.MoveNext())
+            {
+                stopwatch.Restart();
+
+                if (stopwatch.ElapsedMilliseconds >= maxMsPerFrame)
+                {
+                    yield return null;
+                }
+            }
 
             Tensor<float> output = string.IsNullOrEmpty(outputName)
                 ? _worker.PeekOutput() as Tensor<float>
                 : _worker.PeekOutput(outputName) as Tensor<float>;
 
-            return output?.DownloadToArray();
+            float[] results = output?.DownloadToArray();
+            onComplete?.Invoke(results);
         }
 
         private async Task DownloadModelFileAsync(string url, string destinationPath, CancellationToken ct)
@@ -162,9 +171,6 @@ namespace NX10
             return "downloaded_model.onnx";
         }
 
-        /// <summary>
-        /// Clears all cached models from disk.
-        /// </summary>
         public void ClearCache()
         {
             if (Directory.Exists(_cacheDirectory))

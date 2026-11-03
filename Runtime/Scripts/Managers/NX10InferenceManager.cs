@@ -3,15 +3,12 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 using Unity.InferenceEngine;
+using System;
 
 namespace NX10
 {
     public class NX10InferenceManager : MonoBehaviour
     {
-        [Header("Model Source Configuration")]
-        [Tooltip("Direct URL to download the .onnx or .sentis model.")]
-        [SerializeField] private string modelUrl = "https://example.com/models/classifier.onnx";
-
         [Tooltip("Optional custom file name on disk. Leave empty to infer from URL.")]
         [SerializeField] private string customFileName = "";
 
@@ -35,28 +32,19 @@ namespace NX10
 
         private CancellationTokenSource _cts;
 
+        private Coroutine _activeInferenceRoutine;
+        public bool IsInferring => _activeInferenceRoutine != null;
+
         private void Awake()
         {
             Service = new NX10InferenceModelService(backendType, cacheFolderName);
 
-            // Forward service events to UnityEvents (main-thread compatible)
             Service.OnDownloadProgress += progress => OnDownloadProgressChanged?.Invoke(progress);
             Service.OnModelLoaded += () => OnModelReady?.Invoke();
             Service.OnError += error => OnModelLoadFailed?.Invoke(error);
         }
 
-        private async void Start()
-        {
-            if (loadOnStart)
-            {
-                await InitializeModelAsync();
-            }
-        }
-
-        /// <summary>
-        /// Starts the remote load routine. Can be called manually if loadOnStart is false.
-        /// </summary>
-        public async Task<bool> InitializeModelAsync()
+        public async Task<bool> InitializeModelAsync(string modelUrl)
         {
             if (string.IsNullOrWhiteSpace(modelUrl))
             {
@@ -73,18 +61,30 @@ namespace NX10
             return await Service.LoadFromUrlAsync(modelUrl, fileName, forceRedownload, _cts.Token);
         }
 
-        /// <summary>
-        /// Predict wrapper passing directly through to the service.
-        /// </summary>
-        public float[] RunInference(float[] inputData, TensorShape shape, string outputNode = null)
+        public void RunInference(Action<float[]> onResult, float maxMsPerFrame = 2.5f)
         {
             if (!IsReady)
             {
-                Debug.LogWarning("[NX10] Cannot execute inference: Model is not ready yet.", this);
-                return null;
+                Debug.LogWarning("[NX10] Cannot start inference: Model is not ready.", this);
+                return;
             }
 
-            return Service.Predict(inputData, shape, outputNode);
+            if (IsInferring)
+            {
+                Debug.LogWarning("[NX10] Previous multi-frame inference is still running. Ignoring request.", this);
+                return;
+            }
+
+            _activeInferenceRoutine = StartCoroutine(
+                Service.Predict(
+                    results =>
+                    {
+                        _activeInferenceRoutine = null;
+                        onResult?.Invoke(results);
+                    },
+                    maxMsPerFrame
+                )
+            );
         }
 
         /// <summary>
