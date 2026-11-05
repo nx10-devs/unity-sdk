@@ -8,6 +8,8 @@ namespace NX10
 {
     public class NX10TelemetryInferenceWindow : IDisposable
     {
+        public const float windowDurationMs = 10000f;
+
         public DateTime startTimestamp;
         public string startTimestampISO => startTimestamp
                     .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
@@ -20,6 +22,41 @@ namespace NX10
         public TimeSpan Offset()
         {
             return DateTime.UtcNow - startTimestamp;
+        }
+
+        public void PruneOldEvents()
+        {
+            float currentOffsetMs = (float)Offset().TotalMilliseconds;
+            float cutoffMs = currentOffsetMs - windowDurationMs;
+
+            if (cutoffMs <= 0f) return;
+
+            PruneBuffer(accelEvents, 4, cutoffMs);
+            PruneBuffer(gyroEvents, 4, cutoffMs);
+            PruneBuffer(magEvents, 4, cutoffMs);
+
+            PruneBuffer(touchEvents, 6, cutoffMs);
+        }
+
+        private void PruneBuffer(List<float> buffer, int stride, float cutoffMs)
+        {
+            int removeCount = 0;
+            for (int i = 0; i < buffer.Count; i += stride)
+            {
+                if (buffer[i] < cutoffMs)
+                {
+                    removeCount += stride;
+                }
+                else
+                {
+                    break; 
+                }
+            }
+
+            if (removeCount > 0)
+            {
+                buffer.RemoveRange(0, removeCount);
+            }
         }
 
         public void Dispose()

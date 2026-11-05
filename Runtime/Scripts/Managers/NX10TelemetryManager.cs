@@ -112,6 +112,11 @@ namespace NX10
                 CheckAndCollectBrightnessData();
                 CheckAndCollectOrientationData();
             }
+
+            if(canCollectTelemetryData && currentInferenceWindow != null)
+            {
+                currentInferenceWindow?.PruneOldEvents();
+            }
         }
 
         public void SetTelemetryVariables(int? gyroHz, int? accelerometerHz, int? touchHz, int? magnetometerHz, float? screenBrightnessDelta, int? acquisitionWindowSize, bool? compressTelemetry, float dpi)
@@ -230,9 +235,22 @@ namespace NX10
             canCollectTelemetryData = canCollect;
 
             if (canCollect)
+            {
+                StartTelemetryInferenceWindow();
                 StartTelemetryCollectionWindow();
+            }
             else
+            {
                 EndTelemetryCollectionWindow();
+            }
+        }
+
+        private void StartTelemetryInferenceWindow()
+        {
+            currentInferenceWindow = new NX10TelemetryInferenceWindow()
+            {
+                startTimestamp = DateTime.Now,
+            };
         }
 
         private void StartTelemetryCollectionWindow()
