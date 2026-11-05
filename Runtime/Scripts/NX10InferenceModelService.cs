@@ -62,6 +62,8 @@ namespace NX10
 
             try
             {
+                CleanupCacheExcept(fileName);
+
                 if (forceRedownload || !File.Exists(targetPath))
                 {
                     await DownloadModelFileAsync(url, targetPath, ct);
@@ -83,7 +85,41 @@ namespace NX10
             }
         }
 
-        
+        private void CleanupCacheExcept(string keepFileName)
+        {
+            if (!Directory.Exists(_cacheDirectory)) return;
+
+            var dirInfo = new DirectoryInfo(_cacheDirectory);
+
+            foreach (FileInfo file in dirInfo.GetFiles())
+            {
+                if (!string.Equals(file.Name, keepFileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        file.Delete();
+                    }
+                    catch (Exception ex)
+                    {
+                        UnityEngine.Debug.LogWarning($"[NX10] Could not delete old cache file {file.Name}: {ex.Message}");
+                    }
+                }
+            }
+
+            foreach (DirectoryInfo subDir in dirInfo.GetDirectories())
+            {
+                try
+                {
+                    subDir.Delete(true);
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogWarning($"[NX10] Could not delete directory {subDir.Name}: {ex.Message}");
+                }
+            }
+        }
+
+
         public void LoadFromFile(string filePath)
         {
             if (!File.Exists(filePath))
