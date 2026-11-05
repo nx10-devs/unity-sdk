@@ -6,6 +6,7 @@ using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.UI;
 using Gyroscope = UnityEngine.InputSystem.Gyroscope;
 #endif
 
@@ -21,7 +22,8 @@ namespace NX10
 
         private bool canCollectTelemetryData;
         private bool isRunning;
-        private NX10TelemetryWindow currentCollectionWindow;
+        private NX10TelemetryCollectionWindow currentCollectionWindow;
+        private NX10TelemetryInferenceWindow currentInferenceWindow;
         private float timer = 0.0f;
 
         public Action<string, double, List<IInputEvent>> sendTelemetryDataRequest;
@@ -47,7 +49,8 @@ namespace NX10
 
         //these are used by debugmanager
         public bool CanCollectTelemetryData => canCollectTelemetryData;
-        public NX10TelemetryWindow CurrentCollectionWindow => currentCollectionWindow;
+        public NX10TelemetryCollectionWindow CurrentCollectionWindow => currentCollectionWindow;
+        public NX10TelemetryInferenceWindow CurrentInferenceWindow => currentInferenceWindow;
         public float Timer => timer;
         public int? TouchHz => touchHZ;
         public int? AcquisitionWindowSize => acquisitionWindowSize;
@@ -237,7 +240,7 @@ namespace NX10
             if (currentCollectionWindow != null)
                 EndTelemetryCollectionWindow();
 
-            currentCollectionWindow = new NX10TelemetryWindow()
+            currentCollectionWindow = new NX10TelemetryCollectionWindow()
             {
                 startTimestamp = DateTime.UtcNow,
                 inputEvents = new List<IInputEvent>()
@@ -280,39 +283,57 @@ namespace NX10
 
         private void CollectGyroData()
         {
-            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(nativeGyro.GyroSupported)
+            double offsetCollection = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            if (nativeGyro.GyroSupported)
             {
+                Vector3 rotationRate = nativeGyro.GyroRotationRate;
                 currentCollectionWindow.inputEvents.Add(new GyroEvent
                 {
-                    timestampOffsetMs = offset,
-                    x = nativeGyro.GyroRotationRate.x,
-                    y = nativeGyro.GyroRotationRate.y,
-                    z = nativeGyro.GyroRotationRate.z,
+                    timestampOffsetMs = offsetCollection,
+                    x = rotationRate.x,
+                    y = rotationRate.y,
+                    z = rotationRate.z,
                 });
+
+                currentInferenceWindow.gyroEvents.Add(offsetInference);
+                currentInferenceWindow.gyroEvents.Add(rotationRate.x);
+                currentInferenceWindow.gyroEvents.Add(rotationRate.y);
+                currentInferenceWindow.gyroEvents.Add(rotationRate.z);
             }
         }
 
         private void CollectAccelData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(nativeAccelerometer.AccSupported)
+            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+
+            if (nativeAccelerometer.AccSupported)
             {
+                Vector3 acceleration = nativeAccelerometer.AccAcceleration;
                 currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
                 {
                     timestampOffsetMs = offset,
-                    x = nativeAccelerometer.AccAcceleration.x,
-                    y = nativeAccelerometer.AccAcceleration.y,
-                    z = nativeAccelerometer.AccAcceleration.z
+                    x = acceleration.x,
+                    y = acceleration.y,
+                    z = acceleration.z
                 });
+
+                currentInferenceWindow.accelEvents.Add(offsetInference);
+                currentInferenceWindow.accelEvents.Add(acceleration.x);
+                currentInferenceWindow.accelEvents.Add(acceleration.y);
+                currentInferenceWindow.accelEvents.Add(acceleration.z);
             }
         }
 
         private void CollectMagData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(nativeMagnetometer.MagSupported)
+            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+
+            if (nativeMagnetometer.MagSupported)
             {
+                Vector3 rawMag = nativeMagnetometer.RawMag;
                 currentCollectionWindow.inputEvents.Add(new MagnetometerEvent
                 {
                     timestampOffsetMs = offset,
@@ -320,13 +341,20 @@ namespace NX10
                     y = nativeMagnetometer.RawMag.y,
                     z = nativeMagnetometer.RawMag.z,
                 });
+
+                currentInferenceWindow.magEvents.Add(offsetInference);
+                currentInferenceWindow.magEvents.Add(rawMag.x);
+                currentInferenceWindow.magEvents.Add(rawMag.y);
+                currentInferenceWindow.magEvents.Add(rawMag.z);
             }
         }
 
         private void CollectTouchDataV2()
         {
-            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero); 
-            foreach(NativeTouch.TouchObject touchObject in nativeTouch.Touches)
+            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+
+            foreach (NativeTouch.TouchObject touchObject in nativeTouch.Touches)
             {
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
@@ -338,6 +366,13 @@ namespace NX10
                     yMm = touchObject.y,
                     touchRadiusMm = touchObject.touchRadius
                 });
+
+                currentInferenceWindow.touchEvents.Add(offsetInference);
+                currentInferenceWindow.touchEvents.Add(nativeTouch.Touches.IndexOf(touchObject));
+                currentInferenceWindow.touchEvents.Add(touchObject.touchTypeFloat);
+                currentInferenceWindow.touchEvents.Add((float)touchObject.x);
+                currentInferenceWindow.touchEvents.Add((float)touchObject.y);
+                currentInferenceWindow.touchEvents.Add((float)touchObject.touchRadius);
             }
         }
     }
