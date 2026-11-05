@@ -1,9 +1,10 @@
+using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Events;
-using Unity.InferenceEngine;
-using System;
 
 namespace NX10
 {
@@ -14,9 +15,6 @@ namespace NX10
 
         [Tooltip("If true, bypasses any locally cached version and downloads a fresh copy.")]
         [SerializeField] private bool forceRedownload = false;
-
-        [Tooltip("Automatically begins download/load routine on Start().")]
-        [SerializeField] private bool loadOnStart = true;
 
         [Header("Backend Configuration")]
         [SerializeField] private BackendType backendType = BackendType.GPUCompute;
