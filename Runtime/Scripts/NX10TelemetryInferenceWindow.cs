@@ -11,6 +11,11 @@ namespace NX10
         public const float windowDurationMs = 10000f;
 
         public DateTime startTimestamp;
+        public DateTime previousAccTimestamp;
+        public DateTime previousGyroTimestamp;
+        public DateTime previousMagTimestamp;
+        public DateTime previousTouchTimestamp;
+
         public string startTimestampISO => startTimestamp
                     .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
 
@@ -22,6 +27,25 @@ namespace NX10
         public TimeSpan Offset()
         {
             return DateTime.UtcNow - startTimestamp;
+        }
+
+        public TimeSpan AccDelta()
+        {
+            return DateTime.UtcNow - previousAccTimestamp;
+        }
+
+        public TimeSpan GyroDelta()
+        {
+            return DateTime.UtcNow - previousGyroTimestamp;
+        }
+
+        public TimeSpan MagDelta()
+        {
+            return DateTime.UtcNow - previousMagTimestamp;
+        }
+        public TimeSpan TouchDelta()
+        {
+            return DateTime.UtcNow - previousTouchTimestamp;
         }
 
         public void PruneOldEvents()

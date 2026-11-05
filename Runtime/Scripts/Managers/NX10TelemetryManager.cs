@@ -250,6 +250,10 @@ namespace NX10
             currentInferenceWindow = new NX10TelemetryInferenceWindow()
             {
                 startTimestamp = DateTime.Now,
+                previousAccTimestamp = DateTime.Now,
+                previousGyroTimestamp = DateTime.Now,
+                previousMagTimestamp = DateTime.Now,
+                previousTouchTimestamp = DateTime.Now,
             };
         }
 
@@ -302,7 +306,9 @@ namespace NX10
         private void CollectGyroData()
         {
             double offsetCollection = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            float offsetInference = (float)Math.Round(currentInferenceWindow.GyroDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            currentInferenceWindow.previousGyroTimestamp = DateTime.Now;
+
             if (nativeGyro.GyroSupported)
             {
                 Vector3 rotationRate = nativeGyro.GyroRotationRate;
@@ -324,7 +330,8 @@ namespace NX10
         private void CollectAccelData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            float offsetInference = (float)Math.Round(currentInferenceWindow.AccDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            currentInferenceWindow.previousAccTimestamp = DateTime.Now;
 
             if (nativeAccelerometer.AccSupported)
             {
@@ -347,7 +354,8 @@ namespace NX10
         private void CollectMagData()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            float offsetInference = (float)Math.Round(currentInferenceWindow.MagDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            currentInferenceWindow.previousMagTimestamp = DateTime.Now;
 
             if (nativeMagnetometer.MagSupported)
             {
@@ -370,7 +378,8 @@ namespace NX10
         private void CollectTouchDataV2()
         {
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            float offsetInference = (float)Math.Round(currentInferenceWindow.TouchDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            currentInferenceWindow.previousTouchTimestamp = DateTime.Now;
 
             foreach (NativeTouch.TouchObject touchObject in nativeTouch.Touches)
             {
