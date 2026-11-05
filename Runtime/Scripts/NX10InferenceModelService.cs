@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -135,14 +136,14 @@ namespace NX10
         public IEnumerator Predict(
             Action<float[]> onComplete,
             float maxMsPerFrame = 2.0f,
-            Tensor inputTensor = null,
+            List<Tensor> inputTensors = null,
             string outputName = null)
         {
             if (_worker == null)
                 throw new InvalidOperationException("Worker is not initialized.");
 
-            IEnumerator executor = inputTensor != null
-                ? _worker.ScheduleIterable(inputTensor)
+            IEnumerator executor = inputTensors != null
+                ? _worker.ScheduleIterable((inputTensors.ToArray()))
                 : _worker.ScheduleIterable();
 
             var stopwatch = new Stopwatch();
