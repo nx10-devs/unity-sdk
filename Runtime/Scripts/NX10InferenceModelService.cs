@@ -136,25 +136,35 @@ namespace NX10
         public IEnumerator Predict(
             Action<float[]> onComplete,
             float maxMsPerFrame = 2.0f,
-            List<Tensor> inputTensors = null,
+            Dictionary<string,Tensor> inputTensors = null,
             string outputName = null)
         {
             if (_worker == null)
                 throw new InvalidOperationException("Worker is not initialized.");
 
-            IEnumerator executor = inputTensors != null
-                ? _worker.ScheduleIterable((inputTensors.ToArray()))
-                : _worker.ScheduleIterable();
+            if (inputTensors != null)
+            {
+                foreach(string key in inputTensors.Keys)
+                {
+                    _worker.SetInput(key, inputTensors[key]);
+                }
+            }
+
+            IEnumerator executor = _worker.ScheduleIterable();
 
             var stopwatch = new Stopwatch();
 
             while (executor.MoveNext())
             {
-                stopwatch.Restart();
+                if (!stopwatch.IsRunning)
+                {
+                    stopwatch.Start();
+                }
 
                 if (stopwatch.ElapsedMilliseconds >= maxMsPerFrame)
                 {
-                    yield return null;
+                    stopwatch.Reset();
+                    yield return null; 
                 }
             }
 
@@ -162,7 +172,13 @@ namespace NX10
                 ? _worker.PeekOutput() as Tensor<float>
                 : _worker.PeekOutput(outputName) as Tensor<float>;
 
-            float[] results = output?.DownloadToArray();
+            float[] results = null;
+            if(output != null)
+            {
+                results = output.DownloadToArray();
+                output.Dispose();
+            }
+
             onComplete?.Invoke(results);
         }
 

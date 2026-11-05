@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Unity.InferenceEngine;
@@ -86,12 +87,12 @@ namespace NX10
             Tensor<float> magTensor = GetMagTensor();
             Tensor<float> touchTensor = GetTouchTensor();
 
-            List<Tensor> tensors = new List<Tensor>()
+            Dictionary<string, Tensor> tensors = new Dictionary<string, Tensor>()
             {
-                accTensor,
-                gyroTensor,
-                magTensor,
-                touchTensor,
+                { "acc_raw", accTensor },
+                { "gyro_raw", gyroTensor },
+                { "touch_raw", touchTensor },
+                { "mag_raw", magTensor }
             };
 
             _activeInferenceRoutine = StartCoroutine(
@@ -100,6 +101,11 @@ namespace NX10
                     {
                         _activeInferenceRoutine = null;
                         onResult?.Invoke(results);
+
+                        foreach (var tensor in tensors.Values)
+                        {
+                            tensor?.Dispose();
+                        }
                     },
                     maxMsPerFrame,
                     tensors
@@ -109,42 +115,92 @@ namespace NX10
 
         private Tensor<float> GetAccelTensor()
         {
-            List<float> flatAccel = inferenceWindow.accelEvents;
             float offsetInference = (float)Math.Round(inferenceWindow.AccDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            flatAccel.Add(offsetInference);
+            if(inferenceWindow.accelEvents.Count > 0)
+            {
+                List<float> flatAccel = new List<float>(inferenceWindow.accelEvents);
+                flatAccel.Add(offsetInference);
+                Tensor<float> accFloat = new Tensor<float>(new TensorShape(flatAccel.Count), flatAccel.ToArray());
 
-            Tensor<float> accFloat = new Tensor<float>(new TensorShape(flatAccel.Count), flatAccel.ToArray());
-            return accFloat;
+                return accFloat;
+            }
+            else
+            {
+                float[] flatAccel = new float[5];
+                flatAccel[4] = offsetInference;
+                Tensor<float> accFloat = new Tensor<float>(new TensorShape(flatAccel.Length), flatAccel);
+
+                return accFloat;
+            }
+
+
         }
 
         private Tensor<float> GetGyroTensor()
         {
-            List<float> flatGyro = inferenceWindow.gyroEvents;
             float offsetInference = (float)Math.Round(inferenceWindow.GyroDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            flatGyro.Add(offsetInference);
+            if(inferenceWindow.gyroEvents.Count > 0)
+            {
+                List<float> flatGyro = new List<float>(inferenceWindow.gyroEvents);
+                flatGyro.Add(offsetInference);
+                Tensor<float> gyroFloat = new Tensor<float>(new TensorShape(flatGyro.Count), flatGyro.ToArray());
+                return gyroFloat;
 
-            Tensor<float> gyroFloat = new Tensor<float>(new TensorShape(flatGyro.Count), flatGyro.ToArray());
-            return gyroFloat;
+            }
+            else
+            {
+                float[] flatGyro = new float[5];
+                flatGyro[4] = offsetInference;
+                Tensor<float> gyroFloat = new Tensor<float>(new TensorShape(flatGyro.Length), flatGyro);
+
+                return gyroFloat;
+            }
+            
         }
 
         private Tensor<float> GetMagTensor()
         {
-            List<float> flatMag = inferenceWindow.magEvents;
             float offsetInference = (float)Math.Round(inferenceWindow.MagDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            flatMag.Add(offsetInference);
+            if(inferenceWindow.magEvents.Count > 0)
+            {
+                List<float> flatMag = new List<float>(inferenceWindow.magEvents);
+                flatMag.Add(offsetInference);
+                Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatMag.Count), flatMag.ToArray());
 
-            Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatMag.Count), flatMag.ToArray());
-            return magFloat;
+                return magFloat;
+            }
+            else
+            {
+                float[] flatMag = new float[5];
+                flatMag[4] = offsetInference;
+                Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatMag.Length), flatMag);
+
+                return magFloat;
+            }
+        
         }
 
         private Tensor<float> GetTouchTensor()
         {
-            List<float> flatTouch = inferenceWindow.touchEvents;
             float offsetInference = (float)Math.Round(inferenceWindow.TouchDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            flatTouch.Add(offsetInference);
 
-            Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatTouch.Count), flatTouch.ToArray());
-            return magFloat;
+            if(inferenceWindow.touchEvents.Count > 0)
+            {
+                List<float> flatTouch = new List<float>(inferenceWindow.touchEvents);
+                flatTouch.Add(offsetInference);
+                Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatTouch.Count), flatTouch.ToArray());
+
+                return magFloat;
+            }
+            else
+            {
+                float[] flatTouch = new float[7];
+                flatTouch[6] = offsetInference;
+                Tensor<float> touchFloat = new Tensor<float>(new TensorShape(flatTouch.Length), flatTouch);
+
+                return touchFloat;
+            }
+            
         }
 
         /// <summary>
