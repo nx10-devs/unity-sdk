@@ -33,6 +33,9 @@ namespace NX10
         private Coroutine _activeInferenceRoutine;
         public bool IsInferring => _activeInferenceRoutine != null;
 
+        private NX10TelemetryManager _telemetryManager;
+        private NX10TelemetryInferenceWindow inferenceWindow => _telemetryManager.CurrentInferenceWindow;
+
         private void Awake()
         {
             Service = new NX10InferenceModelService(backendType, cacheFolderName);
@@ -73,6 +76,19 @@ namespace NX10
                 return;
             }
 
+            Tensor<float> accTensor = GetAccelTensor();
+            Tensor<float> gyroTensor = GetGyroTensor();
+            Tensor<float> magTensor = GetMagTensor();
+            Tensor<float> touchTensor = GetTouchTensor();
+
+            List<Tensor> tensors = new List<Tensor>()
+            {
+                accTensor,
+                gyroTensor,
+                magTensor,
+                touchTensor,
+            };
+
             _activeInferenceRoutine = StartCoroutine(
                 Service.Predict(
                     results =>
@@ -80,9 +96,50 @@ namespace NX10
                         _activeInferenceRoutine = null;
                         onResult?.Invoke(results);
                     },
-                    maxMsPerFrame
+                    maxMsPerFrame,
+                    tensors
                 )
             );
+        }
+
+        private Tensor<float> GetAccelTensor()
+        {
+            List<float> flatAccel = inferenceWindow.accelEvents;
+            float offsetInference = (float)Math.Round(inferenceWindow.AccDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            flatAccel.Add(offsetInference);
+
+            Tensor<float> accFloat = new Tensor<float>(new TensorShape(flatAccel.Count), flatAccel.ToArray());
+            return accFloat;
+        }
+
+        private Tensor<float> GetGyroTensor()
+        {
+            List<float> flatGyro = inferenceWindow.gyroEvents;
+            float offsetInference = (float)Math.Round(inferenceWindow.GyroDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            flatGyro.Add(offsetInference);
+
+            Tensor<float> gyroFloat = new Tensor<float>(new TensorShape(flatGyro.Count), flatGyro.ToArray());
+            return gyroFloat;
+        }
+
+        private Tensor<float> GetMagTensor()
+        {
+            List<float> flatMag = inferenceWindow.magEvents;
+            float offsetInference = (float)Math.Round(inferenceWindow.MagDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            flatMag.Add(offsetInference);
+
+            Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatMag.Count), flatMag.ToArray());
+            return magFloat;
+        }
+
+        private Tensor<float> GetTouchTensor()
+        {
+            List<float> flatTouch = inferenceWindow.touchEvents;
+            float offsetInference = (float)Math.Round(inferenceWindow.TouchDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            flatTouch.Add(offsetInference);
+
+            Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatTouch.Count), flatTouch.ToArray());
+            return magFloat;
         }
 
         /// <summary>
@@ -96,12 +153,10 @@ namespace NX10
 
         private void OnDestroy()
         {
-            // Cancel any in-flight download requests
             _cts?.Cancel();
             _cts?.Dispose();
             _cts = null;
 
-            // Dispose GPU workers, native tensors, and models
             Service?.Dispose();
         }
     }
