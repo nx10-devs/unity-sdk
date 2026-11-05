@@ -45,6 +45,11 @@ namespace NX10
             Service.OnError += error => OnModelLoadFailed?.Invoke(error);
         }
 
+        public void Initialise(NX10TelemetryManager telemetryManager)
+        {
+            _telemetryManager = telemetryManager;
+        }
+
         public async Task<bool> InitializeModelAsync(string modelUrl)
         {
             if (string.IsNullOrWhiteSpace(modelUrl))

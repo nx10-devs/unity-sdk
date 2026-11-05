@@ -71,6 +71,8 @@ namespace NX10
             networkingManager.OnCooldownRequested += CooldownRequested;
             analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
             attributesManager.sendAttributesRequest += SendAttributeRequest;
+
+            inferenceManager.Initialise(telemetryManager);
         }
         public string GetCurrentTimestamp()
         {
