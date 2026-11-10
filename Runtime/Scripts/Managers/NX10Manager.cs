@@ -230,6 +230,11 @@ namespace NX10
         {
             string timeStamp = GetCurrentTimestamp();
             networkingManager.SendEvent(eventName, timeStamp, null, eventData);
+
+            if (IsSessionValid)
+            {
+                telemetryManager.RecordEvent(eventName);
+            }
         }
 
         public enum Outcome
@@ -242,16 +247,31 @@ namespace NX10
         {
             string timeStamp = GetCurrentTimestamp();
             networkingManager.SendEvent(eventName, timeStamp, outcome.ToString(), eventData);
+
+            if (IsSessionValid)
+            {
+                telemetryManager.RecordEvent(eventName);
+            }
         }
 
         public void SetAttributes(Dictionary<string, object> attributes)
         {
             attributesManager.SetAttributes(attributes);
+
+            if (IsSessionValid && attributes != null)
+            {
+                telemetryManager.RecordAttributes(attributes.Keys);
+            }
         }
 
         public void SetAttribute(string attributeKey, object attributeValue)
         {
             attributesManager.SetAttribute(attributeKey, attributeValue, true);
+
+            if (IsSessionValid)
+            {
+                telemetryManager.RecordAttribute(attributeKey);
+            }
         }
 
         public void RemoveAttribute(string attributeKey)

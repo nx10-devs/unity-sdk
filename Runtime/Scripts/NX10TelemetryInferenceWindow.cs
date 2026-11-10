@@ -24,6 +24,47 @@ namespace NX10
         public List<float> magEvents = new List<float>();
         public List<float> touchEvents = new List<float>();
 
+        public Dictionary<string, int> eventCounts = new Dictionary<string, int>();
+        public Dictionary<string, int> attributeCounts = new Dictionary<string, int>();
+
+        public void RecordEvent(string eventName)
+        {
+            if (string.IsNullOrEmpty(eventName)) return;
+
+            if (eventCounts.TryGetValue(eventName, out int count))
+            {
+                eventCounts[eventName] = count + 1;
+            }
+            else
+            {
+                eventCounts[eventName] = 1;
+            }
+        }
+
+        public void RecordAttribute(string attributeKey)
+        {
+            if (string.IsNullOrEmpty(attributeKey)) return;
+
+            if (attributeCounts.TryGetValue(attributeKey, out int count))
+            {
+                attributeCounts[attributeKey] = count + 1;
+            }
+            else
+            {
+                attributeCounts[attributeKey] = 1;
+            }
+        }
+
+        public void RecordAttributes(IEnumerable<string> attributeKeys)
+        {
+            if (attributeKeys == null) return;
+
+            foreach (string key in attributeKeys)
+            {
+                RecordAttribute(key);
+            }
+        }
+
         public TimeSpan Offset()
         {
             return DateTime.UtcNow - startTimestamp;
@@ -103,6 +144,8 @@ namespace NX10
             gyroEvents.Clear();
             magEvents.Clear();
             touchEvents.Clear();
+            eventCounts.Clear();
+            attributeCounts.Clear();
         }
     }
 

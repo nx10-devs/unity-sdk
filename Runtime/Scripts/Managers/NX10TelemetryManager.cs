@@ -242,11 +242,30 @@ namespace NX10
             else
             {
                 EndTelemetryCollectionWindow();
+                EndTelemetryInferenceWindow();
             }
+        }
+
+        public void RecordEvent(string eventName)
+        {
+            currentInferenceWindow?.RecordEvent(eventName);
+        }
+
+        public void RecordAttribute(string attributeKey)
+        {
+            currentInferenceWindow?.RecordAttribute(attributeKey);
+        }
+
+        public void RecordAttributes(IEnumerable<string> attributeKeys)
+        {
+            currentInferenceWindow?.RecordAttributes(attributeKeys);
         }
 
         private void StartTelemetryInferenceWindow()
         {
+            if (currentInferenceWindow != null)
+                EndTelemetryInferenceWindow();
+
             currentInferenceWindow = new NX10TelemetryInferenceWindow()
             {
                 startTimestamp = DateTime.Now,
@@ -255,6 +274,14 @@ namespace NX10
                 previousMagTimestamp = DateTime.Now,
                 previousTouchTimestamp = DateTime.Now,
             };
+        }
+
+        private void EndTelemetryInferenceWindow()
+        {
+            if (currentInferenceWindow == null) return;
+
+            currentInferenceWindow.Dispose();
+            currentInferenceWindow = null;
         }
 
         private void StartTelemetryCollectionWindow()
