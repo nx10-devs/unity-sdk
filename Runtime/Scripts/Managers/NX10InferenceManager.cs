@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Unity.InferenceEngine;
@@ -94,6 +96,8 @@ namespace NX10
                 { "touch_raw", touchTensor },
                 { "mag_raw", magTensor }
             };
+
+            LogInferenceInputsToFile(tensors);
 
             _activeInferenceRoutine = StartCoroutine(
                 Service.Predict(
@@ -219,6 +223,52 @@ namespace NX10
             _cts = null;
 
             Service?.Dispose();
+        }
+
+        private void LogInferenceInputsToFile(Dictionary<string, Tensor> tensors)
+        {
+            try
+            {
+                string logDirectory = Path.Combine(Application.persistentDataPath, "InferenceLogs");
+                if (!Directory.Exists(logDirectory))
+                {
+                    Directory.CreateDirectory(logDirectory);
+                }
+
+                string filePath = Path.Combine(logDirectory, $"inference_inputs_{DateTime.UtcNow:yyyy-MM-dd}.txt");
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"==================================================");
+                sb.AppendLine($"Timestamp (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}");
+                sb.AppendLine($"Frame Count: {Time.frameCount}");
+                sb.AppendLine($"--------------------------------------------------");
+
+                foreach (var kvp in tensors)
+                {
+                    string tensorName = kvp.Key;
+                    Tensor tensor = kvp.Value;
+
+                    if (tensor is Tensor<float> floatTensor)
+                    {
+                        float[] values = floatTensor.DownloadToArray();
+                        sb.AppendLine($"Input: {tensorName} | Shape: {tensor.shape} | Count: {values.Length}");
+                        sb.AppendLine($"Values: [{string.Join(", ", values)}]");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"Input: {tensorName} | Shape: {tensor?.shape.ToString() ?? "null"} (Non-float or null tensor)");
+                    }
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine(); 
+
+                File.AppendAllText(filePath, sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[NX10] Failed to write inference inputs to file: {ex.Message}");
+            }
         }
     }
 }
