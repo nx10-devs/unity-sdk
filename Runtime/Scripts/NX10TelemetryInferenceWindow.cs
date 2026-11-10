@@ -55,27 +55,36 @@ namespace NX10
 
             if (cutoffMs <= 0f) return;
 
-            PruneBuffer(accelEvents, 4, cutoffMs);
-            PruneBuffer(gyroEvents, 4, cutoffMs);
-            PruneBuffer(magEvents, 4, cutoffMs);
+            PruneDeltaBuffer(accelEvents, 4);
+            PruneDeltaBuffer(gyroEvents, 4);
+            PruneDeltaBuffer(magEvents, 4);
 
-            PruneBuffer(touchEvents, 6, cutoffMs);
+            PruneDeltaBuffer(touchEvents, 6);
         }
 
-        private void PruneBuffer(List<float> buffer, int stride, float cutoffMs)
+        private void PruneDeltaBuffer(List<float> buffer, int stride)
         {
-            int removeCount = 0;
-            for (int i = 0; i < buffer.Count; i += stride)
+            if (buffer == null || buffer.Count < stride) return;
+
+            float accumulatedTimeMs = 0f;
+            int keepCount = 0;
+
+            for (int i = buffer.Count - stride; i >= 0; i -= stride)
             {
-                if (buffer[i] < cutoffMs)
+                float delta = buffer[i];
+                accumulatedTimeMs += delta;
+
+                if (accumulatedTimeMs <= windowDurationMs)
                 {
-                    removeCount += stride;
+                    keepCount += stride;
                 }
                 else
                 {
-                    break; 
+                    break;
                 }
             }
+
+            int removeCount = buffer.Count - keepCount;
 
             if (removeCount > 0)
             {
