@@ -89,12 +89,31 @@ namespace NX10
             Tensor<float> magTensor = GetMagTensor();
             Tensor<float> touchTensor = GetTouchTensor();
 
+            Tensor<float> priorInterstitialTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> priorInterstitialQuitTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> priorSessionsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> historicalMedianActiveSecondsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> secondsSincePrevIntTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> currentSessionEventAddPriorCountTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> elapsdedSessionSecondsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> historialMedianEventAddPerMinTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> isIosTensor = GetIsIosTensor();
+
             Dictionary<string, Tensor> tensors = new Dictionary<string, Tensor>()
             {
                 { "acc_raw", accTensor },
                 { "gyro_raw", gyroTensor },
                 { "touch_raw", touchTensor },
-                { "mag_raw", magTensor }
+                { "mag_raw", magTensor },
+                { "prior_interstitial_count", priorInterstitialTensor },
+                { "prior_interstitial_quit_count", priorInterstitialQuitTensor },
+                { "prior_sessions_count", priorSessionsTensor },
+                { "historical_median_active_seconds", historicalMedianActiveSecondsTensor },
+                { "seconds_since_previous_interstitial", secondsSincePrevIntTensor },
+                { "current_session_event_add_prior_count", currentSessionEventAddPriorCountTensor },
+                { "elapsed_session_seconds", elapsdedSessionSecondsTensor },
+                { "historical_median_event_add_per_active_minute", historialMedianEventAddPerMinTensor },
+                { "is_ios", isIosTensor },
             };
 
             LogInferenceInputsToFile(tensors);
@@ -115,6 +134,21 @@ namespace NX10
                     tensors
                 )
             );
+        }
+
+        private Tensor<float> GetIsIosTensor()
+        {
+            float isIos = 0.0f;
+#if UNITY_IOS
+            isIos = 1.0f;
+#endif
+
+            float[] tensorArray = new float[1]
+            {
+                isIos
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
         }
 
         private Tensor<float> GetAccelTensor()
