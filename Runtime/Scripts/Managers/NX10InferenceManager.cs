@@ -39,6 +39,8 @@ namespace NX10
         private NX10TelemetryManager _telemetryManager;
         private NX10TelemetryInferenceWindow inferenceWindow => _telemetryManager.CurrentInferenceWindow;
 
+        private DateTime sessionStartTime;
+
         private void Awake()
         {
             Service = new NX10InferenceModelService(backendType, cacheFolderName);
@@ -51,6 +53,7 @@ namespace NX10
         public void Initialise(NX10TelemetryManager telemetryManager)
         {
             _telemetryManager = telemetryManager;
+            sessionStartTime = DateTime.UtcNow;
         }
 
         public async Task<bool> InitializeModelAsync(string modelUrl)
@@ -95,13 +98,13 @@ namespace NX10
             Tensor<float> historicalMedianActiveSecondsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> secondsSincePrevIntTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> currentSessionEventAddPriorCountTensor = new Tensor<float>(new TensorShape(1), new float[1]);
-            Tensor<float> elapsdedSessionSecondsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> elapsdedSessionSecondsTensor = GetSessionTimeSecondsTensor();
             Tensor<float> historialMedianEventAddPerMinTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> isIosTensor = GetIsIosTensor();
 
             Dictionary<string, Tensor> tensors = new Dictionary<string, Tensor>()
             {
-                { "acc_raw", accTensor },
+                { "acc_raw", accTensor }, 
                 { "gyro_raw", gyroTensor },
                 { "touch_raw", touchTensor },
                 { "mag_raw", magTensor },
@@ -134,6 +137,17 @@ namespace NX10
                     tensors
                 )
             );
+        }
+
+        private Tensor<float> GetSessionTimeSecondsTensor()
+        {
+            TimeSpan sessionSpan = DateTime.UtcNow - sessionStartTime;
+            float[] tensorArray = new float[1]
+            {
+                (float)sessionSpan.TotalSeconds
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
         }
 
         private Tensor<float> GetIsIosTensor()
