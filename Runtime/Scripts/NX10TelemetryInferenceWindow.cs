@@ -26,8 +26,10 @@ namespace NX10
 
         public Dictionary<string, int> eventCounts = new Dictionary<string, int>();
         public Dictionary<string, int> attributeCounts = new Dictionary<string, int>();
+        public int eventAddCount;
+        public DateTime? timeOfLastInterstitial = null;
 
-        public void RecordEvent(string eventName)
+        public void RecordEvent(string eventName, Dictionary<string, object> eventData)
         {
             if (string.IsNullOrEmpty(eventName)) return;
 
@@ -39,6 +41,22 @@ namespace NX10
             {
                 eventCounts[eventName] = 1;
             }
+
+            if(eventName == "ad_started")
+            {
+                if(eventData != null)
+                {
+                    if(eventData.TryGetValue("type", out object type))
+                    {
+                        if(type.ToString().ToLower() == "interstitial")
+                        {
+                            timeOfLastInterstitial = DateTime.UtcNow;
+                        }
+                    }
+                }
+            }
+
+            eventAddCount++;
         }
 
         public void RecordAttribute(string attributeKey)

@@ -233,7 +233,7 @@ namespace NX10
 
             if (IsSessionValid)
             {
-                telemetryManager.RecordEvent(eventName);
+                telemetryManager.RecordEvent(eventName, eventData);
             }
         }
 

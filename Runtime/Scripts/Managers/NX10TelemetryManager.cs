@@ -246,9 +246,9 @@ namespace NX10
             }
         }
 
-        public void RecordEvent(string eventName)
+        public void RecordEvent(string eventName, Dictionary<string, object> eventData)
         {
-            currentInferenceWindow?.RecordEvent(eventName);
+            currentInferenceWindow?.RecordEvent(eventName, eventData);
         }
 
         public void RecordAttribute(string attributeKey)
@@ -268,11 +268,11 @@ namespace NX10
 
             currentInferenceWindow = new NX10TelemetryInferenceWindow()
             {
-                startTimestamp = DateTime.Now,
-                previousAccTimestamp = DateTime.Now,
-                previousGyroTimestamp = DateTime.Now,
-                previousMagTimestamp = DateTime.Now,
-                previousTouchTimestamp = DateTime.Now,
+                startTimestamp = DateTime.UtcNow,
+                previousAccTimestamp = DateTime.UtcNow,
+                previousGyroTimestamp = DateTime.UtcNow,
+                previousMagTimestamp = DateTime.UtcNow,
+                previousTouchTimestamp = DateTime.UtcNow,
             };
         }
 

@@ -96,7 +96,7 @@ namespace NX10
             Tensor<float> priorInterstitialQuitTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> priorSessionsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> historicalMedianActiveSecondsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
-            Tensor<float> secondsSincePrevIntTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> secondsSincePrevIntTensor = GetTimeSincePrevIntTensor();
             Tensor<float> currentSessionEventAddPriorCountTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> elapsdedSessionSecondsTensor = GetSessionTimeSecondsTensor();
             Tensor<float> historialMedianEventAddPerMinTensor = new Tensor<float>(new TensorShape(1), new float[1]);
@@ -137,6 +137,22 @@ namespace NX10
                     tensors
                 )
             );
+        }
+
+        private Tensor<float> GetTimeSincePrevIntTensor()
+        {
+            if(inferenceWindow.timeOfLastInterstitial != null)
+            {
+                TimeSpan spanSinceLastInt = DateTime.UtcNow - inferenceWindow.timeOfLastInterstitial.Value;
+                float[] tensorArray = new float[1]
+                {
+                (float)spanSinceLastInt.TotalSeconds
+                };
+
+                return new Tensor<float>(new TensorShape(1), tensorArray);
+            }
+
+            return new Tensor<float>(new TensorShape(1), new float[1]);
         }
 
         private Tensor<float> GetSessionTimeSecondsTensor()
