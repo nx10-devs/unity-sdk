@@ -16,6 +16,7 @@ namespace NX10
         public DeviceConfig deviceConfig;
         public List<EndpointInfo> endpoints;
         public InferenceModels models;
+        public Dictionary<string, float> metrics;
     }
 
     [Serializable]
