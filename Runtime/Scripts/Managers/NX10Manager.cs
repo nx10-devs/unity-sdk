@@ -40,8 +40,6 @@ namespace NX10
         private NX10InferenceManager inferenceManager;
         //private NX10DebugManager debugManager;
 
-        private Queue<NX10AnalyticsManager.NX10AnalyticsEvent> unSentEvents = new Queue<NX10AnalyticsManager.NX10AnalyticsEvent>();
-
         public bool Initialised { get; private set; }
         private bool SessionExpired { get; set; }
 
@@ -82,31 +80,25 @@ namespace NX10
 
         private void SendAttributeRequest(Dictionary<string, object> attributes)
         {
+            if (!IsSessionValid)
+                return;
+
             networkingManager.SendAttributes(attributes);
         }
 
         private void AnalyticsManager_analyticsFired(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
         {
-            if(!Initialised)
-            {
-                unSentEvents.Enqueue(analyticsEvent);
-            }
-            else
-            {
-                SendAnalytics(analyticsEvent);
-            }
-        }
+            if (!IsSessionValid)
+                return;
 
-        private void SendUnsentAnalytics()
-        {
-            foreach(var e in unSentEvents)
-            {
-                SendAnalytics(e);
-            }
+            SendAnalytics(analyticsEvent);
         }
 
         private void SendAnalytics(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
         {
+            if (!IsSessionValid)
+                return;
+
             networkingManager.SendAnalytics(analyticsEvent.eventName, analyticsEvent.sourceName, analyticsEvent.timeStamp, analyticsEvent.data);
         }
 
@@ -138,16 +130,17 @@ namespace NX10
             networkingManager.StartSession(sessionConfig, (sessionStartSuccess) =>
             {
                 Initialised = sessionStartSuccess;
-                SessionExpired = false;
+                SessionExpired = !sessionStartSuccess;
 
-                NX10SDKSession session = networkingManager.CurrentSession;
-                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
-                    session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
-                    session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
+                if (sessionStartSuccess)
+                {
+                    NX10SDKSession session = networkingManager.CurrentSession;
+                    telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
+                        session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
+                        session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
 
-                _= inferenceManager.InitializeModelAsync(session.GetAdPropensityUrl("adPropensity-randomClassifier", "1"));
-
-                SendUnsentAnalytics();
+                    _ = inferenceManager.InitializeModelAsync(session.GetAdPropensityUrl("adPropensity-randomClassifier", "1"));
+                }
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
@@ -156,62 +149,43 @@ namespace NX10
         [Obsolete("Start Session now should only take metadata and a success action", false)]
         public void StartSession(string input1 = null, string input2 = null, Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
         {
-            if (metaData == null)
-                metaData = new Dictionary<string, object>();
-
-            UserIdentifiers identifiers = new UserIdentifiers
-            {
-                deviceId = SystemInfo.deviceUniqueIdentifier,
-                email = string.Empty,
-                phoneNumber = string.Empty,
-            };
-
-            AppProvidedData appProvided = new AppProvidedData
-            {
-                metaData = metaData,
-                applicationVersion = Application.version,
-                buildNumber = Application.buildGUID
-            };
-
-            SessionConfig sessionConfig = new SessionConfig
-            {
-                Identifiers = identifiers,
-                AppProvidedData = appProvided
-            };
-
-            networkingManager.StartSession(sessionConfig, (sessionStartSuccess) =>
-            {
-                Initialised = sessionStartSuccess;
-                SessionExpired = false;
-
-                NX10SDKSession session = networkingManager.CurrentSession;
-                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
-                    session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
-                    session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
-
-                SendUnsentAnalytics();
-
-                startSuccess?.Invoke(sessionStartSuccess);
-            });
+            StartSession(metaData, startSuccess);
         }
 
         public void ShouldShowAd(Action<bool, float[]> shouldShowAd)
         {
+            if (!IsSessionValid)
+            {
+                Debug.LogWarning("[NX10] Cannot run inference: Session is not valid.");
+                shouldShowAd?.Invoke(false, Array.Empty<float>());
+                return;
+            }
+
             inferenceManager.RunInference((result =>
             {
-                foreach (var item in result)
+                if (result != null)
                 {
-                    Debug.Log(item);
+                    foreach (var item in result)
+                    {
+                        Debug.Log(item);
+                    }
                 }
 
-                shouldShowAd?.Invoke(true, result); 
+                shouldShowAd?.Invoke(result != null, result); 
             }));
         }
 
         public void StopSession()
         {
+            Initialised = false;
             SessionExpired = true;
+
             StopTelemetry();
+            telemetryManager.ResetTelemetryVariables();
+            //inferenceManager.StopSession();
+            attributesManager.ClearSessionAttributes();
+            _ = promptManager.StopPollingAsync();
+            networkingManager.StopSession();
         }
 
         public void PersonalDataRequested(bool dryRun, System.Action<bool, string> completedAction)
@@ -296,11 +270,23 @@ namespace NX10
 
         public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer, string, string> promptAnsweredAction)
         {
+            if (!IsSessionValid)
+            {
+                Debug.LogWarning("NX10 Session is not valid; prompt will not be shown.");
+                return;
+            }
+
             ShowPrompt(promptData.prompt, promptData.dismissable, promptAnsweredAction);
         }
 
         public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer, string, string> promptAnsweredAction)
         {
+            if (!IsSessionValid)
+            {
+                Debug.LogWarning("NX10 Session is not valid; prompt will not be shown.");
+                return;
+            }
+
             string promptDisplayTimestamp = GetCurrentTimestamp();
 
             promptManager.ShowPrompt(promptData, dismissable, (answer) =>
@@ -312,6 +298,13 @@ namespace NX10
 
         public void RequestActivity(Action<KineticState> activityAction)
         {
+            if (!IsSessionValid)
+            {
+                Debug.LogWarning("NX10 Session is not valid; activity cannot be requested.");
+                activityAction?.Invoke(KineticState.Unknown);
+                return;
+            }
+
             networkingManager.RequestActivity((state) =>
             {
                 activityAction(state);
@@ -320,6 +313,13 @@ namespace NX10
 
         public void RequestAffect(Action<Affect, float> affectAndConfidenceAction)
         {
+            if (!IsSessionValid)
+            {
+                Debug.LogWarning("NX10 Session is not valid; affect cannot be requested.");
+                affectAndConfidenceAction?.Invoke(Affect.Unknown, 0f);
+                return;
+            }
+
             networkingManager.RequestAffect((affect, confidence) =>
             {
                 affectAndConfidenceAction(affect, confidence);
@@ -328,11 +328,20 @@ namespace NX10
 
         public void SendPromptAnswer(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
         {
+            if (!IsSessionValid)
+            {
+                Debug.LogWarning("NX10 Session is not valid; prompt answer will not be sent.");
+                return;
+            }
+
             networkingManager.SendTriggeredSAAQData(answer, displayTimestamp, answerTimestamp, triggerId);
         }
 
         private void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
+            if (!IsSessionValid)
+                return;
+
             networkingManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
         }
 

@@ -18,7 +18,7 @@ extern "C" {
 
     void _StopMagnetometer() {
         if (motionManager != nil && [motionManager isDeviceMotionActive]) {
-            [motionManager stopMagnetometerUpdates];
+            [motionManager stopDeviceMotionUpdates];
         }
     }
 

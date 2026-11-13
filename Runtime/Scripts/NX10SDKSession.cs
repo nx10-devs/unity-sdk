@@ -89,6 +89,18 @@ namespace NX10
         {
             Token = null;
             _endpoints.Clear();
+            _ad_propensity_models.Clear();
+            gyroFrequencyHz = null;
+            accelFrequencyHz = null;
+            touchFrequencyHz = null;
+            magnetometerFrequencyHz = null;
+            screenBrightnessDelta = null;
+            acquisitionWindowSize = null;
+            saaqPollingPeriod = null;
+            telemetryCompression = null;
+            stationaryThreshold = null;
+            movingMinThreshold = null;
+            dpi = 0f;
         }
     }
 }

@@ -41,6 +41,20 @@ namespace NX10
 
         private float dpi;
 
+        private bool sensorsEnabled;
+#if ENABLE_INPUT_SYSTEM
+        private bool gyroEnabledBySdk;
+        private bool accelEnabledBySdk;
+        private bool magEnabledBySdk;
+        private bool enhancedTouchEnabledBySdk;
+#if UNITY_EDITOR
+        private bool touchSimEnabledBySdk;
+#endif
+#elif ENABLE_LEGACY_INPUT_MANAGER
+        private bool legacyGyroEnabledBySdk;
+        private bool legacyCompassEnabledBySdk;
+#endif
+
         private bool canCollectGyro => gyroHZ != null;
         private bool canCollectAccelerometer => accelerometerHZ != null;
         private bool canCollectTouch => touchHZ != null;
@@ -66,56 +80,141 @@ namespace NX10
             nativeMagnetometer = GetComponent<NativeMagnetometer>();
             nativeScale = GetComponent<NativeScale>();
             nativeTouch = GetComponent<NativeTouch>();
-
-#if ENABLE_INPUT_SYSTEM
-            if (Gyroscope.current != null)
-                InputSystem.EnableDevice(Gyroscope.current);
-
-            if (Accelerometer.current != null)
-                InputSystem.EnableDevice(Accelerometer.current);
-
-            if (MagneticFieldSensor.current != null) 
-                InputSystem.EnableDevice(MagneticFieldSensor.current);
-
-            EnhancedTouchSupport.Enable();
-
-#elif ENABLE_LEGACY_INPUT_MANAGER
-
-            if (SystemInfo.supportsGyroscope)
-                Input.gyro.enabled = true;
-
-            Input.compass.enabled = true;
-#endif
         }
 
         private void OnEnable()
         {
             isRunning = true;
-
-#if UNITY_EDITOR && ENABLE_INPUT_SYSTEM
-
-            TouchSimulation.Enable();
-#endif
         }
 
         private void OnDisable()
         {
             isRunning = false;
+            DisableSensors();
+        }
+
+        private void EnableSensors()
+        {
+            if (sensorsEnabled) return;
+            sensorsEnabled = true;
+
+#if ENABLE_INPUT_SYSTEM
+            if (canCollectGyro && Gyroscope.current != null && !Gyroscope.current.enabled)
+            {
+                InputSystem.EnableDevice(Gyroscope.current);
+                gyroEnabledBySdk = true;
+            }
+
+            if (canCollectAccelerometer && Accelerometer.current != null && !Accelerometer.current.enabled)
+            {
+                InputSystem.EnableDevice(Accelerometer.current);
+                accelEnabledBySdk = true;
+            }
+
+            if (canCollectMagnetometer && MagneticFieldSensor.current != null && !MagneticFieldSensor.current.enabled)
+            {
+                InputSystem.EnableDevice(MagneticFieldSensor.current);
+                magEnabledBySdk = true;
+            }
+
+            if (canCollectTouch && !EnhancedTouchSupport.enabled)
+            {
+                EnhancedTouchSupport.Enable();
+                enhancedTouchEnabledBySdk = true;
+            }
+
+#if UNITY_EDITOR
+            if (canCollectTouch && (TouchSimulation.instance == null || !TouchSimulation.instance.enabled))
+            {
+                TouchSimulation.Enable();
+                touchSimEnabledBySdk = true;
+            }
+#endif
+
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            if (canCollectGyro && SystemInfo.supportsGyroscope && !Input.gyro.enabled)
+            {
+                Input.gyro.enabled = true;
+                legacyGyroEnabledBySdk = true;
+            }
+
+            if (canCollectMagnetometer && !Input.compass.enabled)
+            {
+                Input.compass.enabled = true;
+                legacyCompassEnabledBySdk = true;
+            }
+#endif
+
+            if (canCollectGyro && nativeGyro != null)
+                nativeGyro.StartGyro();
+
+            if (canCollectMagnetometer && nativeMagnetometer != null)
+                nativeMagnetometer.StartMagnetometer();
+        }
+
+        private void DisableSensors()
+        {
+            if (!sensorsEnabled) return;
+            sensorsEnabled = false;
+
+            if (nativeGyro != null)
+                nativeGyro.StopGyro();
+
+            if (nativeMagnetometer != null)
+                nativeMagnetometer.StopMagnetometer();
+
+#if ENABLE_INPUT_SYSTEM
+            if (gyroEnabledBySdk && Gyroscope.current != null && Gyroscope.current.enabled)
+                InputSystem.DisableDevice(Gyroscope.current);
+            gyroEnabledBySdk = false;
+
+            if (accelEnabledBySdk && Accelerometer.current != null && Accelerometer.current.enabled)
+                InputSystem.DisableDevice(Accelerometer.current);
+            accelEnabledBySdk = false;
+
+            if (magEnabledBySdk && MagneticFieldSensor.current != null && MagneticFieldSensor.current.enabled)
+                InputSystem.DisableDevice(MagneticFieldSensor.current);
+            magEnabledBySdk = false;
+
+#if UNITY_EDITOR
+            if (touchSimEnabledBySdk)
+            {
+                TouchSimulation.Disable();
+                touchSimEnabledBySdk = false;
+            }
+#endif
+
+            if (enhancedTouchEnabledBySdk && EnhancedTouchSupport.enabled)
+                EnhancedTouchSupport.Disable();
+            enhancedTouchEnabledBySdk = false;
+
+#elif ENABLE_LEGACY_INPUT_MANAGER
+            if (legacyGyroEnabledBySdk && SystemInfo.supportsGyroscope)
+                Input.gyro.enabled = false;
+            legacyGyroEnabledBySdk = false;
+
+            if (legacyCompassEnabledBySdk)
+                Input.compass.enabled = false;
+            legacyCompassEnabledBySdk = false;
+#endif
         }
 
         private void Update()
         {
+            if (!canCollectTelemetryData || NX10Manager.Instance == null || !NX10Manager.Instance.IsSessionValid)
+                return;
+
             UpdateTelemetryCollectionWindow();
 
-            if (canCollectTelemetryData && currentCollectionWindow != null)
+            if (currentCollectionWindow != null)
             {
                 CheckAndCollectBrightnessData();
                 CheckAndCollectOrientationData();
             }
 
-            if(canCollectTelemetryData && currentInferenceWindow != null)
+            if (currentInferenceWindow != null)
             {
-                currentInferenceWindow?.PruneOldEvents();
+                currentInferenceWindow.PruneOldEvents();
             }
         }
 
@@ -134,14 +233,26 @@ namespace NX10
             nativeTouch.Initialise(nativeScale, dpi);
         }
 
+        public void ResetTelemetryVariables()
+        {
+            gyroHZ = null;
+            accelerometerHZ = null;
+            touchHZ = null;
+            magnetometerHZ = null;
+            screenBrightnessDelta = null;
+            acquisitionWindowSize = null;
+            compressTelemetry = null;
+            dpi = 0f;
+        }
+
         private IEnumerator CollectionWorker(float frequency, System.Action collectionMethod)
         {
             float interval = 1f / frequency;
             var wait = new WaitForSecondsRealtime(interval);
 
-            while (isRunning)
+            while (isRunning && canCollectTelemetryData)
             {
-                if (canCollectTelemetryData && currentCollectionWindow != null)
+                if (NX10Manager.Instance != null && NX10Manager.Instance.IsSessionValid && currentCollectionWindow != null && currentInferenceWindow != null)
                 {
                     collectionMethod.Invoke();
                 }
@@ -223,26 +334,30 @@ namespace NX10
 
         public void SetTelemetryCollection(bool canCollect)
         {
-            if(!NX10Manager.Instance.IsSessionValid && canCollect)
-            {
-                Debug.LogError("NX10 Manager not initialised, ensure it is before starting a collection window");
-                return;
-            }
-
-            if (!canOpenWindow)
-                return;
-
-            canCollectTelemetryData = canCollect;
-
             if (canCollect)
             {
+                if (NX10Manager.Instance == null || !NX10Manager.Instance.IsSessionValid)
+                {
+                    Debug.LogError("NX10 Manager not initialised, ensure it is before starting a collection window");
+                    return;
+                }
+
+                if (!canOpenWindow)
+                    return;
+
+                canCollectTelemetryData = true;
+                EnableSensors();
                 StartTelemetryInferenceWindow();
                 StartTelemetryCollectionWindow();
             }
             else
             {
+                canCollectTelemetryData = false;
                 EndTelemetryCollectionWindow();
                 EndTelemetryInferenceWindow();
+                DisableSensors();
+                lastRecordedBrightness = -1f;
+                lastRecordedOrientation = null;
             }
         }
 
@@ -260,7 +375,6 @@ namespace NX10
         {
             currentInferenceWindow?.RecordAttributes(attributeKeys);
         }
-
         private void StartTelemetryInferenceWindow()
         {
             if (currentInferenceWindow != null)
@@ -268,11 +382,11 @@ namespace NX10
 
             currentInferenceWindow = new NX10TelemetryInferenceWindow()
             {
-                startTimestamp = DateTime.UtcNow,
-                previousAccTimestamp = DateTime.UtcNow,
-                previousGyroTimestamp = DateTime.UtcNow,
-                previousMagTimestamp = DateTime.UtcNow,
-                previousTouchTimestamp = DateTime.UtcNow,
+                startTimestamp = DateTime.Now,
+                previousAccTimestamp = DateTime.Now,
+                previousGyroTimestamp = DateTime.Now,
+                previousMagTimestamp = DateTime.Now,
+                previousTouchTimestamp = DateTime.Now,
             };
         }
 

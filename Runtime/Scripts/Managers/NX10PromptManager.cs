@@ -92,6 +92,11 @@ namespace NX10
 
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (NX10Manager.Instance == null || !NX10Manager.Instance.IsSessionValid)
+                {
+                    break;
+                }
+
                 try
                 {
                     networkingManager.CheckPrompt();

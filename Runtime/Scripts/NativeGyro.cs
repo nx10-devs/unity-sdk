@@ -34,16 +34,16 @@ namespace NX10
 
         public bool GyroSupported
         {
-
             get
             {
 #if ENABLE_INPUT_SYSTEM
                 return UnityEngine.InputSystem.Gyroscope.current != null;
 #elif ENABLE_LEGACY_INPUT_MANAGER
                 return SystemInfo.supportsGyroscope;
+#else
+                return false;
 #endif
             }
-            
         }
 
         public Vector3 GyroRotationRate
@@ -51,6 +51,9 @@ namespace NX10
             get
             {
 #if UNITY_IOS && !UNITY_EDITOR
+                if (!isRunning)
+                    return Vector3.zero;
+
                 NativeVector3 nativeVec = _GetNativeRotationRateUnbiased();
                 Vector3 rotation = new Vector3(nativeVec.x, nativeVec.y, nativeVec.z);
                 rotation = rotation.RoundToFivePlaces();
@@ -100,21 +103,27 @@ namespace NX10
 
         private bool isRunning = false;
 
-        void Start()
+        public void StartGyro()
         {
+            if (isRunning) return;
 #if UNITY_IOS && !UNITY_EDITOR
-        _StartNativeGyro();
-        isRunning = true;
-#else
+            _StartNativeGyro();
+            isRunning = true;
 #endif
+        }
+
+        public void StopGyro()
+        {
+            if (!isRunning) return;
+#if UNITY_IOS && !UNITY_EDITOR
+            _StopNativeGyro();
+#endif
+            isRunning = false;
         }
 
         void OnDestroy()
         {
-            if (isRunning)
-            {
-                _StopNativeGyro();
-            }
+            StopGyro();
         }
     }
 }

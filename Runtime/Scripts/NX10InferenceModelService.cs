@@ -31,7 +31,10 @@ namespace NX10
         {
             _backendType = backendType;
             _cacheDirectory = Path.Combine(Application.persistentDataPath, subfolder);
+        }
 
+        private void EnsureCacheDirectoryExists()
+        {
             if (!Directory.Exists(_cacheDirectory))
             {
                 Directory.CreateDirectory(_cacheDirectory);
@@ -59,6 +62,7 @@ namespace NX10
                 fileName = ExtractFileNameFromUrl(url);
             }
 
+            EnsureCacheDirectoryExists();
             string targetPath = Path.Combine(_cacheDirectory, fileName);
 
             try
@@ -191,7 +195,15 @@ namespace NX10
 
             while (!operation.isDone)
             {
-                ct.ThrowIfCancellationRequested();
+                if (ct.IsCancellationRequested)
+                {
+                    request.Abort();
+                    if (File.Exists(destinationPath))
+                    {
+                        File.Delete(destinationPath);
+                    }
+                    ct.ThrowIfCancellationRequested();
+                }
                 OnDownloadProgress?.Invoke(operation.progress);
                 await Task.Yield();
             }

@@ -10,17 +10,18 @@ namespace NX10
 
         public void SetAttributes(Dictionary<string, object> attributes)
         {
+            if (!NX10Manager.Instance.IsSessionValid)
+            {
+                Debug.LogWarning("NX10 Manager not initialised, ensure it is before setting attributes");
+                return;
+            }
+
             foreach (var kvp in attributes)
             {
                 string key = kvp.Key;
                 object value = kvp.Value;
 
                 SetAttribute(key, value);
-            }
-
-            if (!NX10Manager.Instance.IsSessionValid)
-            {
-                return;
             }
 
             SendAttributes();
@@ -72,6 +73,11 @@ namespace NX10
 
             currentGameAttributes.Clear();
             SendAttributes();
+        }
+
+        public void ClearSessionAttributes()
+        {
+            currentGameAttributes.Clear();
         }
 
         private void SendAttributes()

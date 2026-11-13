@@ -28,14 +28,57 @@ namespace NX10
         }
         #endregion
 
-        private NX10SDKSession currentSession;
+        private NX10SDKSession currentSession = new NX10SDKSession();
         public NX10SDKSession CurrentSession => currentSession;
+
+        private int _sessionVersion = 0;
+        private readonly HashSet<UnityWebRequest> _activeRequests = new HashSet<UnityWebRequest>();
 
         public Action<SAAQData> OnPromptRequested;
         public Action<CooldownData> OnCooldownRequested;
 
+        private bool HasValidSession()
+        {
+            return NX10Manager.Instance != null
+                && NX10Manager.Instance.IsSessionValid
+                && currentSession != null
+                && !string.IsNullOrEmpty(currentSession.Token);
+        }
+
+        public void StopSession()
+        {
+            _sessionVersion++;
+            StopAllCoroutines();
+            AbortActiveRequests();
+            currentSession?.Clear();
+        }
+
+        private void AbortActiveRequests()
+        {
+            foreach (UnityWebRequest request in _activeRequests)
+            {
+                if (request != null)
+                {
+                    request.Abort();
+                    request.Dispose();
+                }
+            }
+            _activeRequests.Clear();
+        }
+
+        private void OnDestroy()
+        {
+            AbortActiveRequests();
+        }
+
         public void SendAttributes(Dictionary<string, object> currentGameAttributes)
         {
+            if (!HasValidSession())
+            {
+                Debug.LogWarning("NX10 Session is not valid; attributes will not be sent.");
+                return;
+            }
+
             List<HeaderObject> headers = new List<HeaderObject>()
             {
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
@@ -74,8 +117,13 @@ namespace NX10
 
         public async void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
+            if (!HasValidSession())
+                return;
+
+            int expectedVersion = _sessionVersion;
             string token = currentSession.Token;
             string telemetryV2EndPoint = currentSession.GetEndpoint("telemetry", "v2");
+            bool shouldCompress = CurrentSession.telemetryCompression.GetValueOrDefault(false);
             IInputEvent[] inputEventsSnapshot = inputEvents.ToArray();
 
             List<HeaderObject> headers = new List<HeaderObject>()
@@ -83,7 +131,7 @@ namespace NX10
                 new HeaderObject("Authorization", "Bearer " + token),
             };
 
-            if (CurrentSession.telemetryCompression.Value)
+            if (shouldCompress)
             {
                 byte[] compressedData = await Task.Run(() =>
                 {
@@ -97,6 +145,9 @@ namespace NX10
                     string payloadJson = JsonConvert.SerializeObject(telemetryPayload);
                     return CompressStringToGzip(payloadJson);
                 });
+
+                if (!HasValidSession() || expectedVersion != _sessionVersion)
+                    return;
 
                 headers.Add(new HeaderObject("Content-Encoding", "gzip"));
 
@@ -120,6 +171,9 @@ namespace NX10
                     return payloadJson;
                 });
 
+                if (!HasValidSession() || expectedVersion != _sessionVersion)
+                    return;
+
                 StartCoroutine(NX10PostRequest(telemetryV2EndPoint, payload, (success, message) =>
                 {
 
@@ -129,6 +183,7 @@ namespace NX10
 
         public void StartSession(SessionConfig sessionConfig, Action<bool> sessionStartSuccess)
         {
+            int expectedVersion = ++_sessionVersion;
             currentSession = new NX10SDKSession();
             string apiKey = NX10RuntimeConfig.ApiKey;
             string endpoint = NX10RuntimeConfig.SessionStartEndpoint;
@@ -138,7 +193,10 @@ namespace NX10
             PackageRuntimeData packageData = Resources.Load<PackageRuntimeData>("NX10PackageVersion");
 
             if (apiKey == string.Empty || endpoint == string.Empty)
+            {
+                sessionStartSuccess?.Invoke(false);
                 return;
+            }
 
             DeviceInfo deviceInfo = new DeviceInfo
             {
@@ -170,9 +228,16 @@ namespace NX10
             string startSessionJson = JsonConvert.SerializeObject(payload);
             StartCoroutine(NX10PostRequest(endpoint, startSessionJson, (success, message) =>
             {
+                if (expectedVersion != _sessionVersion)
+                {
+                    sessionStartSuccess?.Invoke(false);
+                    return;
+                }
+
                 if (success)
                 {
                     HandleSessionStartSuccess(message);
+                    success = !string.IsNullOrEmpty(currentSession.Token);
                 }
 
                 sessionStartSuccess?.Invoke(success);
@@ -200,6 +265,10 @@ namespace NX10
 
         public void CheckPrompt()
         {
+            if (!HasValidSession())
+                return;
+
+            int expectedVersion = _sessionVersion;
             List<HeaderObject> headers = new List<HeaderObject>()
             {
                 new HeaderObject("Authorization", "Bearer " + currentSession.Token)
@@ -209,13 +278,13 @@ namespace NX10
 
             StartCoroutine(NX10GetRequest(saaqPollEndpoint, (success, message) =>
             {
-                if (success)
-                    _= HandleIncomingSAAQ(message);
+                if (success && HasValidSession() && expectedVersion == _sessionVersion)
+                    _ = HandleIncomingSAAQ(message, expectedVersion);
 
             }, headers));
         }
 
-        private async Task HandleIncomingSAAQ(string json)
+        private async Task HandleIncomingSAAQ(string json, int expectedVersion)
         {
             var (isCooldown, cooldownData, isPrompt, promptData) = await Task.Run(() =>
             {
@@ -231,6 +300,9 @@ namespace NX10
 
                 return (false, (CooldownData)null, false, (SAAQData)null);
             });
+
+            if (!HasValidSession() || expectedVersion != _sessionVersion)
+                return;
 
             if (isCooldown)
             {
@@ -272,6 +344,12 @@ namespace NX10
 
         public void SendTriggeredSAAQData(SAAQAnswer answer, string displayTimestamp, string closedTimestamp, string triggerId)
         {
+            if (!HasValidSession())
+            {
+                Debug.LogWarning("NX10 Session is not valid; triggered SAAQ data will not be sent.");
+                return;
+            }
+
             string timestamp = NX10Manager.Instance.GetCurrentTimestamp();
             string saaqEndpoint = currentSession.GetEndpoint("saaq-triggered", "v1");
             NX10SAAQTriggeredPayload payload = new NX10SAAQTriggeredPayload()
@@ -306,6 +384,12 @@ namespace NX10
 
         public void SendSaaqData(string feeling, int ranking, string feelingModalType, string feelingContext, string feelingFor, string promptDisplayTimestamp, string prompAnswerTimestamp)
         {
+            if (!HasValidSession())
+            {
+                Debug.LogWarning("NX10 Session is not valid; SAAQ data will not be sent.");
+                return;
+            }
+
             string timestamp = NX10Manager.Instance.GetCurrentTimestamp();
             string saaqEndpoint = currentSession.GetEndpoint("saaq", "v1");
             NX10SAAQPayload saaqPayload = new NX10SAAQPayload()
@@ -342,6 +426,9 @@ namespace NX10
 
         public void SendAnalytics(string eventName, string sourceName, string timeStamp, Dictionary<string, object> metdata = null)
         {
+            if (!HasValidSession())
+                return;
+
             string analyticsEndpoint = currentSession.GetEndpoint("analytics", "v1");
             NX10AnalyticsPayload analyticsPayload = new NX10AnalyticsPayload()
             {
@@ -376,6 +463,13 @@ namespace NX10
 
         public void RequestActivity(Action<KineticState> activityAction)
         {
+            if (!HasValidSession())
+            {
+                Debug.LogWarning("NX10 Session is not valid; activity cannot be requested.");
+                activityAction?.Invoke(KineticState.Unknown);
+                return;
+            }
+
             string activityEndpoint = currentSession.GetEndpoint("activity", "v1");
             NX10ActivityPayload activityPayload = new NX10ActivityPayload()
             {
@@ -425,6 +519,13 @@ namespace NX10
 
         public void RequestAffect(Action<Affect, float> affectAndConfidenceAction)
         {
+            if (!HasValidSession())
+            {
+                Debug.LogWarning("NX10 Session is not valid; affect cannot be requested.");
+                affectAndConfidenceAction?.Invoke(Affect.Unknown, 0f);
+                return;
+            }
+
             string affectEndpoint = currentSession.GetEndpoint("frustration", "v1");
             NX10ActivityPayload activityPayload = new NX10ActivityPayload()
             {
@@ -482,7 +583,7 @@ namespace NX10
 
         public void SendEvent(string eventName, string timeStamp, string outcome = null, Dictionary<string, object> eventData = null)
         {
-            if (!NX10Manager.Instance.IsSessionValid)
+            if (!HasValidSession())
             {
                 Debug.LogWarning("NX10 Manager not initialised, ensure it is before sending event");
                 return;
@@ -527,6 +628,13 @@ namespace NX10
 
         public void PersonalDataRequested(bool dryRun, string timeStamp, Action<bool, string> completedAction)
         {
+            if (currentSession == null || string.IsNullOrEmpty(currentSession.Token))
+            {
+                Debug.LogWarning("NX10 Session token is not available; cannot request personal data.");
+                completedAction?.Invoke(false, "");
+                return;
+            }
+
             string prefix = NX10RuntimeConfig.IngestionPrefix;
             string url = prefix + "compliance/access";
             NX10DataPayload payload = new NX10DataPayload()
@@ -547,11 +655,11 @@ namespace NX10
                 if (success)
                 {
                     RootDataRequestResponse response = JsonConvert.DeserializeObject<RootDataRequestResponse>(message);
-                    completedAction.Invoke(success, response.data.requestUrl);
+                    completedAction?.Invoke(success, response.data.requestUrl);
                 }
                 else
                 {
-                    completedAction.Invoke(success, "");
+                    completedAction?.Invoke(success, "");
                 }
 
 
@@ -560,6 +668,13 @@ namespace NX10
 
         public void PersonalDataDeletionRequested(bool dryRun, string timeStamp, Action<bool> completedAction)
         {
+            if (currentSession == null || string.IsNullOrEmpty(currentSession.Token))
+            {
+                Debug.LogWarning("NX10 Session token is not available; cannot request personal data deletion.");
+                completedAction?.Invoke(false);
+                return;
+            }
+
             string prefix = NX10RuntimeConfig.IngestionPrefix;
             string url = prefix + "compliance/forget";
             NX10DataPayload payload = new NX10DataPayload()
@@ -577,7 +692,7 @@ namespace NX10
 
             StartCoroutine(NX10PostRequest(url, nx10jsonData, (success, message) =>
             {
-                completedAction.Invoke(success);
+                completedAction?.Invoke(success);
 
             }, headers));
         }
@@ -600,7 +715,9 @@ namespace NX10
             bool success = false;
             string responseMessage = "";
 
+            _activeRequests.Add(request);
             yield return request.SendWebRequest();
+            _activeRequests.Remove(request);
 
             if (request.result == UnityWebRequest.Result.Success)
             {
@@ -616,6 +733,7 @@ namespace NX10
                 Debug.LogError("Response Body: " + request.downloadHandler.text);
             }
 
+            request.Dispose();
             onComplete?.Invoke(success, responseMessage);
         }
 
@@ -638,7 +756,9 @@ namespace NX10
             bool success = false;
             string responseMessage = "";
 
+            _activeRequests.Add(request);
             yield return request.SendWebRequest();
+            _activeRequests.Remove(request);
 
             if (request.result == UnityWebRequest.Result.Success)
             {
@@ -654,6 +774,7 @@ namespace NX10
                 Debug.LogError("Response Body: " + request.downloadHandler.text);
             }
 
+            request.Dispose();
             onComplete?.Invoke(success, responseMessage);
         }
 
@@ -674,7 +795,9 @@ namespace NX10
             bool success = false;
             string responseMessage = "";
 
+            _activeRequests.Add(request);
             yield return request.SendWebRequest();
+            _activeRequests.Remove(request);
 
             if (request.result == UnityWebRequest.Result.Success)
             {
@@ -690,6 +813,7 @@ namespace NX10
                 Debug.LogError("Response Body: " + request.downloadHandler.text);
             }
 
+            request.Dispose();
             onComplete?.Invoke(success, responseMessage);
         }
     }

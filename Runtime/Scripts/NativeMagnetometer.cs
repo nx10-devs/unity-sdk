@@ -9,6 +9,8 @@ namespace NX10
 {
     public class NativeMagnetometer : MonoBehaviour
     {
+        private bool isRunning = false;
+
         public bool MagSupported
         {
             get
@@ -19,6 +21,8 @@ namespace NX10
                 return MagneticFieldSensor.current != null;
 #elif ENABLE_LEGACY_INPUT_MANAGER
                 return true;
+#else
+                return false;
 #endif
             }
         }
@@ -28,7 +32,9 @@ namespace NX10
             get
             {
 #if UNITY_IOS && !UNITY_EDITOR
-                IOSMagnetometer.Start(); 
+                if (!isRunning)
+                    return Vector3.zero;
+
                 Vector3 rawMag = IOSMagnetometer.GetRawData();
                 rawMag = rawMag.Round(1, System.MidpointRounding.AwayFromZero);
                 return rawMag;
@@ -40,8 +46,33 @@ namespace NX10
                 Vector3 rawMag = Input.compass.rawVector;
                 rawMag = rawMag.Round(1, System.MidpointRounding.AwayFromZero);
                 return rawMag;
+#else
+                return Vector3.zero;
 #endif
             }
+        }
+
+        public void StartMagnetometer()
+        {
+            if (isRunning) return;
+#if UNITY_IOS && !UNITY_EDITOR
+            IOSMagnetometer.Start();
+            isRunning = true;
+#endif
+        }
+
+        public void StopMagnetometer()
+        {
+            if (!isRunning) return;
+#if UNITY_IOS && !UNITY_EDITOR
+            IOSMagnetometer.Stop();
+#endif
+            isRunning = false;
+        }
+
+        private void OnDestroy()
+        {
+            StopMagnetometer();
         }
     }
 }
