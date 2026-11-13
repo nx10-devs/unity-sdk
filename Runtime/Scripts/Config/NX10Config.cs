@@ -13,6 +13,16 @@ namespace NX10
         public KeyType devBuildTarget = KeyType.Staging;
         public KeyType releaseBuildTarget = KeyType.Production;
 
+        [Header("Consent & Privacy")]
+        [Tooltip("Persist user consent decision in PlayerPrefs across launches. Disable if an external CMP is your sole source of truth.")]
+        public bool persistConsent = true;
+
+        [Tooltip("Block StartSession() until SetConsent(true) has been called, deferring session creation safely.")]
+        public bool requireExplicitConsent = true;
+
+        [Tooltip("Automatically begin telemetry collection as soon as a consented session starts.")]
+        public bool autoStartTelemetry = true;
+
         private const string stagingEndpoint = "https://control-plane.affectstack-stage.com/routes/sessions/start";
         private const string productionEndpoint = "https://control-plane.affectstack.com/routes/sessions/start";
 

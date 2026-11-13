@@ -21,5 +21,9 @@ namespace NX10
         public static string ApiKey => Config != null ? Config.GetActiveKey() : string.Empty;
         public static string SessionStartEndpoint => Config != null ? Config.GetSessionStartEndPoint() : string.Empty;
         public static string IngestionPrefix => Config != null ? Config.GetControlPlanePrefix() : string.Empty;
+
+        public static bool PersistConsent => Config != null ? Config.persistConsent : true;
+        public static bool RequireExplicitConsent => Config != null ? Config.requireExplicitConsent : true;
+        public static bool AutoStartTelemetry => Config != null ? Config.autoStartTelemetry : true;
     }
 }

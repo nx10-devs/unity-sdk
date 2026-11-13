@@ -70,14 +70,16 @@ namespace NX10
             else
                 Debug.LogWarning("NX10 USS file not found at: " + ussPath);
 
-            if (styleSheet != null)
-                rootVisualElement.styleSheets.Add(styleSheet);
+            var scrollView = new ScrollView(ScrollViewMode.Vertical);
+            scrollView.Add(CreateHeader());
+            scrollView.Add(CreateApiSection());
+            scrollView.Add(CreateConsentSection());
+            scrollView.Add(CreateStatusSection());
+            scrollView.Add(CreateApplyButton());
+            scrollView.Add(CreateDiscardButton());
+            scrollView.Add(CreateFooter());
 
-            rootVisualElement.Add(CreateHeader());
-            rootVisualElement.Add(CreateApiSection());
-            rootVisualElement.Add(CreateApplyButton());
-            rootVisualElement.Add(CreateDiscardButton());
-            rootVisualElement.Add(CreateFooter());
+            rootVisualElement.Add(scrollView);
 
             RefreshUIState();
         }
@@ -152,11 +154,63 @@ namespace NX10
 
             root.Add(routingCard);
 
+            return root;
+        }
+
+        VisualElement CreateConsentSection()
+        {
+            var card = CreateCard("CONSENT & PRIVACY");
+
+            card.Add(CreateToggleField(
+                "Persist Consent Locally",
+                "persist-consent-toggle",
+                "Store user consent state in PlayerPrefs across launches. Disable when an external CMP is your sole source of truth.",
+                config.persistConsent,
+                val => workingCopy.persistConsent = val));
+
+            card.Add(CreateToggleField(
+                "Require Explicit Consent",
+                "require-consent-toggle",
+                "Block StartSession() until SetConsent(true) is called, deferring session start safely with zero data capture.",
+                config.requireExplicitConsent,
+                val => workingCopy.requireExplicitConsent = val));
+
+            card.Add(CreateToggleField(
+                "Auto-Start Telemetry",
+                "auto-telemetry-toggle",
+                "Automatically start sensor telemetry collection as soon as a consented session initializes.",
+                config.autoStartTelemetry,
+                val => workingCopy.autoStartTelemetry = val));
+
+            return card;
+        }
+
+        VisualElement CreateStatusSection()
+        {
             statusLabel = new Label();
             statusLabel.AddToClassList("status-label");
-            root.Add(statusLabel);
+            return statusLabel;
+        }
 
-            return root;
+        VisualElement CreateToggleField(string label, string elementName, string tooltip, bool current, System.Action<bool> onChange)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("route-row");
+            row.tooltip = tooltip;
+
+            var nameLabel = new Label(label) { tooltip = tooltip };
+            nameLabel.AddToClassList("route-label");
+
+            var toggle = new Toggle { value = current, name = elementName, tooltip = tooltip };
+            toggle.RegisterValueChangedCallback(evt =>
+            {
+                onChange(evt.newValue);
+                RefreshUIState();
+            });
+
+            row.Add(nameLabel);
+            row.Add(toggle);
+            return row;
         }
 
         VisualElement CreateRouteField(string label, KeyType current, System.Action<object> onChange)
@@ -233,6 +287,10 @@ namespace NX10
             rootVisualElement.Q<EnumField>("Development Builds")?.SetValueWithoutNotify(workingCopy.devBuildTarget);
             rootVisualElement.Q<EnumField>("Release Builds")?.SetValueWithoutNotify(workingCopy.releaseBuildTarget);
 
+            rootVisualElement.Q<Toggle>("persist-consent-toggle")?.SetValueWithoutNotify(workingCopy.persistConsent);
+            rootVisualElement.Q<Toggle>("require-consent-toggle")?.SetValueWithoutNotify(workingCopy.requireExplicitConsent);
+            rootVisualElement.Q<Toggle>("auto-telemetry-toggle")?.SetValueWithoutNotify(workingCopy.autoStartTelemetry);
+
             RefreshUIState();
         }
 
@@ -272,7 +330,10 @@ namespace NX10
                    workingCopy.productionApiKey != config.productionApiKey ||
                    workingCopy.editorTarget != config.editorTarget ||
                    workingCopy.devBuildTarget != config.devBuildTarget ||
-                   workingCopy.releaseBuildTarget != config.releaseBuildTarget;
+                   workingCopy.releaseBuildTarget != config.releaseBuildTarget ||
+                   workingCopy.persistConsent != config.persistConsent ||
+                   workingCopy.requireExplicitConsent != config.requireExplicitConsent ||
+                   workingCopy.autoStartTelemetry != config.autoStartTelemetry;
         }
 
         private void RefreshUIState()

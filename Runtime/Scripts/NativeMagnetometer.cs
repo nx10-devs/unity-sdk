@@ -9,6 +9,8 @@ namespace NX10
 {
     public class NativeMagnetometer : MonoBehaviour
     {
+        private bool isRunning = false;
+
         public bool MagSupported
         {
             get
@@ -19,8 +21,42 @@ namespace NX10
                 return MagneticFieldSensor.current != null;
 #elif ENABLE_LEGACY_INPUT_MANAGER
                 return true;
+#else
+                return false;
 #endif
             }
+        }
+
+        public void StartSensor()
+        {
+            if (isRunning)
+                return;
+
+#if UNITY_IOS && !UNITY_EDITOR
+            IOSMagnetometer.Start();
+#endif
+            isRunning = true;
+        }
+
+        public void StopSensor()
+        {
+            if (!isRunning)
+                return;
+
+#if UNITY_IOS && !UNITY_EDITOR
+            IOSMagnetometer.Stop();
+#endif
+            isRunning = false;
+        }
+
+        private void OnDisable()
+        {
+            StopSensor();
+        }
+
+        private void OnDestroy()
+        {
+            StopSensor();
         }
 
         public Vector3 RawMag
@@ -28,11 +64,18 @@ namespace NX10
             get
             {
 #if UNITY_IOS && !UNITY_EDITOR
-                IOSMagnetometer.Start(); 
+                if (!isRunning)
+                {
+                    return Vector3.zero;
+                }
                 Vector3 rawMag = IOSMagnetometer.GetRawData();
                 rawMag = rawMag.Round(1, System.MidpointRounding.AwayFromZero);
                 return rawMag;
 #elif ENABLE_INPUT_SYSTEM
+                if (MagneticFieldSensor.current == null)
+                {
+                    return Vector3.zero;
+                }
                 Vector3 rawMag = MagneticFieldSensor.current.magneticField.ReadUnprocessedValue();
                 rawMag = rawMag.Round(1, System.MidpointRounding.AwayFromZero);
                 return rawMag;
@@ -40,6 +83,8 @@ namespace NX10
                 Vector3 rawMag = Input.compass.rawVector;
                 rawMag = rawMag.Round(1, System.MidpointRounding.AwayFromZero);
                 return rawMag;
+#else
+                return Vector3.zero;
 #endif
             }
         }

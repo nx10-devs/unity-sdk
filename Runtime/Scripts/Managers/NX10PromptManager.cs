@@ -44,61 +44,87 @@ namespace NX10
             this.saaqPollingPeriod = pollingPeriod;
             this.networkingManager = networkingManager;
 
-            StartPolling();
+            if (NX10Manager.Instance.CanCollect && pollingPeriod > 0f)
+            {
+                StartPolling();
+            }
         }
 
         private void OnDisable()
         {
-            _= StopPollingAsync();
+            StopPolling();
         }
 
         public void StartPolling()
         {
+            if (!NX10Manager.Instance.CanCollect || saaqPollingPeriod <= 0f)
+                return;
+
             if (_pollingTask != null && !_pollingTask.IsCompleted)
             {
-                Console.WriteLine("Polling is already running.");
                 return;
             }
 
+            _cts?.Cancel();
+            _cts?.Dispose();
             _cts = new CancellationTokenSource();
             _pollingTask = PollNetworkAsync(_cts.Token);
+        }
+
+        public void StopPolling()
+        {
+            if (_cts == null)
+                return;
+
+            try
+            {
+                _cts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         public async Task StopPollingAsync()
         {
             if (_cts == null || _pollingTask == null) return;
 
-            _cts.Cancel();
+            var cts = _cts;
+            var task = _pollingTask;
+            _cts = null;
+            _pollingTask = null;
+
+            cts.Cancel();
 
             try
             {
-                await _pollingTask;
+                await task;
             }
             catch (OperationCanceledException)
             {
-
             }
             finally
             {
-                _cts.Dispose();
-                _cts = null;
-                _pollingTask = null;
+                cts.Dispose();
             }
         }
 
         private async Task PollNetworkAsync(CancellationToken cancellationToken)
         {
-            int delayMilliseconds = (int)(saaqPollingPeriod * 1000);
+            int delayMilliseconds = Mathf.Max(100, (int)(saaqPollingPeriod * 1000));
 
             while (!cancellationToken.IsCancellationRequested)
             {
+                if (!NX10Manager.Instance.CanCollect)
+                    break;
+
                 try
                 {
-                    networkingManager.CheckPrompt();
+                    networkingManager?.CheckPrompt();
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error during network check: {ex.Message}");
+                    Debug.LogWarning($"[NX10] Error during SAAQ poll: {ex.Message}");
                 }
 
                 try
@@ -114,11 +140,13 @@ namespace NX10
 
         public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer> promptAnsweredAction)
         {
+            if (!NX10Manager.Instance.CanCollect || promptData == null)
+                return;
+
             uiController.ShowPrompt(promptData, dismissable, (answer) =>
             {
-                promptAnsweredAction(answer);
+                promptAnsweredAction?.Invoke(answer);
             });
         }
     }
 }
-

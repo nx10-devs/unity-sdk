@@ -34,16 +34,18 @@ namespace NX10
 
         public bool GyroSupported
         {
-
             get
             {
-#if ENABLE_INPUT_SYSTEM
+#if UNITY_IOS && !UNITY_EDITOR
+                return SystemInfo.supportsGyroscope;
+#elif ENABLE_INPUT_SYSTEM
                 return UnityEngine.InputSystem.Gyroscope.current != null;
 #elif ENABLE_LEGACY_INPUT_MANAGER
                 return SystemInfo.supportsGyroscope;
+#else
+                return false;
 #endif
             }
-            
         }
 
         public Vector3 GyroRotationRate
@@ -100,21 +102,36 @@ namespace NX10
 
         private bool isRunning = false;
 
-        void Start()
-        {
-#if UNITY_IOS && !UNITY_EDITOR
-        _StartNativeGyro();
-        isRunning = true;
-#else
-#endif
-        }
-
-        void OnDestroy()
+        public void StartSensor()
         {
             if (isRunning)
-            {
-                _StopNativeGyro();
-            }
+                return;
+
+#if UNITY_IOS && !UNITY_EDITOR
+            _StartNativeGyro();
+#endif
+            isRunning = true;
+        }
+
+        public void StopSensor()
+        {
+            if (!isRunning)
+                return;
+
+#if UNITY_IOS && !UNITY_EDITOR
+            _StopNativeGyro();
+#endif
+            isRunning = false;
+        }
+
+        private void OnDisable()
+        {
+            StopSensor();
+        }
+
+        private void OnDestroy()
+        {
+            StopSensor();
         }
     }
 }

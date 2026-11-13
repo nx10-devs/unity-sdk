@@ -31,11 +31,6 @@ namespace NX10
         {
             _backendType = backendType;
             _cacheDirectory = Path.Combine(Application.persistentDataPath, subfolder);
-
-            if (!Directory.Exists(_cacheDirectory))
-            {
-                Directory.CreateDirectory(_cacheDirectory);
-            }
         }
 
         /// <summary>
@@ -54,6 +49,13 @@ namespace NX10
                 return false;
             }
 
+            ct.ThrowIfCancellationRequested();
+
+            if (!Directory.Exists(_cacheDirectory))
+            {
+                Directory.CreateDirectory(_cacheDirectory);
+            }
+
             if (string.IsNullOrWhiteSpace(fileName))
             {
                 fileName = ExtractFileNameFromUrl(url);
@@ -69,6 +71,8 @@ namespace NX10
                 {
                     await DownloadModelFileAsync(url, targetPath, ct);
                 }
+
+                ct.ThrowIfCancellationRequested();
 
                 LoadFromFile(targetPath);
                 OnModelLoaded?.Invoke();
@@ -120,7 +124,6 @@ namespace NX10
             }
         }
 
-
         public void LoadFromFile(string filePath)
         {
             if (!File.Exists(filePath))
@@ -136,15 +139,18 @@ namespace NX10
         public IEnumerator Predict(
             Action<float[]> onComplete,
             float maxMsPerFrame = 2.0f,
-            Dictionary<string,Tensor> inputTensors = null,
+            Dictionary<string, Tensor> inputTensors = null,
             string outputName = null)
         {
             if (_worker == null)
-                throw new InvalidOperationException("Worker is not initialized.");
+            {
+                onComplete?.Invoke(Array.Empty<float>());
+                yield break;
+            }
 
             if (inputTensors != null)
             {
-                foreach(string key in inputTensors.Keys)
+                foreach (string key in inputTensors.Keys)
                 {
                     _worker.SetInput(key, inputTensors[key]);
                 }
@@ -154,7 +160,7 @@ namespace NX10
 
             var stopwatch = new Stopwatch();
 
-            while (executor.MoveNext())
+            while (_worker != null && executor.MoveNext())
             {
                 if (!stopwatch.IsRunning)
                 {
@@ -164,8 +170,14 @@ namespace NX10
                 if (stopwatch.ElapsedMilliseconds >= maxMsPerFrame)
                 {
                     stopwatch.Reset();
-                    yield return null; 
+                    yield return null;
                 }
+            }
+
+            if (_worker == null)
+            {
+                onComplete?.Invoke(Array.Empty<float>());
+                yield break;
             }
 
             Tensor<float> output = string.IsNullOrEmpty(outputName)
@@ -173,7 +185,7 @@ namespace NX10
                 : _worker.PeekOutput(outputName) as Tensor<float>;
 
             float[] results = null;
-            if(output != null)
+            if (output != null)
             {
                 results = output.DownloadToArray();
                 output.Dispose();
@@ -191,7 +203,16 @@ namespace NX10
 
             while (!operation.isDone)
             {
-                ct.ThrowIfCancellationRequested();
+                if (ct.IsCancellationRequested)
+                {
+                    request.Abort();
+                    if (File.Exists(destinationPath))
+                    {
+                        try { File.Delete(destinationPath); } catch { }
+                    }
+                    ct.ThrowIfCancellationRequested();
+                }
+
                 OnDownloadProgress?.Invoke(operation.progress);
                 await Task.Yield();
             }
@@ -228,8 +249,14 @@ namespace NX10
         {
             if (Directory.Exists(_cacheDirectory))
             {
-                Directory.Delete(_cacheDirectory, true);
-                Directory.CreateDirectory(_cacheDirectory);
+                try
+                {
+                    Directory.Delete(_cacheDirectory, true);
+                }
+                catch (Exception ex)
+                {
+                    UnityEngine.Debug.LogWarning($"[NX10] Could not clear model cache: {ex.Message}");
+                }
             }
         }
 

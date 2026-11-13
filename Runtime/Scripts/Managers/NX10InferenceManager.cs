@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +22,10 @@ namespace NX10
         [SerializeField] private BackendType backendType = BackendType.GPUCompute;
         [SerializeField] private string cacheFolderName = "ModelCache";
 
+        [Header("Debug")]
+        [Tooltip("Editor/Development builds only: writes inference tensor inputs to persistentDataPath/InferenceLogs.")]
+        [SerializeField] private bool logInferenceInputsToDisk = false;
+
         [Header("Events")]
         public UnityEvent<float> OnDownloadProgressChanged;
         public UnityEvent OnModelReady;
@@ -32,12 +35,13 @@ namespace NX10
         public bool IsReady => Service != null && Service.IsReady;
 
         private CancellationTokenSource _cts;
+        private Dictionary<string, Tensor> _activeTensors;
 
         private Coroutine _activeInferenceRoutine;
         public bool IsInferring => _activeInferenceRoutine != null;
 
         private NX10TelemetryManager _telemetryManager;
-        private NX10TelemetryInferenceWindow inferenceWindow => _telemetryManager.CurrentInferenceWindow;
+        private NX10TelemetryInferenceWindow inferenceWindow => _telemetryManager != null ? _telemetryManager.CurrentInferenceWindow : null;
 
         private DateTime sessionStartTime;
 
@@ -56,11 +60,21 @@ namespace NX10
             sessionStartTime = DateTime.UtcNow;
         }
 
+        public void ResetSessionStartTime()
+        {
+            sessionStartTime = DateTime.UtcNow;
+        }
+
         public async Task<bool> InitializeModelAsync(string modelUrl)
         {
+            if (!NX10Manager.Instance.CanCollect)
+            {
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(modelUrl))
             {
-                Debug.LogError("[NX10] Model URL is empty.", this);
+                Debug.LogWarning("[NX10] Model URL is empty; skipping model initialization.", this);
                 return false;
             }
 
@@ -70,20 +84,76 @@ namespace NX10
 
             string fileName = string.IsNullOrWhiteSpace(customFileName) ? null : customFileName;
 
-            return await Service.LoadFromUrlAsync(modelUrl, fileName, forceRedownload, _cts.Token);
+            bool loaded = await Service.LoadFromUrlAsync(modelUrl, fileName, forceRedownload, _cts.Token);
+            if (!NX10Manager.Instance.CanCollect)
+            {
+                Service?.Dispose();
+                return false;
+            }
+
+            return loaded;
+        }
+
+        public void StopAndReset(bool clearDiskArtifacts = false)
+        {
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+
+            if (_activeInferenceRoutine != null)
+            {
+                StopCoroutine(_activeInferenceRoutine);
+                _activeInferenceRoutine = null;
+            }
+
+            DisposeActiveTensors();
+            Service?.Dispose();
+
+            if (clearDiskArtifacts)
+            {
+                ClearModelCache();
+                ClearInferenceLogs();
+            }
+        }
+
+        private void DisposeActiveTensors()
+        {
+            if (_activeTensors == null)
+                return;
+
+            foreach (var tensor in _activeTensors.Values)
+            {
+                tensor?.Dispose();
+            }
+            _activeTensors = null;
         }
 
         public void RunInference(Action<float[]> onResult, float maxMsPerFrame = 2.5f)
         {
+            if (!NX10Manager.Instance.CanCollect)
+            {
+                onResult?.Invoke(Array.Empty<float>());
+                return;
+            }
+
             if (!IsReady)
             {
                 Debug.LogWarning("[NX10] Cannot start inference: Model is not ready.", this);
+                onResult?.Invoke(Array.Empty<float>());
+                return;
+            }
+
+            if (inferenceWindow == null)
+            {
+                Debug.LogWarning("[NX10] Cannot start inference: Telemetry inference window is not active.", this);
+                onResult?.Invoke(Array.Empty<float>());
                 return;
             }
 
             if (IsInferring)
             {
                 Debug.LogWarning("[NX10] Previous multi-frame inference is still running. Ignoring request.", this);
+                onResult?.Invoke(Array.Empty<float>());
                 return;
             }
 
@@ -104,7 +174,7 @@ namespace NX10
 
             Dictionary<string, Tensor> tensors = new Dictionary<string, Tensor>()
             {
-                { "acc_raw", accTensor }, 
+                { "acc_raw", accTensor },
                 { "gyro_raw", gyroTensor },
                 { "touch_raw", touchTensor },
                 { "mag_raw", magTensor },
@@ -119,19 +189,29 @@ namespace NX10
                 { "is_ios", isIosTensor },
             };
 
-            LogInferenceInputsToFile(tensors);
+            _activeTensors = tensors;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (logInferenceInputsToDisk)
+            {
+                LogInferenceInputsToFile(tensors);
+            }
+#endif
 
             _activeInferenceRoutine = StartCoroutine(
                 Service.Predict(
                     results =>
                     {
                         _activeInferenceRoutine = null;
-                        onResult?.Invoke(results);
+                        DisposeActiveTensors();
 
-                        foreach (var tensor in tensors.Values)
+                        if (!NX10Manager.Instance.CanCollect)
                         {
-                            tensor?.Dispose();
+                            onResult?.Invoke(Array.Empty<float>());
+                            return;
                         }
+
+                        onResult?.Invoke(results);
                     },
                     maxMsPerFrame,
                     tensors
@@ -141,12 +221,12 @@ namespace NX10
 
         private Tensor<float> GetTimeSincePrevIntTensor()
         {
-            if(inferenceWindow.timeOfLastInterstitial != null)
+            if (inferenceWindow != null && inferenceWindow.timeOfLastInterstitial != null)
             {
                 TimeSpan spanSinceLastInt = DateTime.UtcNow - inferenceWindow.timeOfLastInterstitial.Value;
                 float[] tensorArray = new float[1]
                 {
-                (float)spanSinceLastInt.TotalSeconds
+                    (float)spanSinceLastInt.TotalSeconds
                 };
 
                 return new Tensor<float>(new TensorShape(1), tensorArray);
@@ -184,7 +264,7 @@ namespace NX10
         private Tensor<float> GetAccelTensor()
         {
             float offsetInference = (float)Math.Round(inferenceWindow.AccDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(inferenceWindow.accelEvents.Count > 0)
+            if (inferenceWindow.accelEvents.Count > 0)
             {
                 List<float> flatAccel = new List<float>(inferenceWindow.accelEvents);
                 flatAccel.Add(offsetInference);
@@ -200,20 +280,17 @@ namespace NX10
 
                 return accFloat;
             }
-
-
         }
 
         private Tensor<float> GetGyroTensor()
         {
             float offsetInference = (float)Math.Round(inferenceWindow.GyroDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(inferenceWindow.gyroEvents.Count > 0)
+            if (inferenceWindow.gyroEvents.Count > 0)
             {
                 List<float> flatGyro = new List<float>(inferenceWindow.gyroEvents);
                 flatGyro.Add(offsetInference);
                 Tensor<float> gyroFloat = new Tensor<float>(new TensorShape(flatGyro.Count), flatGyro.ToArray());
                 return gyroFloat;
-
             }
             else
             {
@@ -223,13 +300,12 @@ namespace NX10
 
                 return gyroFloat;
             }
-            
         }
 
         private Tensor<float> GetMagTensor()
         {
             float offsetInference = (float)Math.Round(inferenceWindow.MagDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(inferenceWindow.magEvents.Count > 0)
+            if (inferenceWindow.magEvents.Count > 0)
             {
                 List<float> flatMag = new List<float>(inferenceWindow.magEvents);
                 flatMag.Add(offsetInference);
@@ -245,20 +321,19 @@ namespace NX10
 
                 return magFloat;
             }
-        
         }
 
         private Tensor<float> GetTouchTensor()
         {
             float offsetInference = (float)Math.Round(inferenceWindow.TouchDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
 
-            if(inferenceWindow.touchEvents.Count > 0)
+            if (inferenceWindow.touchEvents.Count > 0)
             {
                 List<float> flatTouch = new List<float>(inferenceWindow.touchEvents);
                 flatTouch.Add(offsetInference);
-                Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatTouch.Count), flatTouch.ToArray());
+                Tensor<float> touchFloat = new Tensor<float>(new TensorShape(flatTouch.Count), flatTouch.ToArray());
 
-                return magFloat;
+                return touchFloat;
             }
             else
             {
@@ -268,7 +343,6 @@ namespace NX10
 
                 return touchFloat;
             }
-            
         }
 
         /// <summary>
@@ -277,20 +351,34 @@ namespace NX10
         public void ClearModelCache()
         {
             Service?.ClearCache();
-            Debug.Log("[NX10] Model cache directory cleared.", this);
+        }
+
+        public void ClearInferenceLogs()
+        {
+            try
+            {
+                string logDirectory = Path.Combine(Application.persistentDataPath, "InferenceLogs");
+                if (Directory.Exists(logDirectory))
+                {
+                    Directory.Delete(logDirectory, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[NX10] Could not clear inference logs: {ex.Message}");
+            }
         }
 
         private void OnDestroy()
         {
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _cts = null;
-
-            Service?.Dispose();
+            StopAndReset(clearDiskArtifacts: false);
         }
 
         private void LogInferenceInputsToFile(Dictionary<string, Tensor> tensors)
         {
+            if (!NX10Manager.Instance.CanCollect)
+                return;
+
             try
             {
                 string logDirectory = Path.Combine(Application.persistentDataPath, "InferenceLogs");
@@ -325,7 +413,7 @@ namespace NX10
                     sb.AppendLine();
                 }
 
-                sb.AppendLine(); 
+                sb.AppendLine();
 
                 File.AppendAllText(filePath, sb.ToString());
             }
