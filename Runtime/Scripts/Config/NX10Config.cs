@@ -13,6 +13,8 @@ namespace NX10
         public KeyType devBuildTarget = KeyType.Staging;
         public KeyType releaseBuildTarget = KeyType.Production;
 
+        public bool autoTrackAppLifecycle = true;
+
         private const string stagingEndpoint = "https://control-plane.affectstack-stage.com/routes/sessions/start";
         private const string productionEndpoint = "https://control-plane.affectstack.com/routes/sessions/start";
 
