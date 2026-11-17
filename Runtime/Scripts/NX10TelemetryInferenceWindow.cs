@@ -42,16 +42,13 @@ namespace NX10
                 eventCounts[eventName] = 1;
             }
 
-            if(eventName == "ad_started")
+            if (eventName == NX10SchemaKeys.Events.AdStarted)
             {
-                if(eventData != null)
+                if (eventData != null && eventData.TryGetValue(NX10SchemaKeys.Metadata.Type, out object type) && type != null)
                 {
-                    if(eventData.TryGetValue("type", out object type))
+                    if (string.Equals(type.ToString(), NX10SchemaKeys.AdTypes.Interstitial, StringComparison.OrdinalIgnoreCase))
                     {
-                        if(type.ToString().ToLower() == "interstitial")
-                        {
-                            timeOfLastInterstitial = DateTime.UtcNow;
-                        }
+                        timeOfLastInterstitial = DateTime.UtcNow;
                     }
                 }
             }
