@@ -31,9 +31,6 @@ namespace NX10
         private NX10SDKSession currentSession;
         public NX10SDKSession CurrentSession => currentSession;
 
-        public Action<SAAQData> OnPromptRequested;
-        public Action<CooldownData> OnCooldownRequested;
-
         public void SendAttributes(Dictionary<string, object> currentGameAttributes)
         {
             List<HeaderObject> headers = new List<HeaderObject>()
@@ -198,51 +195,6 @@ namespace NX10
             currentSession.Initialize(response.data);
         }
 
-        public void CheckPrompt()
-        {
-            List<HeaderObject> headers = new List<HeaderObject>()
-            {
-                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
-            };
-
-            string saaqPollEndpoint = currentSession.GetEndpoint("saaq-polling", "v1");
-
-            StartCoroutine(NX10GetRequest(saaqPollEndpoint, (success, message) =>
-            {
-                if (success)
-                    _= HandleIncomingSAAQ(message);
-
-            }, headers));
-        }
-
-        private async Task HandleIncomingSAAQ(string json)
-        {
-            var (isCooldown, cooldownData, isPrompt, promptData) = await Task.Run(() =>
-            {
-                if (TryDeserialize(json, out CooldownResponse cooldown) && cooldown?.status == "success" && cooldown.data != null)
-                {
-                    return (true, cooldown.data, false, (SAAQData)null);
-                }
-
-                if (TryDeserialize(json, out SAAQResponse response) && response?.status == "success" && response.HasPrompt == true)
-                {
-                    return (false, (CooldownData)null, true, response.data);
-                }
-
-                return (false, (CooldownData)null, false, (SAAQData)null);
-            });
-
-            if (isCooldown)
-            {
-                OnCooldownRequested?.Invoke(cooldownData);
-            }
-            else if (isPrompt)
-            {
-                Debug.Log($"Trigger Received: {promptData.prompt.questionText}");
-                OnPromptRequested?.Invoke(promptData);
-            }
-        }
-
         private bool TryDeserialize<T>(string json, out T result)
         {
             try
@@ -373,113 +325,7 @@ namespace NX10
                 }
             }, headers));
         }
-
-        public void RequestActivity(Action<KineticState> activityAction)
-        {
-            string activityEndpoint = currentSession.GetEndpoint("activity", "v1");
-            NX10ActivityPayload activityPayload = new NX10ActivityPayload()
-            {
-                stationaryMaxThreshold = CurrentSession.stationaryThreshold.Value,
-                movingMinThreshold = CurrentSession.movingMinThreshold.Value,
-            };
-
-            List<HeaderObject> headers = new List<HeaderObject>()
-            {
-                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
-            };
-
-            string nx10jsonData = JsonConvert.SerializeObject(activityPayload);
-            StartCoroutine(NX10PostRequest(activityEndpoint, nx10jsonData, (success, message) =>
-            {
-                KineticState kineticState = KineticState.Unknown;
-                if (success)
-                {
-                    kineticState = ParseActivityJson(message);
-                }
-               
-                activityAction(kineticState);
-
-            }, headers));
-        }
-
-        public KineticState ParseActivityJson(string jsonString)
-        {
-            try
-            {
-                RootActivityResponse response = JsonConvert.DeserializeObject<RootActivityResponse>(jsonString);
-
-                if (response != null && response.status == "success")
-                {
-                    KineticState state = response.data.device.kineticState;
-                    return state;
-                }
-
-                return KineticState.Unknown;
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogException(e);
-                return KineticState.Unknown;
-            }
-        }
-
-        public void RequestAffect(Action<Affect, float> affectAndConfidenceAction)
-        {
-            string affectEndpoint = currentSession.GetEndpoint("frustration", "v1");
-            NX10ActivityPayload activityPayload = new NX10ActivityPayload()
-            {
-                stationaryMaxThreshold = CurrentSession.stationaryThreshold.Value,
-                movingMinThreshold = CurrentSession.movingMinThreshold.Value,
-            };
-
-            List<HeaderObject> headers = new List<HeaderObject>()
-            {
-                new HeaderObject("Authorization", "Bearer " + currentSession.Token)
-            };
-
-            StartCoroutine(NX10GetRequest(affectEndpoint, (success, message) =>
-            {
-                Affect affect = Affect.Unknown;
-                float confidence = 0;
-                if (success)
-                {
-                    affect = ParseAffectJson(message, out float conf);
-                    confidence = conf;
-                }
-
-                affectAndConfidenceAction(affect, confidence);
-
-            }, headers));
-        }
-
-        public Affect ParseAffectJson(string jsonString, out float confidence)
-        {
-            try
-            {
-                RootRedGreenResponse response = JsonConvert.DeserializeObject<RootRedGreenResponse>(jsonString);
-
-                if (response != null && response.status == "success")
-                {
-                    Affect state = response.data.currentAffect;
-                    confidence = response.data.confidence;
-
-                    return state;
-                }
-
-                confidence = 0.0f;
-                return Affect.Unknown;
-            }
-            catch (System.Exception e)
-            {
-                confidence = 0.0f;
-
-                Debug.LogException(e);
-
-                return Affect.Unknown;
-                
-            }
-        }
-
+        
         public void SendEvent(string eventName, string timeStamp, string outcome = null, Dictionary<string, object> eventData = null)
         {
             if (!NX10Manager.Instance.IsSessionValid)
