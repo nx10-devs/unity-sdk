@@ -11,6 +11,7 @@ namespace NX10
 
         private List<EndpointInfo> _endpoints = new List<EndpointInfo>();
         private List<ModelDefinition> _ad_propensity_models = new List<ModelDefinition>();
+        private Dictionary<string, float> _metrics = new Dictionary<string, float>();
 
         public int? gyroFrequencyHz { get; private set; }
         public int? accelFrequencyHz { get; private set; }
@@ -51,6 +52,16 @@ namespace NX10
             if(data.deviceConfig.saaq != null)
             {
                 saaqPollingPeriod = data.deviceConfig.saaq.saaqPollingPeriodSeconds;
+            }
+
+            if(data.metrics != null)
+            {
+                _metrics = data.metrics;
+            }   
+
+            foreach (var metric in _metrics)
+            {
+                Debug.Log($"Metric: {metric.Key} = {metric.Value}");
             }
 
             string deviceModel = SystemInfo.deviceModel;

@@ -92,12 +92,12 @@ namespace NX10
             Tensor<float> magTensor = GetMagTensor();
             Tensor<float> touchTensor = GetTouchTensor();
 
-            Tensor<float> priorInterstitialTensor = new Tensor<float>(new TensorShape(1), new float[1]);
-            Tensor<float> priorInterstitialQuitTensor = new Tensor<float>(new TensorShape(1), new float[1]);
-            Tensor<float> priorSessionsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> priorInterstitialTensor = GetPriorInterstitialTensor();
+            Tensor<float> priorInterstitialQuitTensor = GetPriorInterstitialQuitTensor();
+            Tensor<float> priorSessionsTensor = GetPriorSessionsTensor();
             Tensor<float> historicalMedianActiveSecondsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> secondsSincePrevIntTensor = GetTimeSincePrevIntTensor();
-            Tensor<float> currentSessionEventAddPriorCountTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> currentSessionEventAddPriorCountTensor = GetCurrentSessionEventAddPriorCountTensor();
             Tensor<float> elapsdedSessionSecondsTensor = GetSessionTimeSecondsTensor();
             Tensor<float> historialMedianEventAddPerMinTensor = new Tensor<float>(new TensorShape(1), new float[1]);
             Tensor<float> isIosTensor = GetIsIosTensor();
@@ -137,6 +137,50 @@ namespace NX10
                     tensors
                 )
             );
+        }
+
+        private Tensor<float> GetPriorInterstitialTensor()
+        {
+            float priorInterstitialCount = inferenceWindow.priorInterstitialCount;
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetPriorInterstitialQuitTensor()
+        {
+            float priorInterstitialQuitCount = inferenceWindow.priorInterstitialQuitCount;
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialQuitCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetPriorSessionsTensor()
+        {
+            float priorSessionsCount = inferenceWindow.priorSessionsCount;
+            float[] tensorArray = new float[1]
+            {
+                priorSessionsCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetCurrentSessionEventAddPriorCountTensor()
+        {
+            float currentSessionEventAddPriorCount = inferenceWindow.eventAddCount;
+            float[] tensorArray = new float[1]
+            {
+                currentSessionEventAddPriorCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
         }
 
         private Tensor<float> GetTimeSincePrevIntTensor()

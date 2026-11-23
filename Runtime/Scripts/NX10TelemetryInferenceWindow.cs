@@ -27,6 +27,9 @@ namespace NX10
         public Dictionary<string, int> eventCounts = new Dictionary<string, int>();
         public Dictionary<string, int> attributeCounts = new Dictionary<string, int>();
         public int eventAddCount;
+        public int priorSessionsCount;
+        public int priorInterstitialQuitCount;
+        public int priorInterstitialCount;
         public DateTime? timeOfLastInterstitial = null;
 
         public void RecordEvent(string eventName, Dictionary<string, object> eventData)
