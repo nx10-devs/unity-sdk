@@ -212,7 +212,8 @@ namespace NX10
         {
             inferenceManager.RunInference((result =>
             {
-                shouldShowAd?.Invoke(true, result); 
+                bool shouldShow = (result[0] >= networkingManager.CurrentSession.GetAdPropensityThreshold("adPropensity-randomClassifier", "1"));
+                shouldShowAd?.Invoke(shouldShow, result); 
             }));
         }
 

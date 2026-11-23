@@ -36,7 +36,7 @@ namespace NX10
             Token = data.token;
 
             _endpoints = data.endpoints ?? new List<EndpointInfo>();
-            _ad_propensity_models =  data.models.adPropensity ?? new List<ModelDefinition>();
+            _ad_propensity_models = data.models?.adPropensity ?? new List<ModelDefinition>();
 
             if(data.deviceConfig.sensor != null)
             {
@@ -104,13 +104,38 @@ namespace NX10
 
         public string GetAdPropensityUrl(string name, string version)
         {
-            return _ad_propensity_models.FindAll(e => e.name == name)?.FirstOrDefault(e => e.version == version)?.downloadUrl;
+            return GetModel(name, version)?.downloadUrl;
+        }
+
+        public float GetAdPropensityThreshold(string name, string version, float defaultThreshold = 0f)
+        {
+            return GetModel(name, version)?.modelThreshold ?? defaultThreshold;
+        }
+
+        private ModelDefinition GetModel(string name, string version)
+        {
+            if (_ad_propensity_models == null || string.IsNullOrEmpty(name) || string.IsNullOrEmpty(version))
+            {
+                Debug.LogWarning($"[NX10] Invalid model lookup (name: '{name}', version: '{version}').");
+                return null;
+            }
+
+            ModelDefinition model = _ad_propensity_models.FirstOrDefault(
+                e => e != null && e.name == name && e.version == version);
+
+            if (model == null)
+            {
+                Debug.LogWarning($"[NX10] Model '{name}' (version '{version}') not found in session.");
+            }
+
+            return model;
         }
 
         public void Clear()
         {
             Token = null;
             _endpoints.Clear();
+            _ad_propensity_models.Clear();
         }
     }
 }

@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -79,5 +80,8 @@ namespace NX10
         public string version;
         public string downloadUrl;
         public List<string> arguments;
+
+        [JsonProperty("model-threshold")]
+        public float? modelThreshold;
     }
 }
