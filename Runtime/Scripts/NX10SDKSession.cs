@@ -86,6 +86,17 @@ namespace NX10
 
         }
 
+        public float GetMetric(string metricName)
+        {
+            if(_metrics.TryGetValue(metricName, out var metric))
+            {
+                return metric;
+            }
+
+            Debug.LogWarning("No metic of name " + metricName + ". returning 0");
+            return 0f;
+        }
+
         public string GetEndpoint(string type, string version)
         {
             return _endpoints.FindAll(e => e.type == type)?.FirstOrDefault(e => e.version == version)?.location;

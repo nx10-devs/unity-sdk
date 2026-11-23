@@ -37,9 +37,17 @@ namespace NX10
         public bool IsInferring => _activeInferenceRoutine != null;
 
         private NX10TelemetryManager _telemetryManager;
+        private NX10NetworkingManager _networkingManager;
+        private NX10SDKSession currentSession => _networkingManager.CurrentSession;
         private NX10TelemetryInferenceWindow inferenceWindow => _telemetryManager.CurrentInferenceWindow;
 
         private DateTime sessionStartTime;
+
+        private const string historicalMedianEventAddPerMinKey = "historical-median-event-add-per-minute";
+        private const string interstitalQuitCountKey = "interstitial-quit-count";
+        private const string completedSessionCountKey = "completed-session-count";
+        private const string interstitalCountKey = "interstitial-count";
+        private const string historicalMedianActiveSecondsKey = "historical-median-active-seconds";
 
         private void Awake()
         {
@@ -50,9 +58,11 @@ namespace NX10
             Service.OnError += error => OnModelLoadFailed?.Invoke(error);
         }
 
-        public void Initialise(NX10TelemetryManager telemetryManager)
+        public void Initialise(NX10TelemetryManager telemetryManager, NX10NetworkingManager networkingManager)
         {
             _telemetryManager = telemetryManager;
+            _networkingManager = networkingManager;
+
             sessionStartTime = DateTime.UtcNow;
         }
 
@@ -95,11 +105,11 @@ namespace NX10
             Tensor<float> priorInterstitialTensor = GetPriorInterstitialTensor();
             Tensor<float> priorInterstitialQuitTensor = GetPriorInterstitialQuitTensor();
             Tensor<float> priorSessionsTensor = GetPriorSessionsTensor();
-            Tensor<float> historicalMedianActiveSecondsTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> historicalMedianActiveSecondsTensor = GetHistoricalMedianActiveSecondsTensor();
             Tensor<float> secondsSincePrevIntTensor = GetTimeSincePrevIntTensor();
             Tensor<float> currentSessionEventAddPriorCountTensor = GetCurrentSessionEventAddPriorCountTensor();
             Tensor<float> elapsdedSessionSecondsTensor = GetSessionTimeSecondsTensor();
-            Tensor<float> historialMedianEventAddPerMinTensor = new Tensor<float>(new TensorShape(1), new float[1]);
+            Tensor<float> historialMedianEventAddPerMinTensor = GetHistoricalMedianEventAddPerMinTensor();
             Tensor<float> isIosTensor = GetIsIosTensor();
 
             Dictionary<string, Tensor> tensors = new Dictionary<string, Tensor>()
@@ -139,9 +149,31 @@ namespace NX10
             );
         }
 
+        private Tensor<float> GetHistoricalMedianEventAddPerMinTensor()
+        {
+            float priorInterstitialCount = currentSession.GetMetric(historicalMedianEventAddPerMinKey);
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetHistoricalMedianActiveSecondsTensor()
+        {
+            float priorInterstitialCount = currentSession.GetMetric(historicalMedianActiveSecondsKey);
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
         private Tensor<float> GetPriorInterstitialTensor()
         {
-            float priorInterstitialCount = inferenceWindow.priorInterstitialCount;
+            float priorInterstitialCount = currentSession.GetMetric(interstitalCountKey);
             float[] tensorArray = new float[1]
             {
                 priorInterstitialCount
@@ -152,7 +184,7 @@ namespace NX10
 
         private Tensor<float> GetPriorInterstitialQuitTensor()
         {
-            float priorInterstitialQuitCount = inferenceWindow.priorInterstitialQuitCount;
+            float priorInterstitialQuitCount = currentSession.GetMetric(interstitalQuitCountKey);
             float[] tensorArray = new float[1]
             {
                 priorInterstitialQuitCount
@@ -163,7 +195,7 @@ namespace NX10
 
         private Tensor<float> GetPriorSessionsTensor()
         {
-            float priorSessionsCount = inferenceWindow.priorSessionsCount;
+            float priorSessionsCount = currentSession.GetMetric(completedSessionCountKey);
             float[] tensorArray = new float[1]
             {
                 priorSessionsCount

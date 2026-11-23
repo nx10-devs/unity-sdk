@@ -74,7 +74,7 @@ namespace NX10
 
             AutoTrackAppLifecycle = NX10RuntimeConfig.AutoTrackAppLifecycle;
 
-            inferenceManager.Initialise(telemetryManager);
+            inferenceManager.Initialise(telemetryManager, networkingManager);
         }
 
         private void OnApplicationPause(bool pauseStatus)
@@ -212,11 +212,6 @@ namespace NX10
         {
             inferenceManager.RunInference((result =>
             {
-                foreach (var item in result)
-                {
-                    Debug.Log(item);
-                }
-
                 shouldShowAd?.Invoke(true, result); 
             }));
         }
