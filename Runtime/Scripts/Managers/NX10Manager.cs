@@ -32,14 +32,24 @@ namespace NX10
             }
         }
 
-        private NX10PromptManager promptManager;
         private NX10NetworkingManager networkingManager;
         private NX10TelemetryManager telemetryManager;
-        private NX10AnalyticsManager analyticsManager;
         private NX10AttributesManager attributesManager;
-        //private NX10DebugManager debugManager;
+        private NX10InferenceManager inferenceManager;
 
-        private Queue<NX10AnalyticsManager.NX10AnalyticsEvent> unSentEvents = new Queue<NX10AnalyticsManager.NX10AnalyticsEvent>();
+        private NX10EventsApi _eventsApi;
+        private NX10AttributesApi _attributesApi;
+        private bool _isAppBackgrounded;
+        private bool _hasSentAppQuit;
+
+        private NX10EventsApi EventsInternal => _eventsApi ?? (_eventsApi = new NX10EventsApi(this));
+        private NX10AttributesApi AttributesInternal => _attributesApi ?? (_attributesApi = new NX10AttributesApi(this));
+
+        /// <summary>
+        /// Controls whether app_quit, app_backgrounded, and app_foregrounded are fired automatically.
+        /// Initialized from <see cref="NX10RuntimeConfig.AutoTrackAppLifecycle"/>.
+        /// </summary>
+        public bool AutoTrackAppLifecycle { get; set; } = true;
 
         public bool Initialised { get; private set; }
         private bool SessionExpired { get; set; }
@@ -52,52 +62,59 @@ namespace NX10
             }
         }
 
-        public event Action<SAAQData> OnPromptRequested;
-        public event Action<CooldownData> OnCooldownRequested;
-
         protected void Awake()
         {
-            promptManager = GetComponentInChildren<NX10PromptManager>();
             networkingManager = GetComponentInChildren<NX10NetworkingManager>();
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
-            analyticsManager = GetComponentInChildren<NX10AnalyticsManager>();
             attributesManager = GetComponentInChildren<NX10AttributesManager>();
-            //debugManager = GetComponentInChildren<NX10DebugManager>();
+            inferenceManager = GetComponentInChildren<NX10InferenceManager>();
 
             telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
-            networkingManager.OnPromptRequested += PromptRequested;
-            networkingManager.OnCooldownRequested += CooldownRequested;
-            analyticsManager.analyticsFired += AnalyticsManager_analyticsFired;
             attributesManager.sendAttributesRequest += SendAttributeRequest;
 
+            AutoTrackAppLifecycle = NX10RuntimeConfig.AutoTrackAppLifecycle;
 
-            //debugManager.Initialise(telemetryManager);
+            inferenceManager.Initialise(telemetryManager, networkingManager);
         }
 
-       /* private void OnGUI()
+        private void OnApplicationPause(bool pauseStatus)
         {
-            GUILayout.BeginArea(new Rect(10, 10, 200, 150));
-            GUILayout.Label("<b>Cooldown Tester</b>");
-
-            if (GUILayout.Button("Send Nudge"))
+            if (pauseStatus)
             {
-                OnCooldownRequested?.Invoke(new CooldownData
+                if (!_isAppBackgrounded)
                 {
-                    kind = CooldownType.Nudge,
-                });
+                    _isAppBackgrounded = true;
+                    if (AutoTrackAppLifecycle && IsSessionValid)
+                    {
+                        EventsInternal.AppBackgrounded();
+                    }
+                }
             }
-
-            if (GUILayout.Button("Send Cooldown"))
+            else
             {
-                OnCooldownRequested?.Invoke(new CooldownData
+                if (_isAppBackgrounded)
                 {
-                    kind = CooldownType.Cooldown,
-                    durationSeconds = 100.0 
-                });
+                    _isAppBackgrounded = false;
+                    if (AutoTrackAppLifecycle && IsSessionValid)
+                    {
+                        EventsInternal.AppForegrounded();
+                    }
+                }
             }
+        }
 
-            GUILayout.EndArea();
-        }*/
+        private void OnApplicationQuit()
+        {
+            if (_hasSentAppQuit)
+                return;
+
+            _hasSentAppQuit = true;
+
+            if (AutoTrackAppLifecycle && IsSessionValid)
+            {
+                EventsInternal.AppQuit();
+            }
+        }
 
         public string GetCurrentTimestamp()
         {
@@ -108,31 +125,6 @@ namespace NX10
         private void SendAttributeRequest(Dictionary<string, object> attributes)
         {
             networkingManager.SendAttributes(attributes);
-        }
-
-        private void AnalyticsManager_analyticsFired(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
-        {
-            if(!Initialised)
-            {
-                unSentEvents.Enqueue(analyticsEvent);
-            }
-            else
-            {
-                SendAnalytics(analyticsEvent);
-            }
-        }
-
-        private void SendUnsentAnalytics()
-        {
-            foreach(var e in unSentEvents)
-            {
-                SendAnalytics(e);
-            }
-        }
-
-        private void SendAnalytics(NX10AnalyticsManager.NX10AnalyticsEvent analyticsEvent)
-        {
-            networkingManager.SendAnalytics(analyticsEvent.eventName, analyticsEvent.sourceName, analyticsEvent.timeStamp, analyticsEvent.data);
         }
 
         public void StartSession(Dictionary<string, object> metaData = null, Action<bool> startSuccess = null)
@@ -165,17 +157,21 @@ namespace NX10
                 Initialised = sessionStartSuccess;
                 SessionExpired = false;
 
-                NX10SDKSession session = networkingManager.CurrentSession;
-                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
-                    session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
-                    session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
-
-                SendUnsentAnalytics();
-
-                /*if (session.saaqPollingPeriod.HasValue)
+                if (sessionStartSuccess && networkingManager.CurrentSession != null)
                 {
-                    promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
-                }*/
+                    NX10SDKSession session = networkingManager.CurrentSession;
+                    telemetryManager.OnSessionStarted();
+                    inferenceManager.OnSessionStarted();
+                    telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
+                        session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
+                        session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
+
+                    string modelUrl = session.GetAdPropensityUrl(inferenceManager.ModelNameOverride, inferenceManager.ModelVersionOverride);
+                    if (!string.IsNullOrWhiteSpace(modelUrl))
+                    {
+                        _ = inferenceManager.InitializeModelAsync(modelUrl);
+                    }
+                }
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
@@ -212,20 +208,42 @@ namespace NX10
                 Initialised = sessionStartSuccess;
                 SessionExpired = false;
 
-                NX10SDKSession session = networkingManager.CurrentSession;
-                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
-                    session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
-                    session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
-
-                SendUnsentAnalytics();
-
-                /*if(session.saaqPollingPeriod.HasValue)
+                if (sessionStartSuccess && networkingManager.CurrentSession != null)
                 {
-                    promptManager.Initalise(session.saaqPollingPeriod.Value, networkingManager);
-                }*/
+                    NX10SDKSession session = networkingManager.CurrentSession;
+                    telemetryManager.OnSessionStarted();
+                    inferenceManager.OnSessionStarted();
+                    telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
+                        session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
+                        session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
+
+                    string modelUrl = session.GetAdPropensityUrl(inferenceManager.ModelNameOverride, inferenceManager.ModelVersionOverride);
+                    if (!string.IsNullOrWhiteSpace(modelUrl))
+                    {
+                        _ = inferenceManager.InitializeModelAsync(modelUrl);
+                    }
+                }
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
+        }
+
+        public void ShouldShowAd(Action<bool, float[]> shouldShowAd)
+        {
+            if (!IsSessionValid || networkingManager.CurrentSession == null)
+            {
+                shouldShowAd?.Invoke(false, null);
+                return;
+            }
+
+            inferenceManager.RunInference((result =>
+            {
+                float threshold = networkingManager.CurrentSession.GetAdPropensityThreshold(
+                    inferenceManager.ModelNameOverride,
+                    inferenceManager.ModelVersionOverride);
+                bool shouldShow = (result != null && result.Length > 0 && result[0] >= threshold);
+                shouldShowAd?.Invoke(shouldShow, result); 
+            }));
         }
 
         public void StopSession()
@@ -250,6 +268,11 @@ namespace NX10
         {
             string timeStamp = GetCurrentTimestamp();
             networkingManager.SendEvent(eventName, timeStamp, null, eventData);
+
+            if (IsSessionValid)
+            {
+                telemetryManager.RecordEvent(eventName, eventData);
+            }
         }
 
         public enum Outcome
@@ -262,16 +285,31 @@ namespace NX10
         {
             string timeStamp = GetCurrentTimestamp();
             networkingManager.SendEvent(eventName, timeStamp, outcome.ToString(), eventData);
+
+            if (IsSessionValid)
+            {
+                telemetryManager.RecordEvent(eventName, eventData);
+            }
         }
 
         public void SetAttributes(Dictionary<string, object> attributes)
         {
             attributesManager.SetAttributes(attributes);
+
+            if (IsSessionValid && attributes != null)
+            {
+                telemetryManager.RecordAttributes(attributes.Keys);
+            }
         }
 
         public void SetAttribute(string attributeKey, object attributeValue)
         {
             attributesManager.SetAttribute(attributeKey, attributeValue, true);
+
+            if (IsSessionValid)
+            {
+                telemetryManager.RecordAttribute(attributeKey);
+            }
         }
 
         public void RemoveAttribute(string attributeKey)
@@ -284,6 +322,74 @@ namespace NX10
             attributesManager.ClearAttributes();
         }
 
+        #region Strongly-Typed Attributes
+
+        /// <summary>
+        /// Updates multiple standard attributes at once and dispatches a single network payload.
+        /// </summary>
+        public void SetAttributes(Action<NX10AttributesBatchBuilder> configure) => AttributesInternal.Batch(configure);
+
+        public void SetView(NX10View view) => AttributesInternal.SetView(view);
+
+        public void SetBannerAdVisible(bool visible) => AttributesInternal.SetBannerAdVisible(visible);
+
+        public void SetInterstitialAdRateSeconds(int seconds) => AttributesInternal.SetInterstitialAdRateSeconds(seconds);
+
+        public void SetNoAds(bool noAds) => AttributesInternal.SetNoAds(noAds);
+
+        public void SetInTutorial(bool inTutorial) => AttributesInternal.SetInTutorial(inTutorial);
+
+        public void SetTotalActiveSaveSlots(int totalActiveSaveSlots) => AttributesInternal.SetTotalActiveSaveSlots(totalActiveSaveSlots);
+
+        public void SetCurrentSaveSlot(string currentSaveSlot) => AttributesInternal.SetCurrentSaveSlot(currentSaveSlot);
+
+        public void SetSaveSlots(string currentSaveSlot, int totalActiveSaveSlots) => AttributesInternal.SetSaveSlots(currentSaveSlot, totalActiveSaveSlots);
+
+        #endregion
+
+        #region Strongly-Typed Events
+
+        /// <summary>
+        /// Sends "ad_started" for a banner ad (omitting ads_in_set and ad_number) and returns a handle to call <see cref="NX10AdHandle.Finish"/>.
+        /// </summary>
+        public NX10AdHandle StartBannerAd(string customId = null) => EventsInternal.StartBannerAd(customId);
+
+        /// <summary>
+        /// Sends "ad_started" for a non-banner ad (interstitial, rewarded, app_start, or custom) and returns a handle to call <see cref="NX10AdHandle.Finish"/>.
+        /// </summary>
+        public NX10AdHandle StartAd(NX10AdSetType type, int adsInSet = 1, int adNumber = 1, string groupId = null) =>
+            EventsInternal.StartAd(type, adsInSet, adNumber, groupId);
+
+        /// <summary>
+        /// Sends "rewarded_offer_shown" and returns a handle to call <see cref="NX10OfferHandle.Hide"/> when dismissed, expired, or navigated away.
+        /// </summary>
+        public NX10OfferHandle ShowRewardedOffer(NX10OfferType type, int amount, NX10OfferTrigger trigger, string customId = null) =>
+            EventsInternal.ShowRewardedOffer(type, amount, trigger, customId);
+
+        public void SendBannerAdStarted(string id) => EventsInternal.SendBannerAdStarted(id);
+
+        public void SendBannerAdFinished(string id) => EventsInternal.SendBannerAdFinished(id);
+
+        public void SendAdStarted(string id, NX10AdSetType type, int adsInSet, int adNumber) =>
+            EventsInternal.SendAdStarted(id, type, adsInSet, adNumber);
+
+        public void SendAdFinished(string id, NX10AdSetType type, int adsInSet, int adNumber) =>
+            EventsInternal.SendAdFinished(id, type, adsInSet, adNumber);
+
+        public void SendRewardedOfferShown(string id, NX10OfferType type, int amount, NX10OfferTrigger trigger) =>
+            EventsInternal.SendRewardedOfferShown(id, type, amount, trigger);
+
+        public void SendRewardedOfferHidden(string id, NX10OfferType type, int amount, NX10OfferTrigger trigger, NX10OfferHideReason reason) =>
+            EventsInternal.SendRewardedOfferHidden(id, type, amount, trigger, reason);
+
+        public void SendAppQuit() => EventsInternal.AppQuit();
+
+        public void SendAppBackgrounded() => EventsInternal.AppBackgrounded();
+
+        public void SendAppForegrounded() => EventsInternal.AppForegrounded();
+
+        #endregion
+
         public void StartTelemetry()
         {
             telemetryManager.SetTelemetryCollection(true);
@@ -294,56 +400,9 @@ namespace NX10
             telemetryManager.SetTelemetryCollection(false);
         }
 
-        public void ShowPrompt(SAAQData promptData, Action<SAAQAnswer, string, string> promptAnsweredAction)
-        {
-            ShowPrompt(promptData.prompt, promptData.dismissable, promptAnsweredAction);
-        }
-
-        public void ShowPrompt(SAAQBlock promptData, bool dismissable, Action<SAAQAnswer, string, string> promptAnsweredAction)
-        {
-            string promptDisplayTimestamp = GetCurrentTimestamp();
-
-            promptManager.ShowPrompt(promptData, dismissable, (answer) =>
-            {
-                string promptAnswerTimestamp = GetCurrentTimestamp();
-                promptAnsweredAction.Invoke(answer, promptDisplayTimestamp, promptAnswerTimestamp);
-            });
-        }
-
-        public void RequestActivity(Action<KineticState> activityAction)
-        {
-            networkingManager.RequestActivity((state) =>
-            {
-                activityAction(state);
-            });
-        }
-
-        public void RequestAffect(Action<Affect, float> affectAndConfidenceAction)
-        {
-            networkingManager.RequestAffect((affect, confidence) =>
-            {
-                affectAndConfidenceAction(affect, confidence);
-            });
-        }
-
-        public void SendPromptAnswer(SAAQAnswer answer, string displayTimestamp, string answerTimestamp, string triggerId)
-        {
-            networkingManager.SendTriggeredSAAQData(answer, displayTimestamp, answerTimestamp, triggerId);
-        }
-
         private void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
             networkingManager.SendTelemetryData(windowStartTimestamp, windowEndOffset, inputEvents);
-        }
-
-        private void PromptRequested(SAAQData promptData)
-        {
-            OnPromptRequested?.Invoke(promptData);
-        }
-
-        private void CooldownRequested(CooldownData cooldownData)
-        {
-            OnCooldownRequested?.Invoke(cooldownData);
         }
     }
 }

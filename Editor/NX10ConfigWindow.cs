@@ -152,6 +152,20 @@ namespace NX10
 
             root.Add(routingCard);
 
+            var eventsCard = CreateCard("AUTOMATIC EVENTS");
+            var lifecycleToggle = new Toggle("Auto-Track App Lifecycle (quit / background / foreground)")
+            {
+                value = config.autoTrackAppLifecycle,
+                name = "auto-lifecycle-toggle"
+            };
+            lifecycleToggle.RegisterValueChangedCallback(evt =>
+            {
+                workingCopy.autoTrackAppLifecycle = evt.newValue;
+                RefreshUIState();
+            });
+            eventsCard.Add(lifecycleToggle);
+            root.Add(eventsCard);
+
             statusLabel = new Label();
             statusLabel.AddToClassList("status-label");
             root.Add(statusLabel);
@@ -232,6 +246,7 @@ namespace NX10
             rootVisualElement.Q<EnumField>("Unity Editor")?.SetValueWithoutNotify(workingCopy.editorTarget);
             rootVisualElement.Q<EnumField>("Development Builds")?.SetValueWithoutNotify(workingCopy.devBuildTarget);
             rootVisualElement.Q<EnumField>("Release Builds")?.SetValueWithoutNotify(workingCopy.releaseBuildTarget);
+            rootVisualElement.Q<Toggle>("auto-lifecycle-toggle")?.SetValueWithoutNotify(workingCopy.autoTrackAppLifecycle);
 
             RefreshUIState();
         }
@@ -272,7 +287,8 @@ namespace NX10
                    workingCopy.productionApiKey != config.productionApiKey ||
                    workingCopy.editorTarget != config.editorTarget ||
                    workingCopy.devBuildTarget != config.devBuildTarget ||
-                   workingCopy.releaseBuildTarget != config.releaseBuildTarget;
+                   workingCopy.releaseBuildTarget != config.releaseBuildTarget ||
+                   workingCopy.autoTrackAppLifecycle != config.autoTrackAppLifecycle;
         }
 
         private void RefreshUIState()

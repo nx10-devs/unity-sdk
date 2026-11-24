@@ -1,0 +1,396 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Unity.InferenceEngine;
+using UnityEngine;
+using UnityEngine.Events;
+
+namespace NX10
+{
+    public class NX10InferenceManager : MonoBehaviour
+    {
+        [Tooltip("Optional model name override. Leave empty to auto-select the first adPropensity model from the session.")]
+        [SerializeField] private string modelNameOverride = "";
+
+        [Tooltip("Optional model version override. Leave empty to match any version or auto-select from the session.")]
+        [SerializeField] private string modelVersionOverride = "";
+
+        [Tooltip("Optional custom file name on disk. Leave empty to infer from URL.")]
+        [SerializeField] private string customFileName = "";
+
+        [Tooltip("If true, bypasses any locally cached version and downloads a fresh copy.")]
+        [SerializeField] private bool forceRedownload = false;
+
+        public string ModelNameOverride
+        {
+            get => modelNameOverride;
+            set => modelNameOverride = value;
+        }
+
+        public string ModelVersionOverride
+        {
+            get => modelVersionOverride;
+            set => modelVersionOverride = value;
+        }
+
+        [Header("Backend Configuration")]
+        [SerializeField] private BackendType backendType = BackendType.GPUCompute;
+        [SerializeField] private string cacheFolderName = "ModelCache";
+
+        [Header("Events")]
+        public UnityEvent<float> OnDownloadProgressChanged;
+        public UnityEvent OnModelReady;
+        public UnityEvent<string> OnModelLoadFailed;
+
+        public NX10InferenceModelService Service { get; private set; }
+        public bool IsReady => Service != null && Service.IsReady;
+
+        private CancellationTokenSource _cts;
+
+        private Coroutine _activeInferenceRoutine;
+        public bool IsInferring => _activeInferenceRoutine != null;
+
+        private NX10TelemetryManager _telemetryManager;
+        private NX10NetworkingManager _networkingManager;
+        private NX10SDKSession currentSession => _networkingManager.CurrentSession;
+        private NX10TelemetryInferenceWindow inferenceWindow => _telemetryManager.CurrentInferenceWindow;
+
+        private DateTime sessionStartTime;
+
+        private const string historicalMedianEventAddPerMinKey = "historical-median-event-add-per-minute";
+        private const string interstitalQuitCountKey = "interstitial-quit-count";
+        private const string completedSessionCountKey = "completed-session-count";
+        private const string interstitalCountKey = "interstitial-ad-count";
+        private const string historicalMedianActiveSecondsKey = "historical-median-active-seconds";
+
+        private void Awake()
+        {
+            Service = new NX10InferenceModelService(backendType, cacheFolderName);
+
+            Service.OnDownloadProgress += progress => OnDownloadProgressChanged?.Invoke(progress);
+            Service.OnModelLoaded += () => OnModelReady?.Invoke();
+            Service.OnError += error => OnModelLoadFailed?.Invoke(error);
+        }
+
+        public void Initialise(NX10TelemetryManager telemetryManager, NX10NetworkingManager networkingManager)
+        {
+            _telemetryManager = telemetryManager;
+            _networkingManager = networkingManager;
+
+            sessionStartTime = DateTime.UtcNow;
+        }
+
+        public void OnSessionStarted()
+        {
+            sessionStartTime = DateTime.UtcNow;
+        }
+
+        public async Task<bool> InitializeModelAsync(string modelUrl)
+        {
+            if (string.IsNullOrWhiteSpace(modelUrl))
+            {
+                Debug.LogError("[NX10] Model URL is empty.", this);
+                return false;
+            }
+
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = new CancellationTokenSource();
+
+            string fileName = string.IsNullOrWhiteSpace(customFileName) ? null : customFileName;
+
+            return await Service.LoadFromUrlAsync(modelUrl, fileName, forceRedownload, _cts.Token);
+        }
+
+        public void RunInference(Action<float[]> onResult, float maxMsPerFrame = 2.5f)
+        {
+            if (!IsReady)
+            {
+                Debug.LogWarning("[NX10] Cannot start inference: Model is not ready.", this);
+                onResult?.Invoke(null);
+                return;
+            }
+
+            if (IsInferring)
+            {
+                Debug.LogWarning("[NX10] Previous multi-frame inference is still running. Ignoring request.", this);
+                onResult?.Invoke(null);
+                return;
+            }
+
+            double snapshotMs = inferenceWindow != null
+                ? inferenceWindow.PruneAndCaptureTimestampMs()
+                : 0.0;
+
+            Tensor<float> accTensor = GetAccelTensor(snapshotMs);
+            Tensor<float> gyroTensor = GetGyroTensor(snapshotMs);
+            Tensor<float> magTensor = GetMagTensor(snapshotMs);
+            Tensor<float> touchTensor = GetTouchTensor(snapshotMs);
+
+            Tensor<float> priorInterstitialTensor = GetPriorInterstitialTensor();
+            Tensor<float> priorInterstitialQuitTensor = GetPriorInterstitialQuitTensor();
+            Tensor<float> priorSessionsTensor = GetPriorSessionsTensor();
+            Tensor<float> historicalMedianActiveSecondsTensor = GetHistoricalMedianActiveSecondsTensor();
+            Tensor<float> secondsSincePrevIntTensor = GetTimeSincePrevIntTensor();
+            Tensor<float> currentSessionEventAddPriorCountTensor = GetCurrentSessionEventAddPriorCountTensor();
+            Tensor<float> elapsdedSessionSecondsTensor = GetSessionTimeSecondsTensor();
+            Tensor<float> historialMedianEventAddPerMinTensor = GetHistoricalMedianEventAddPerMinTensor();
+            Tensor<float> isIosTensor = GetIsIosTensor();
+
+            Dictionary<string, Tensor> tensors = new Dictionary<string, Tensor>()
+            {
+                { "acc_raw", accTensor }, 
+                { "gyro_raw", gyroTensor },
+                { "touch_raw", touchTensor },
+                { "mag_raw", magTensor },
+                { "prior_interstitial_count", priorInterstitialTensor },
+                { "prior_interstitial_quit_count", priorInterstitialQuitTensor },
+                { "prior_sessions_count", priorSessionsTensor },
+                { "historical_median_active_seconds", historicalMedianActiveSecondsTensor },
+                { "seconds_since_previous_interstitial", secondsSincePrevIntTensor },
+                { "current_session_event_add_prior_count", currentSessionEventAddPriorCountTensor },
+                { "elapsed_session_seconds", elapsdedSessionSecondsTensor },
+                { "historical_median_event_add_per_active_minute", historialMedianEventAddPerMinTensor },
+                { "is_ios", isIosTensor },
+            };
+
+            LogInferenceInputsToFile(tensors);
+
+            _activeInferenceRoutine = StartCoroutine(
+                Service.Predict(
+                    results =>
+                    {
+                        _activeInferenceRoutine = null;
+                        onResult?.Invoke(results);
+
+                        foreach (var tensor in tensors.Values)
+                        {
+                            tensor?.Dispose();
+                        }
+                    },
+                    maxMsPerFrame,
+                    tensors
+                )
+            );
+        }
+
+        private Tensor<float> GetHistoricalMedianEventAddPerMinTensor()
+        {
+            float priorInterstitialCount = currentSession.GetMetric(historicalMedianEventAddPerMinKey);
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetHistoricalMedianActiveSecondsTensor()
+        {
+            float priorInterstitialCount = currentSession.GetMetric(historicalMedianActiveSecondsKey);
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetPriorInterstitialTensor()
+        {
+            float priorInterstitialCount = currentSession.GetMetric(interstitalCountKey);
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetPriorInterstitialQuitTensor()
+        {
+            float priorInterstitialQuitCount = currentSession.GetMetric(interstitalQuitCountKey);
+            float[] tensorArray = new float[1]
+            {
+                priorInterstitialQuitCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetPriorSessionsTensor()
+        {
+            float priorSessionsCount = currentSession.GetMetric(completedSessionCountKey);
+            float[] tensorArray = new float[1]
+            {
+                priorSessionsCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetCurrentSessionEventAddPriorCountTensor()
+        {
+            float currentSessionEventAddPriorCount = inferenceWindow != null
+                ? inferenceWindow.eventAddCount
+                : (_telemetryManager != null ? _telemetryManager.SessionEventAddCount : 0);
+
+            float[] tensorArray = new float[1]
+            {
+                currentSessionEventAddPriorCount
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetTimeSincePrevIntTensor()
+        {
+            DateTime? lastInterstitial = inferenceWindow != null
+                ? inferenceWindow.timeOfLastInterstitial
+                : _telemetryManager?.TimeOfLastInterstitial;
+
+            if (lastInterstitial != null)
+            {
+                TimeSpan spanSinceLastInt = DateTime.UtcNow - lastInterstitial.Value;
+                float[] tensorArray = new float[1]
+                {
+                    (float)spanSinceLastInt.TotalSeconds
+                };
+
+                return new Tensor<float>(new TensorShape(1), tensorArray);
+            }
+
+            return new Tensor<float>(new TensorShape(1), new float[1]);
+        }
+
+        private Tensor<float> GetSessionTimeSecondsTensor()
+        {
+            TimeSpan sessionSpan = DateTime.UtcNow - sessionStartTime;
+            float[] tensorArray = new float[1]
+            {
+                (float)sessionSpan.TotalSeconds
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetIsIosTensor()
+        {
+            float isIos = 0.0f;
+#if UNITY_IOS
+            isIos = 1.0f;
+#endif
+
+            float[] tensorArray = new float[1]
+            {
+                isIos
+            };
+
+            return new Tensor<float>(new TensorShape(1), tensorArray);
+        }
+
+        private Tensor<float> GetAccelTensor(double snapshotMs)
+        {
+            float[] flatAccel = inferenceWindow != null
+                ? inferenceWindow.BuildAccelTensorData(snapshotMs)
+                : new float[5];
+
+            return new Tensor<float>(new TensorShape(flatAccel.Length), flatAccel);
+        }
+
+        private Tensor<float> GetGyroTensor(double snapshotMs)
+        {
+            float[] flatGyro = inferenceWindow != null
+                ? inferenceWindow.BuildGyroTensorData(snapshotMs)
+                : new float[5];
+
+            return new Tensor<float>(new TensorShape(flatGyro.Length), flatGyro);
+        }
+
+        private Tensor<float> GetMagTensor(double snapshotMs)
+        {
+            float[] flatMag = inferenceWindow != null
+                ? inferenceWindow.BuildMagTensorData(snapshotMs)
+                : new float[5];
+
+            return new Tensor<float>(new TensorShape(flatMag.Length), flatMag);
+        }
+
+        private Tensor<float> GetTouchTensor(double snapshotMs)
+        {
+            float[] flatTouch = inferenceWindow != null
+                ? inferenceWindow.BuildTouchTensorData(snapshotMs)
+                : new float[7];
+
+            return new Tensor<float>(new TensorShape(flatTouch.Length), flatTouch);
+        }
+
+        /// <summary>
+        /// Clears local disk cache for this service's cache directory.
+        /// </summary>
+        public void ClearModelCache()
+        {
+            Service?.ClearCache();
+            Debug.Log("[NX10] Model cache directory cleared.", this);
+        }
+
+        private void OnDestroy()
+        {
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+
+            Service?.Dispose();
+        }
+
+        private void LogInferenceInputsToFile(Dictionary<string, Tensor> tensors)
+        {
+            try
+            {
+                string logDirectory = Path.Combine(Application.persistentDataPath, "InferenceLogs");
+                if (!Directory.Exists(logDirectory))
+                {
+                    Directory.CreateDirectory(logDirectory);
+                }
+
+                string filePath = Path.Combine(logDirectory, $"inference_inputs_{DateTime.UtcNow:yyyy-MM-dd}.txt");
+
+                var sb = new StringBuilder();
+                sb.AppendLine($"==================================================");
+                sb.AppendLine($"Timestamp (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff}");
+                sb.AppendLine($"Frame Count: {Time.frameCount}");
+                sb.AppendLine($"--------------------------------------------------");
+
+                foreach (var kvp in tensors)
+                {
+                    string tensorName = kvp.Key;
+                    Tensor tensor = kvp.Value;
+
+                    if (tensor is Tensor<float> floatTensor)
+                    {
+                        float[] values = floatTensor.DownloadToArray();
+                        sb.AppendLine($"Input: {tensorName} | Shape: {tensor.shape} | Count: {values.Length}");
+                        sb.AppendLine($"Values: [{string.Join(", ", values)}]");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"Input: {tensorName} | Shape: {tensor?.shape.ToString() ?? "null"} (Non-float or null tensor)");
+                    }
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine(); 
+
+                File.AppendAllText(filePath, sb.ToString());
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[NX10] Failed to write inference inputs to file: {ex.Message}");
+            }
+        }
+    }
+}

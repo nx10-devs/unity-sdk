@@ -18,6 +18,7 @@ namespace NX10
             public double y;
             public string touchId;
             public string touchType;
+            public float touchTypeFloat;
             public double touchRadius;
         }
 
@@ -45,7 +46,8 @@ namespace NX10
                         x = PixelsToMillimeters(touch.screenPosition.x),
                         y = PixelsToMillimeters(touch.screenPosition.y),
                         touchId = touch.touchId.ToString(),
-                        touchType = ConvertTouchPhaseToTouchType(touch.phase),
+                        touchType = ConvertTouchPhaseToTouchType(touch.phase, out float typeFloat),
+                        touchTypeFloat = typeFloat,
 #if UNITY_IOS
                         touchRadius = ConvertPixelRadToMM(touch.radius)
 #elif UNITY_ANDROID
@@ -63,7 +65,9 @@ namespace NX10
                         x = PixelsToMillimeters(touch.position.x),
                         y = PixelsToMillimeters(touch.position.y),
                         touchId = touch.fingerId.ToString(),
-                        touchType = ConvertTouchPhaseToTouchType(touch.phase),
+                        touchType = ConvertTouchPhaseToTouchType(touch.phase, out float typeFloat),
+                        touchTypeFloat = typeFloat,
+
 #if UNITY_IOS
                         touchRadius = ConvertPixelRadToMM(touch.radius)
 #elif UNITY_ANDROID
@@ -106,19 +110,24 @@ namespace NX10
         }
 
 #if ENABLE_INPUT_SYSTEM
-        private string ConvertTouchPhaseToTouchType(UnityEngine.InputSystem.TouchPhase touchPhase)
+        private string ConvertTouchPhaseToTouchType(UnityEngine.InputSystem.TouchPhase touchPhase, out float typeFloat)
         {
+            typeFloat = 0;
             switch (touchPhase)
             {
                 case UnityEngine.InputSystem.TouchPhase.Began:
                     return "down";
                 case UnityEngine.InputSystem.TouchPhase.Ended:
+                    typeFloat = 3;
                     return "up";
                 case UnityEngine.InputSystem.TouchPhase.Moved:
+                    typeFloat = 1;
                     return "move";
                 case UnityEngine.InputSystem.TouchPhase.Stationary:
+                    typeFloat = 2;
                     return "stationary";
                 case UnityEngine.InputSystem.TouchPhase.Canceled:
+                    typeFloat = 3;
                     return "cancelled";
             }
 
@@ -126,19 +135,24 @@ namespace NX10
         }
 #endif
 
-        private string ConvertTouchPhaseToTouchType(UnityEngine.TouchPhase touchPhase)
+        private string ConvertTouchPhaseToTouchType(UnityEngine.TouchPhase touchPhase, out float typeFloat)
         {
+            typeFloat = 0;
             switch (touchPhase)
             {
                 case UnityEngine.TouchPhase.Began:
                     return "down";
                 case UnityEngine.TouchPhase.Ended:
+                    typeFloat = 3;
                     return "up";
                 case UnityEngine.TouchPhase.Moved:
+                    typeFloat = 1;
                     return "move";
                 case UnityEngine.TouchPhase.Stationary:
+                    typeFloat = 2;
                     return "stationary";
                 case UnityEngine.TouchPhase.Canceled:
+                    typeFloat = 3;
                     return "cancelled";
             }
 

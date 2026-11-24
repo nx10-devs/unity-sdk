@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 
@@ -15,6 +16,8 @@ namespace NX10
         public string token;
         public DeviceConfig deviceConfig;
         public List<EndpointInfo> endpoints;
+        public InferenceModels models;
+        public Dictionary<string, float> metrics;
     }
 
     [Serializable]
@@ -62,5 +65,23 @@ namespace NX10
     public class ActivtyThresholds
     {
         public Dictionary<string, float> thresholds;
+    }
+
+    [Serializable]
+    public class InferenceModels
+    {
+        public List<ModelDefinition> adPropensity;
+    }
+
+    [Serializable]
+    public class ModelDefinition
+    {
+        public string name;
+        public string version;
+        public string downloadUrl;
+        public List<string> arguments;
+
+        [JsonProperty("model-threshold")]
+        public float? modelThreshold;
     }
 }
