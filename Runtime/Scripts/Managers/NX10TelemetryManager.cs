@@ -24,7 +24,11 @@ namespace NX10
         private bool isRunning;
         private NX10TelemetryCollectionWindow currentCollectionWindow;
         private NX10TelemetryInferenceWindow currentInferenceWindow;
+        private readonly List<Coroutine> activeWorkerCoroutines = new List<Coroutine>();
         private float timer = 0.0f;
+
+        public int SessionEventAddCount { get; private set; }
+        public DateTime? TimeOfLastInterstitial { get; private set; }
 
         public Action<string, double, List<IInputEvent>> sendTelemetryDataRequest;
 
@@ -92,6 +96,11 @@ namespace NX10
         {
             isRunning = true;
 
+            if (canCollectTelemetryData)
+            {
+                StartSensorWorkers();
+            }
+
 #if UNITY_EDITOR && ENABLE_INPUT_SYSTEM
 
             TouchSimulation.Enable();
@@ -101,6 +110,7 @@ namespace NX10
         private void OnDisable()
         {
             isRunning = false;
+            activeWorkerCoroutines.Clear();
         }
 
         private void Update()
@@ -221,6 +231,12 @@ namespace NX10
             }
         }
 
+        public void OnSessionStarted()
+        {
+            SessionEventAddCount = 0;
+            TimeOfLastInterstitial = null;
+        }
+
         public void SetTelemetryCollection(bool canCollect)
         {
             if(!NX10Manager.Instance.IsSessionValid && canCollect)
@@ -238,9 +254,11 @@ namespace NX10
             {
                 StartTelemetryInferenceWindow();
                 StartTelemetryCollectionWindow();
+                StartSensorWorkers();
             }
             else
             {
+                StopSensorWorkers();
                 EndTelemetryCollectionWindow();
                 EndTelemetryInferenceWindow();
             }
@@ -248,6 +266,20 @@ namespace NX10
 
         public void RecordEvent(string eventName, Dictionary<string, object> eventData)
         {
+            if (!string.IsNullOrEmpty(eventName))
+            {
+                if (eventName == NX10SchemaKeys.Events.AdStarted &&
+                    eventData != null &&
+                    eventData.TryGetValue(NX10SchemaKeys.Metadata.Type, out object type) &&
+                    type != null &&
+                    string.Equals(type.ToString(), NX10SchemaKeys.AdTypes.Interstitial, StringComparison.OrdinalIgnoreCase))
+                {
+                    TimeOfLastInterstitial = DateTime.UtcNow;
+                }
+
+                SessionEventAddCount++;
+            }
+
             currentInferenceWindow?.RecordEvent(eventName, eventData);
         }
 
@@ -269,10 +301,8 @@ namespace NX10
             currentInferenceWindow = new NX10TelemetryInferenceWindow()
             {
                 startTimestamp = DateTime.UtcNow,
-                previousAccTimestamp = DateTime.UtcNow,
-                previousGyroTimestamp = DateTime.UtcNow,
-                previousMagTimestamp = DateTime.UtcNow,
-                previousTouchTimestamp = DateTime.UtcNow,
+                eventAddCount = SessionEventAddCount,
+                timeOfLastInterstitial = TimeOfLastInterstitial,
             };
         }
 
@@ -282,6 +312,35 @@ namespace NX10
 
             currentInferenceWindow.Dispose();
             currentInferenceWindow = null;
+        }
+
+        private void StartSensorWorkers()
+        {
+            StopSensorWorkers();
+
+            if (canCollectGyro)
+                activeWorkerCoroutines.Add(StartCoroutine(CollectionWorker(gyroHZ.Value, CollectGyroData)));
+
+            if (canCollectAccelerometer)
+                activeWorkerCoroutines.Add(StartCoroutine(CollectionWorker(accelerometerHZ.Value, CollectAccelData)));
+
+            if (canCollectMagnetometer)
+                activeWorkerCoroutines.Add(StartCoroutine(CollectionWorker(magnetometerHZ.Value, CollectMagData)));
+
+            if (canCollectTouch)
+                activeWorkerCoroutines.Add(StartCoroutine(CollectionWorker(touchHZ.Value, CollectTouchDataV2)));
+        }
+
+        private void StopSensorWorkers()
+        {
+            for (int i = 0; i < activeWorkerCoroutines.Count; i++)
+            {
+                if (activeWorkerCoroutines[i] != null)
+                {
+                    StopCoroutine(activeWorkerCoroutines[i]);
+                }
+            }
+            activeWorkerCoroutines.Clear();
         }
 
         private void StartTelemetryCollectionWindow()
@@ -294,18 +353,6 @@ namespace NX10
                 startTimestamp = DateTime.UtcNow,
                 inputEvents = new List<IInputEvent>()
             };
-
-            if (canCollectGyro)
-                StartCoroutine(CollectionWorker(gyroHZ.Value, CollectGyroData));
-
-            if(canCollectAccelerometer)
-                StartCoroutine(CollectionWorker(accelerometerHZ.Value, CollectAccelData));
-
-            if (canCollectMagnetometer) 
-                StartCoroutine(CollectionWorker(magnetometerHZ.Value, CollectMagData));
-
-            if (canCollectTouch)
-                StartCoroutine(CollectionWorker(touchHZ.Value, CollectTouchDataV2));
         }
 
         private void EndTelemetryCollectionWindow()
@@ -317,8 +364,6 @@ namespace NX10
             currentCollectionWindow.Dispose();
             currentCollectionWindow = null;
             timer = 0;
-
-            StopAllCoroutines();
         }
 
         private void SendTelemetryData(string timestamp)
@@ -332,84 +377,72 @@ namespace NX10
 
         private void CollectGyroData()
         {
+            if (!nativeGyro.GyroSupported)
+                return;
+
+            Vector3 rotationRate = nativeGyro.GyroRotationRate;
             double offsetCollection = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.GyroDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            currentInferenceWindow.previousGyroTimestamp = DateTime.Now;
 
-            if (nativeGyro.GyroSupported)
+            currentCollectionWindow.inputEvents.Add(new GyroEvent
             {
-                Vector3 rotationRate = nativeGyro.GyroRotationRate;
-                currentCollectionWindow.inputEvents.Add(new GyroEvent
-                {
-                    timestampOffsetMs = offsetCollection,
-                    x = rotationRate.x,
-                    y = rotationRate.y,
-                    z = rotationRate.z,
-                });
+                timestampOffsetMs = offsetCollection,
+                x = rotationRate.x,
+                y = rotationRate.y,
+                z = rotationRate.z,
+            });
 
-                currentInferenceWindow.gyroEvents.Add(offsetInference);
-                currentInferenceWindow.gyroEvents.Add(rotationRate.x);
-                currentInferenceWindow.gyroEvents.Add(rotationRate.y);
-                currentInferenceWindow.gyroEvents.Add(rotationRate.z);
-            }
+            currentInferenceWindow?.RecordGyro(rotationRate);
         }
 
         private void CollectAccelData()
         {
+            if (!nativeAccelerometer.AccSupported)
+                return;
+
+            Vector3 acceleration = nativeAccelerometer.AccAcceleration;
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.AccDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            currentInferenceWindow.previousAccTimestamp = DateTime.Now;
 
-            if (nativeAccelerometer.AccSupported)
+            currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
             {
-                Vector3 acceleration = nativeAccelerometer.AccAcceleration;
-                currentCollectionWindow.inputEvents.Add(new AccelerometerEvent
-                {
-                    timestampOffsetMs = offset,
-                    x = acceleration.x,
-                    y = acceleration.y,
-                    z = acceleration.z
-                });
+                timestampOffsetMs = offset,
+                x = acceleration.x,
+                y = acceleration.y,
+                z = acceleration.z
+            });
 
-                currentInferenceWindow.accelEvents.Add(offsetInference);
-                currentInferenceWindow.accelEvents.Add(acceleration.x);
-                currentInferenceWindow.accelEvents.Add(acceleration.y);
-                currentInferenceWindow.accelEvents.Add(acceleration.z);
-            }
+            currentInferenceWindow?.RecordAccel(acceleration);
         }
 
         private void CollectMagData()
         {
+            if (!nativeMagnetometer.MagSupported)
+                return;
+
+            Vector3 rawMag = nativeMagnetometer.RawMag;
             double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.MagDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            currentInferenceWindow.previousMagTimestamp = DateTime.Now;
 
-            if (nativeMagnetometer.MagSupported)
+            currentCollectionWindow.inputEvents.Add(new MagnetometerEvent
             {
-                Vector3 rawMag = nativeMagnetometer.RawMag;
-                currentCollectionWindow.inputEvents.Add(new MagnetometerEvent
-                {
-                    timestampOffsetMs = offset,
-                    x = nativeMagnetometer.RawMag.x,
-                    y = nativeMagnetometer.RawMag.y,
-                    z = nativeMagnetometer.RawMag.z,
-                });
+                timestampOffsetMs = offset,
+                x = rawMag.x,
+                y = rawMag.y,
+                z = rawMag.z,
+            });
 
-                currentInferenceWindow.magEvents.Add(offsetInference);
-                currentInferenceWindow.magEvents.Add(rawMag.x);
-                currentInferenceWindow.magEvents.Add(rawMag.y);
-                currentInferenceWindow.magEvents.Add(rawMag.z);
-            }
+            currentInferenceWindow?.RecordMag(rawMag);
         }
 
         private void CollectTouchDataV2()
         {
-            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            float offsetInference = (float)Math.Round(currentInferenceWindow.TouchDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            currentInferenceWindow.previousTouchTimestamp = DateTime.Now;
+            List<NativeTouch.TouchObject> touches = nativeTouch.Touches;
+            if (touches.Count == 0)
+                return;
 
-            foreach (NativeTouch.TouchObject touchObject in nativeTouch.Touches)
+            double offset = Math.Round(currentCollectionWindow.Offset().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+
+            for (int i = 0; i < touches.Count; i++)
             {
+                NativeTouch.TouchObject touchObject = touches[i];
                 currentCollectionWindow.inputEvents.Add(new TouchInputEventV2
                 {
                     timestampOffsetMs = offset,
@@ -420,14 +453,9 @@ namespace NX10
                     yMm = touchObject.y,
                     touchRadiusMm = touchObject.touchRadius
                 });
-
-                currentInferenceWindow.touchEvents.Add(offsetInference);
-                currentInferenceWindow.touchEvents.Add(nativeTouch.Touches.IndexOf(touchObject));
-                currentInferenceWindow.touchEvents.Add(touchObject.touchTypeFloat);
-                currentInferenceWindow.touchEvents.Add((float)touchObject.x);
-                currentInferenceWindow.touchEvents.Add((float)touchObject.y);
-                currentInferenceWindow.touchEvents.Add((float)touchObject.touchRadius);
             }
+
+            currentInferenceWindow?.RecordTouches(touches);
         }
     }
 }

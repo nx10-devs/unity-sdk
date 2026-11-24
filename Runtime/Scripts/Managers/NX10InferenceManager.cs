@@ -46,7 +46,7 @@ namespace NX10
         private const string historicalMedianEventAddPerMinKey = "historical-median-event-add-per-minute";
         private const string interstitalQuitCountKey = "interstitial-quit-count";
         private const string completedSessionCountKey = "completed-session-count";
-        private const string interstitalCountKey = "interstitial-count";
+        private const string interstitalCountKey = "interstitial-ad-count";
         private const string historicalMedianActiveSecondsKey = "historical-median-active-seconds";
 
         private void Awake()
@@ -63,6 +63,11 @@ namespace NX10
             _telemetryManager = telemetryManager;
             _networkingManager = networkingManager;
 
+            sessionStartTime = DateTime.UtcNow;
+        }
+
+        public void OnSessionStarted()
+        {
             sessionStartTime = DateTime.UtcNow;
         }
 
@@ -97,10 +102,14 @@ namespace NX10
                 return;
             }
 
-            Tensor<float> accTensor = GetAccelTensor();
-            Tensor<float> gyroTensor = GetGyroTensor();
-            Tensor<float> magTensor = GetMagTensor();
-            Tensor<float> touchTensor = GetTouchTensor();
+            double snapshotMs = inferenceWindow != null
+                ? inferenceWindow.PruneAndCaptureTimestampMs()
+                : 0.0;
+
+            Tensor<float> accTensor = GetAccelTensor(snapshotMs);
+            Tensor<float> gyroTensor = GetGyroTensor(snapshotMs);
+            Tensor<float> magTensor = GetMagTensor(snapshotMs);
+            Tensor<float> touchTensor = GetTouchTensor(snapshotMs);
 
             Tensor<float> priorInterstitialTensor = GetPriorInterstitialTensor();
             Tensor<float> priorInterstitialQuitTensor = GetPriorInterstitialQuitTensor();
@@ -206,7 +215,10 @@ namespace NX10
 
         private Tensor<float> GetCurrentSessionEventAddPriorCountTensor()
         {
-            float currentSessionEventAddPriorCount = inferenceWindow.eventAddCount;
+            float currentSessionEventAddPriorCount = inferenceWindow != null
+                ? inferenceWindow.eventAddCount
+                : (_telemetryManager != null ? _telemetryManager.SessionEventAddCount : 0);
+
             float[] tensorArray = new float[1]
             {
                 currentSessionEventAddPriorCount
@@ -217,12 +229,16 @@ namespace NX10
 
         private Tensor<float> GetTimeSincePrevIntTensor()
         {
-            if(inferenceWindow.timeOfLastInterstitial != null)
+            DateTime? lastInterstitial = inferenceWindow != null
+                ? inferenceWindow.timeOfLastInterstitial
+                : _telemetryManager?.TimeOfLastInterstitial;
+
+            if (lastInterstitial != null)
             {
-                TimeSpan spanSinceLastInt = DateTime.UtcNow - inferenceWindow.timeOfLastInterstitial.Value;
+                TimeSpan spanSinceLastInt = DateTime.UtcNow - lastInterstitial.Value;
                 float[] tensorArray = new float[1]
                 {
-                (float)spanSinceLastInt.TotalSeconds
+                    (float)spanSinceLastInt.TotalSeconds
                 };
 
                 return new Tensor<float>(new TensorShape(1), tensorArray);
@@ -257,94 +273,40 @@ namespace NX10
             return new Tensor<float>(new TensorShape(1), tensorArray);
         }
 
-        private Tensor<float> GetAccelTensor()
+        private Tensor<float> GetAccelTensor(double snapshotMs)
         {
-            float offsetInference = (float)Math.Round(inferenceWindow.AccDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(inferenceWindow.accelEvents.Count > 0)
-            {
-                List<float> flatAccel = new List<float>(inferenceWindow.accelEvents);
-                flatAccel.Add(offsetInference);
-                Tensor<float> accFloat = new Tensor<float>(new TensorShape(flatAccel.Count), flatAccel.ToArray());
+            float[] flatAccel = inferenceWindow != null
+                ? inferenceWindow.BuildAccelTensorData(snapshotMs)
+                : new float[5];
 
-                return accFloat;
-            }
-            else
-            {
-                float[] flatAccel = new float[5];
-                flatAccel[4] = offsetInference;
-                Tensor<float> accFloat = new Tensor<float>(new TensorShape(flatAccel.Length), flatAccel);
-
-                return accFloat;
-            }
-
-
+            return new Tensor<float>(new TensorShape(flatAccel.Length), flatAccel);
         }
 
-        private Tensor<float> GetGyroTensor()
+        private Tensor<float> GetGyroTensor(double snapshotMs)
         {
-            float offsetInference = (float)Math.Round(inferenceWindow.GyroDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(inferenceWindow.gyroEvents.Count > 0)
-            {
-                List<float> flatGyro = new List<float>(inferenceWindow.gyroEvents);
-                flatGyro.Add(offsetInference);
-                Tensor<float> gyroFloat = new Tensor<float>(new TensorShape(flatGyro.Count), flatGyro.ToArray());
-                return gyroFloat;
+            float[] flatGyro = inferenceWindow != null
+                ? inferenceWindow.BuildGyroTensorData(snapshotMs)
+                : new float[5];
 
-            }
-            else
-            {
-                float[] flatGyro = new float[5];
-                flatGyro[4] = offsetInference;
-                Tensor<float> gyroFloat = new Tensor<float>(new TensorShape(flatGyro.Length), flatGyro);
-
-                return gyroFloat;
-            }
-            
+            return new Tensor<float>(new TensorShape(flatGyro.Length), flatGyro);
         }
 
-        private Tensor<float> GetMagTensor()
+        private Tensor<float> GetMagTensor(double snapshotMs)
         {
-            float offsetInference = (float)Math.Round(inferenceWindow.MagDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
-            if(inferenceWindow.magEvents.Count > 0)
-            {
-                List<float> flatMag = new List<float>(inferenceWindow.magEvents);
-                flatMag.Add(offsetInference);
-                Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatMag.Count), flatMag.ToArray());
+            float[] flatMag = inferenceWindow != null
+                ? inferenceWindow.BuildMagTensorData(snapshotMs)
+                : new float[5];
 
-                return magFloat;
-            }
-            else
-            {
-                float[] flatMag = new float[5];
-                flatMag[4] = offsetInference;
-                Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatMag.Length), flatMag);
-
-                return magFloat;
-            }
-        
+            return new Tensor<float>(new TensorShape(flatMag.Length), flatMag);
         }
 
-        private Tensor<float> GetTouchTensor()
+        private Tensor<float> GetTouchTensor(double snapshotMs)
         {
-            float offsetInference = (float)Math.Round(inferenceWindow.TouchDelta().TotalMilliseconds, 3, MidpointRounding.AwayFromZero);
+            float[] flatTouch = inferenceWindow != null
+                ? inferenceWindow.BuildTouchTensorData(snapshotMs)
+                : new float[7];
 
-            if(inferenceWindow.touchEvents.Count > 0)
-            {
-                List<float> flatTouch = new List<float>(inferenceWindow.touchEvents);
-                flatTouch.Add(offsetInference);
-                Tensor<float> magFloat = new Tensor<float>(new TensorShape(flatTouch.Count), flatTouch.ToArray());
-
-                return magFloat;
-            }
-            else
-            {
-                float[] flatTouch = new float[7];
-                flatTouch[6] = offsetInference;
-                Tensor<float> touchFloat = new Tensor<float>(new TensorShape(flatTouch.Length), flatTouch);
-
-                return touchFloat;
-            }
-            
+            return new Tensor<float>(new TensorShape(flatTouch.Length), flatTouch);
         }
 
         /// <summary>

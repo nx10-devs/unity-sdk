@@ -1,6 +1,6 @@
-using NX10;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using UnityEngine;
 
@@ -8,27 +8,108 @@ namespace NX10
 {
     public class NX10TelemetryInferenceWindow : IDisposable
     {
-        public const float windowDurationMs = 10000f;
+        public const double windowDurationMs = 10000.0;
 
-        public DateTime startTimestamp;
-        public DateTime previousAccTimestamp;
-        public DateTime previousGyroTimestamp;
-        public DateTime previousMagTimestamp;
-        public DateTime previousTouchTimestamp;
+        private interface ITimestampedSample
+        {
+            double TimestampMs { get; }
+        }
+
+        public struct SensorSample : ITimestampedSample
+        {
+            public double timestampMs;
+            public float x;
+            public float y;
+            public float z;
+
+            public double TimestampMs => timestampMs;
+        }
+
+        public struct TouchSample : ITimestampedSample
+        {
+            public double timestampMs;
+            public float index;
+            public float touchType;
+            public float x;
+            public float y;
+            public float radius;
+
+            public double TimestampMs => timestampMs;
+        }
+
+        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+
+        public DateTime startTimestamp = DateTime.UtcNow;
 
         public string startTimestampISO => startTimestamp
                     .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
 
-        public List<float> accelEvents = new List<float>();
-        public List<float> gyroEvents = new List<float>();
-        public List<float> magEvents = new List<float>();
-        public List<float> touchEvents = new List<float>();
+        public double ElapsedMs => _stopwatch.Elapsed.TotalMilliseconds;
+
+        public List<SensorSample> accelSamples = new List<SensorSample>();
+        public List<SensorSample> gyroSamples = new List<SensorSample>();
+        public List<SensorSample> magSamples = new List<SensorSample>();
+        public List<TouchSample> touchSamples = new List<TouchSample>();
 
         public Dictionary<string, int> eventCounts = new Dictionary<string, int>();
         public Dictionary<string, int> attributeCounts = new Dictionary<string, int>();
 
         public int eventAddCount;
         public DateTime? timeOfLastInterstitial = null;
+
+        public void RecordAccel(Vector3 acceleration)
+        {
+            accelSamples.Add(new SensorSample
+            {
+                timestampMs = ElapsedMs,
+                x = acceleration.x,
+                y = acceleration.y,
+                z = acceleration.z
+            });
+        }
+
+        public void RecordGyro(Vector3 rotationRate)
+        {
+            gyroSamples.Add(new SensorSample
+            {
+                timestampMs = ElapsedMs,
+                x = rotationRate.x,
+                y = rotationRate.y,
+                z = rotationRate.z
+            });
+        }
+
+        public void RecordMag(Vector3 rawMag)
+        {
+            magSamples.Add(new SensorSample
+            {
+                timestampMs = ElapsedMs,
+                x = rawMag.x,
+                y = rawMag.y,
+                z = rawMag.z
+            });
+        }
+
+        public void RecordTouches(IList<NativeTouch.TouchObject> touches)
+        {
+            if (touches == null || touches.Count == 0)
+                return;
+
+            double nowMs = ElapsedMs;
+            for (int i = 0; i < touches.Count; i++)
+            {
+                NativeTouch.TouchObject touch = touches[i];
+                touchSamples.Add(new TouchSample
+                {
+                    timestampMs = nowMs,
+                    index = i,
+                    touchType = touch.touchTypeFloat,
+                    x = (float)touch.x,
+                    y = (float)touch.y,
+                    radius = (float)touch.touchRadius
+                });
+            }
+        }
 
         public void RecordEvent(string eventName, Dictionary<string, object> eventData)
         {
@@ -83,70 +164,137 @@ namespace NX10
 
         public TimeSpan Offset()
         {
-            return DateTime.UtcNow - startTimestamp;
+            return _stopwatch.Elapsed;
         }
 
-        public TimeSpan AccDelta()
+        public double PruneAndCaptureTimestampMs()
         {
-            return DateTime.UtcNow - previousAccTimestamp;
-        }
-
-        public TimeSpan GyroDelta()
-        {
-            return DateTime.UtcNow - previousGyroTimestamp;
-        }
-
-        public TimeSpan MagDelta()
-        {
-            return DateTime.UtcNow - previousMagTimestamp;
-        }
-        public TimeSpan TouchDelta()
-        {
-            return DateTime.UtcNow - previousTouchTimestamp;
+            double nowMs = ElapsedMs;
+            PruneOldEvents(nowMs);
+            return nowMs;
         }
 
         public void PruneOldEvents()
         {
-            float currentOffsetMs = (float)Offset().TotalMilliseconds;
-            float cutoffMs = currentOffsetMs - windowDurationMs;
-
-            if (cutoffMs <= 0f) return;
-
-            PruneDeltaBuffer(accelEvents, 4);
-            PruneDeltaBuffer(gyroEvents, 4);
-            PruneDeltaBuffer(magEvents, 4);
-
-            PruneDeltaBuffer(touchEvents, 6);
+            PruneOldEvents(ElapsedMs);
         }
 
-        private void PruneDeltaBuffer(List<float> buffer, int stride)
+        public void PruneOldEvents(double nowMs)
         {
-            if (buffer == null || buffer.Count < stride) return;
+            double cutoffMs = nowMs - windowDurationMs;
+            if (cutoffMs <= 0.0)
+                return;
 
-            float accumulatedTimeMs = 0f;
-            int keepCount = 0;
+            PruneSamples(accelSamples, cutoffMs);
+            PruneSamples(gyroSamples, cutoffMs);
+            PruneSamples(magSamples, cutoffMs);
+            PruneSamples(touchSamples, cutoffMs);
+        }
 
-            for (int i = buffer.Count - stride; i >= 0; i -= stride)
+        public float[] BuildAccelTensorData(double nowMs)
+        {
+            return BuildSensorTensorData(accelSamples, nowMs);
+        }
+
+        public float[] BuildGyroTensorData(double nowMs)
+        {
+            return BuildSensorTensorData(gyroSamples, nowMs);
+        }
+
+        public float[] BuildMagTensorData(double nowMs)
+        {
+            return BuildSensorTensorData(magSamples, nowMs);
+        }
+
+        public float[] BuildTouchTensorData(double nowMs)
+        {
+            PruneSamples(touchSamples, nowMs - windowDurationMs);
+
+            if (touchSamples.Count > 0)
             {
-                float delta = buffer[i];
-                accumulatedTimeMs += delta;
+                double windowStartMs = Math.Max(0.0, nowMs - windowDurationMs);
+                float[] flat = new float[touchSamples.Count * 6 + 1];
 
-                if (accumulatedTimeMs <= windowDurationMs)
+                double prevTimestampMs = windowStartMs;
+                for (int i = 0; i < touchSamples.Count; i++)
                 {
-                    keepCount += stride;
+                    TouchSample sample = touchSamples[i];
+                    int baseIdx = i * 6;
+                    flat[baseIdx] = RoundMs(sample.timestampMs - prevTimestampMs);
+                    flat[baseIdx + 1] = sample.index;
+                    flat[baseIdx + 2] = sample.touchType;
+                    flat[baseIdx + 3] = sample.x;
+                    flat[baseIdx + 4] = sample.y;
+                    flat[baseIdx + 5] = sample.radius;
+                    prevTimestampMs = sample.timestampMs;
                 }
-                else
-                {
-                    break;
-                }
+
+                flat[flat.Length - 1] = RoundMs(nowMs - prevTimestampMs);
+                return flat;
             }
+            else
+            {
+                float[] flat = new float[7];
+                flat[6] = RoundMs(Math.Min(nowMs, windowDurationMs));
+                return flat;
+            }
+        }
 
-            int removeCount = buffer.Count - keepCount;
+        private static float[] BuildSensorTensorData(List<SensorSample> samples, double nowMs)
+        {
+            PruneSamples(samples, nowMs - windowDurationMs);
+
+            if (samples.Count > 0)
+            {
+                double windowStartMs = Math.Max(0.0, nowMs - windowDurationMs);
+                float[] flat = new float[samples.Count * 4 + 1];
+
+                double prevTimestampMs = windowStartMs;
+                for (int i = 0; i < samples.Count; i++)
+                {
+                    SensorSample sample = samples[i];
+                    int baseIdx = i * 4;
+                    flat[baseIdx] = RoundMs(sample.timestampMs - prevTimestampMs);
+                    flat[baseIdx + 1] = sample.x;
+                    flat[baseIdx + 2] = sample.y;
+                    flat[baseIdx + 3] = sample.z;
+                    prevTimestampMs = sample.timestampMs;
+                }
+
+                flat[flat.Length - 1] = RoundMs(nowMs - prevTimestampMs);
+                return flat;
+            }
+            else
+            {
+                float[] flat = new float[5];
+                flat[4] = RoundMs(Math.Min(nowMs, windowDurationMs));
+                return flat;
+            }
+        }
+
+        private static void PruneSamples<T>(List<T> samples, double cutoffMs) where T : struct, ITimestampedSample
+        {
+            if (cutoffMs <= 0.0 || samples == null || samples.Count == 0)
+                return;
+
+            int removeCount = 0;
+            while (removeCount < samples.Count && samples[removeCount].TimestampMs < cutoffMs)
+            {
+                removeCount++;
+            }
 
             if (removeCount > 0)
             {
-                buffer.RemoveRange(0, removeCount);
+                samples.RemoveRange(0, removeCount);
             }
+        }
+
+        private static float RoundMs(double ms)
+        {
+            if (ms <= 0.0)
+                return 0f;
+
+            return (float)Math.Round(ms, 3, MidpointRounding.AwayFromZero);
         }
 
         public void Dispose()
@@ -156,13 +304,13 @@ namespace NX10
 
         private void EndWindow()
         {
-            accelEvents.Clear();
-            gyroEvents.Clear();
-            magEvents.Clear();
-            touchEvents.Clear();
+            _stopwatch.Stop();
+            accelSamples.Clear();
+            gyroSamples.Clear();
+            magSamples.Clear();
+            touchSamples.Clear();
             eventCounts.Clear();
             attributeCounts.Clear();
         }
     }
-
 }

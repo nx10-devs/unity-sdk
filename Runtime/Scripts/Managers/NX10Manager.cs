@@ -158,6 +158,8 @@ namespace NX10
                 SessionExpired = false;
 
                 NX10SDKSession session = networkingManager.CurrentSession;
+                telemetryManager.OnSessionStarted();
+                inferenceManager.OnSessionStarted();
                 telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
                     session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
                     session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
@@ -200,6 +202,8 @@ namespace NX10
                 SessionExpired = false;
 
                 NX10SDKSession session = networkingManager.CurrentSession;
+                telemetryManager.OnSessionStarted();
+                inferenceManager.OnSessionStarted();
                 telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
                     session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
                     session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
@@ -212,7 +216,7 @@ namespace NX10
         {
             inferenceManager.RunInference((result =>
             {
-                bool shouldShow = (result[0] >= networkingManager.CurrentSession.GetAdPropensityThreshold("adPropensity-randomClassifier", "1"));
+                bool shouldShow = (result != null && result.Length > 0 && result[0] >= networkingManager.CurrentSession.GetAdPropensityThreshold("adPropensity-randomClassifier", "1"));
                 shouldShowAd?.Invoke(shouldShow, result); 
             }));
         }
