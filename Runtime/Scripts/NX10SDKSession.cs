@@ -102,30 +102,50 @@ namespace NX10
             return _endpoints.FindAll(e => e.type == type)?.FirstOrDefault(e => e.version == version)?.location;
         }
 
-        public string GetAdPropensityUrl(string name, string version)
+        public string GetAdPropensityUrl(string name = null, string version = null)
         {
             return GetModel(name, version)?.downloadUrl;
         }
 
-        public float GetAdPropensityThreshold(string name, string version, float defaultThreshold = 0f)
+        public float GetAdPropensityThreshold(string name = null, string version = null, float defaultThreshold = 0f)
         {
             return GetModel(name, version)?.modelThreshold ?? defaultThreshold;
         }
 
-        private ModelDefinition GetModel(string name, string version)
+        public ModelDefinition GetAdPropensityModel(string name = null, string version = null)
         {
-            if (_ad_propensity_models == null || string.IsNullOrEmpty(name) || string.IsNullOrEmpty(version))
+            return GetModel(name, version);
+        }
+
+        private ModelDefinition GetModel(string name = null, string version = null)
+        {
+            if (_ad_propensity_models == null || _ad_propensity_models.Count == 0)
             {
-                Debug.LogWarning($"[NX10] Invalid model lookup (name: '{name}', version: '{version}').");
+                Debug.LogWarning("[NX10] No adPropensity models available in session.");
                 return null;
             }
 
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                ModelDefinition firstModel = _ad_propensity_models.FirstOrDefault(
+                    e => e != null && !string.IsNullOrWhiteSpace(e.downloadUrl));
+
+                if (firstModel == null)
+                {
+                    Debug.LogWarning("[NX10] No valid adPropensity model with a downloadUrl found in session.");
+                }
+
+                return firstModel;
+            }
+
             ModelDefinition model = _ad_propensity_models.FirstOrDefault(
-                e => e != null && e.name == name && e.version == version);
+                e => e != null &&
+                     e.name == name &&
+                     (string.IsNullOrWhiteSpace(version) || e.version == version));
 
             if (model == null)
             {
-                Debug.LogWarning($"[NX10] Model '{name}' (version '{version}') not found in session.");
+                Debug.LogWarning($"[NX10] Model '{name}' (version '{version ?? "any"}') not found in session.");
             }
 
             return model;

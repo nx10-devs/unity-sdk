@@ -157,14 +157,21 @@ namespace NX10
                 Initialised = sessionStartSuccess;
                 SessionExpired = false;
 
-                NX10SDKSession session = networkingManager.CurrentSession;
-                telemetryManager.OnSessionStarted();
-                inferenceManager.OnSessionStarted();
-                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
-                    session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
-                    session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
+                if (sessionStartSuccess && networkingManager.CurrentSession != null)
+                {
+                    NX10SDKSession session = networkingManager.CurrentSession;
+                    telemetryManager.OnSessionStarted();
+                    inferenceManager.OnSessionStarted();
+                    telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
+                        session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
+                        session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
 
-                _= inferenceManager.InitializeModelAsync(session.GetAdPropensityUrl("adPropensity-randomClassifier", "1"));
+                    string modelUrl = session.GetAdPropensityUrl(inferenceManager.ModelNameOverride, inferenceManager.ModelVersionOverride);
+                    if (!string.IsNullOrWhiteSpace(modelUrl))
+                    {
+                        _ = inferenceManager.InitializeModelAsync(modelUrl);
+                    }
+                }
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
@@ -201,12 +208,21 @@ namespace NX10
                 Initialised = sessionStartSuccess;
                 SessionExpired = false;
 
-                NX10SDKSession session = networkingManager.CurrentSession;
-                telemetryManager.OnSessionStarted();
-                inferenceManager.OnSessionStarted();
-                telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
-                    session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
-                    session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
+                if (sessionStartSuccess && networkingManager.CurrentSession != null)
+                {
+                    NX10SDKSession session = networkingManager.CurrentSession;
+                    telemetryManager.OnSessionStarted();
+                    inferenceManager.OnSessionStarted();
+                    telemetryManager.SetTelemetryVariables(session.gyroFrequencyHz, session.accelFrequencyHz,
+                        session.touchFrequencyHz, session.magnetometerFrequencyHz, session.screenBrightnessDelta,
+                        session.acquisitionWindowSize, session.telemetryCompression, session.dpi);
+
+                    string modelUrl = session.GetAdPropensityUrl(inferenceManager.ModelNameOverride, inferenceManager.ModelVersionOverride);
+                    if (!string.IsNullOrWhiteSpace(modelUrl))
+                    {
+                        _ = inferenceManager.InitializeModelAsync(modelUrl);
+                    }
+                }
 
                 startSuccess?.Invoke(sessionStartSuccess);
             });
@@ -214,9 +230,18 @@ namespace NX10
 
         public void ShouldShowAd(Action<bool, float[]> shouldShowAd)
         {
+            if (!IsSessionValid || networkingManager.CurrentSession == null)
+            {
+                shouldShowAd?.Invoke(false, null);
+                return;
+            }
+
             inferenceManager.RunInference((result =>
             {
-                bool shouldShow = (result != null && result.Length > 0 && result[0] >= networkingManager.CurrentSession.GetAdPropensityThreshold("adPropensity-randomClassifier", "1"));
+                float threshold = networkingManager.CurrentSession.GetAdPropensityThreshold(
+                    inferenceManager.ModelNameOverride,
+                    inferenceManager.ModelVersionOverride);
+                bool shouldShow = (result != null && result.Length > 0 && result[0] >= threshold);
                 shouldShowAd?.Invoke(shouldShow, result); 
             }));
         }

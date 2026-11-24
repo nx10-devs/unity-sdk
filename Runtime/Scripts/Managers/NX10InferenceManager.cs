@@ -13,11 +13,29 @@ namespace NX10
 {
     public class NX10InferenceManager : MonoBehaviour
     {
+        [Tooltip("Optional model name override. Leave empty to auto-select the first adPropensity model from the session.")]
+        [SerializeField] private string modelNameOverride = "";
+
+        [Tooltip("Optional model version override. Leave empty to match any version or auto-select from the session.")]
+        [SerializeField] private string modelVersionOverride = "";
+
         [Tooltip("Optional custom file name on disk. Leave empty to infer from URL.")]
         [SerializeField] private string customFileName = "";
 
         [Tooltip("If true, bypasses any locally cached version and downloads a fresh copy.")]
         [SerializeField] private bool forceRedownload = false;
+
+        public string ModelNameOverride
+        {
+            get => modelNameOverride;
+            set => modelNameOverride = value;
+        }
+
+        public string ModelVersionOverride
+        {
+            get => modelVersionOverride;
+            set => modelVersionOverride = value;
+        }
 
         [Header("Backend Configuration")]
         [SerializeField] private BackendType backendType = BackendType.GPUCompute;
@@ -93,12 +111,14 @@ namespace NX10
             if (!IsReady)
             {
                 Debug.LogWarning("[NX10] Cannot start inference: Model is not ready.", this);
+                onResult?.Invoke(null);
                 return;
             }
 
             if (IsInferring)
             {
                 Debug.LogWarning("[NX10] Previous multi-frame inference is still running. Ignoring request.", this);
+                onResult?.Invoke(null);
                 return;
             }
 
