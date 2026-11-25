@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using UnityEngine;
 
@@ -37,14 +36,13 @@ namespace NX10
             public double TimestampMs => timestampMs;
         }
 
-        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
-
         public DateTime startTimestamp = DateTime.UtcNow;
+        public double startMonoMs;
 
         public string startTimestampISO => startTimestamp
                     .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
 
-        public double ElapsedMs => _stopwatch.Elapsed.TotalMilliseconds;
+        public double ElapsedMs => Math.Max(0.0, NativeSensorTime.NowMs() - startMonoMs);
 
         public List<SensorSample> accelSamples = new List<SensorSample>();
         public List<SensorSample> gyroSamples = new List<SensorSample>();
@@ -57,11 +55,32 @@ namespace NX10
         public int eventAddCount;
         public DateTime? timeOfLastInterstitial = null;
 
+        public NX10TelemetryInferenceWindow()
+        {
+            startMonoMs = NativeSensorTime.NowMs();
+        }
+
+        public NX10TelemetryInferenceWindow(double startMonotonicMs)
+        {
+            startMonoMs = startMonotonicMs;
+        }
+
+        private double ToWindowMs(double sampleMonoMs)
+        {
+            double delta = sampleMonoMs - startMonoMs;
+            return delta > 0.0 ? delta : 0.0;
+        }
+
         public void RecordAccel(Vector3 acceleration)
+        {
+            RecordAccel(acceleration, NativeSensorTime.NowMs());
+        }
+
+        public void RecordAccel(Vector3 acceleration, double sampleMonoMs)
         {
             accelSamples.Add(new SensorSample
             {
-                timestampMs = ElapsedMs,
+                timestampMs = ToWindowMs(sampleMonoMs),
                 x = acceleration.x,
                 y = acceleration.y,
                 z = acceleration.z
@@ -70,9 +89,14 @@ namespace NX10
 
         public void RecordGyro(Vector3 rotationRate)
         {
+            RecordGyro(rotationRate, NativeSensorTime.NowMs());
+        }
+
+        public void RecordGyro(Vector3 rotationRate, double sampleMonoMs)
+        {
             gyroSamples.Add(new SensorSample
             {
-                timestampMs = ElapsedMs,
+                timestampMs = ToWindowMs(sampleMonoMs),
                 x = rotationRate.x,
                 y = rotationRate.y,
                 z = rotationRate.z
@@ -81,9 +105,14 @@ namespace NX10
 
         public void RecordMag(Vector3 rawMag)
         {
+            RecordMag(rawMag, NativeSensorTime.NowMs());
+        }
+
+        public void RecordMag(Vector3 rawMag, double sampleMonoMs)
+        {
             magSamples.Add(new SensorSample
             {
-                timestampMs = ElapsedMs,
+                timestampMs = ToWindowMs(sampleMonoMs),
                 x = rawMag.x,
                 y = rawMag.y,
                 z = rawMag.z
@@ -95,20 +124,24 @@ namespace NX10
             if (touches == null || touches.Count == 0)
                 return;
 
-            double nowMs = ElapsedMs;
+            double sampleMonoMs = NativeSensorTime.NowMs();
             for (int i = 0; i < touches.Count; i++)
             {
-                NativeTouch.TouchObject touch = touches[i];
-                touchSamples.Add(new TouchSample
-                {
-                    timestampMs = nowMs,
-                    index = i,
-                    touchType = touch.touchTypeFloat,
-                    x = (float)touch.x,
-                    y = (float)touch.y,
-                    radius = (float)touch.touchRadius
-                });
+                RecordTouchSample(touches[i], i, sampleMonoMs);
             }
+        }
+
+        public void RecordTouchSample(NativeTouch.TouchObject touch, int touchIndex, double sampleMonoMs)
+        {
+            touchSamples.Add(new TouchSample
+            {
+                timestampMs = ToWindowMs(sampleMonoMs),
+                index = touchIndex,
+                touchType = touch.touchTypeFloat,
+                x = (float)touch.x,
+                y = (float)touch.y,
+                radius = (float)touch.touchRadius
+            });
         }
 
         public void RecordEvent(string eventName, Dictionary<string, object> eventData)
@@ -164,7 +197,7 @@ namespace NX10
 
         public TimeSpan Offset()
         {
-            return _stopwatch.Elapsed;
+            return TimeSpan.FromMilliseconds(ElapsedMs);
         }
 
         public double PruneAndCaptureTimestampMs()
@@ -304,7 +337,6 @@ namespace NX10
 
         private void EndWindow()
         {
-            _stopwatch.Stop();
             accelSamples.Clear();
             gyroSamples.Clear();
             magSamples.Clear();

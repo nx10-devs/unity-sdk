@@ -12,7 +12,15 @@ namespace NX10
         public float GetNativeScale()
         {
 #if UNITY_IOS && !UNITY_EDITOR
-        return _GetiOSNativeScale();
+            try
+            {
+                float s = _GetiOSNativeScale();
+                return NativeSensorSampleValidator.IsFinite(s) && s > 0f ? s : 1.0f;
+            }
+            catch
+            {
+                return 1.0f;
+            }
 #else
             return 1.0f;
 #endif

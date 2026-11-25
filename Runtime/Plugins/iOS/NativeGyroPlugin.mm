@@ -1,83 +1,85 @@
-#import <Foundation/Foundation.h>
-#import <CoreMotion/CoreMotion.h>
+#import "NX10SensorCore.h"
 
-// A simple structure to pass the 3D vector back to C#
 struct NativeVector3 {
     float x;
     float y;
     float z;
 };
 
-@interface NativeGyro : NSObject
-@property (nonatomic, strong) CMMotionManager *motionManager;
-+ (instancetype)sharedInstance;
-- (void)startGyro;
-- (void)stopGyro;
-- (struct NativeVector3)getUnbiasedRotationRate;
-@end
+static NX10RingBuffer<NX10Vec3Sample, 4096> g_gyroBuffer;
+static NX10FixedHzTimer g_gyroTimer("com.nx10.sdk.gyroSampler");
 
-@implementation NativeGyro
-
-+ (instancetype)sharedInstance {
-    static NativeGyro *sharedInstance = nil;
-    static dispatch_once_t onceToken; // Fixed syntax error here
-    dispatch_once(&onceToken, ^{
-        sharedInstance = [[self alloc] init];
-    });
-    return sharedInstance;
-}
-
-- (instancetype)init {
-    self = [super init];
-    if (self) {
-        self.motionManager = [[CMMotionManager alloc] init];
-        // 60 Hz update rate matching standard target frame rates
-        self.motionManager.deviceMotionUpdateInterval = 1.0 / 60.0; 
-    }
-    return self;
-}
-
-- (void)startGyro {
-    if (self.motionManager.isDeviceMotionAvailable) {
-        [self.motionManager startDeviceMotionUpdates];
-    }
-}
-
-- (void)stopGyro {
-    if (self.motionManager.isDeviceMotionActive) {
-        [self.motionManager stopDeviceMotionUpdates];
-    }
-}
-
-- (struct NativeVector3)getUnbiasedRotationRate {
-    struct NativeVector3 result = {0.0f, 0.0f, 0.0f};
-    
-    if (self.motionManager.isDeviceMotionActive) {
-        CMDeviceMotion *deviceMotion = self.motionManager.deviceMotion;
-        if (deviceMotion != nil) {
-            CMRotationRate rotationRate = deviceMotion.rotationRate;
-            
-            // Apple's CoreMotion uses double precision; cast to float for Unity Vector3
-            result.x = (float)rotationRate.x;
-            result.y = (float)rotationRate.y;
-            result.z = (float)rotationRate.z;
-        }
-    }
-    return result;
-}
-@end
-
-// --- C Linkage (The Bridge Unity Talks To) ---
 extern "C" {
+
+    bool _NX10IsGyroAvailable() {
+        bool result = false;
+        NX10_GUARD_BEGIN
+        result = [[NX10MotionHub sharedInstance] isGyroAvailable];
+        NX10_GUARD_END
+        return result;
+    }
+
+    void _NX10StartGyro(int hz) {
+        NX10_GUARD_BEGIN
+        g_gyroTimer.stop();
+        g_gyroBuffer.clear();
+
+        NX10MotionHub* hub = [NX10MotionHub sharedInstance];
+        if (hub == nil || hz <= 0 || ![hub isGyroAvailable]) {
+            [hub setGyroConsumerHz:0];
+            return;
+        }
+
+        [hub setGyroConsumerHz:hz];
+        g_gyroTimer.start(hz, ^{
+            float x = 0.0f, y = 0.0f, z = 0.0f;
+            if ([[NX10MotionHub sharedInstance] getLatestGyroX:&x y:&y z:&z] && NX10IsFiniteVec3(x, y, z)) {
+                NX10Vec3Sample sample;
+                sample.timestampMs = _NX10GetMonotonicTimeMs();
+                sample.x = x;
+                sample.y = y;
+                sample.z = z;
+                sample.reserved = 0.0f;
+                g_gyroBuffer.push(sample);
+            }
+        });
+        NX10_GUARD_END
+    }
+
+    void _NX10StopGyro() {
+        NX10_GUARD_BEGIN
+        g_gyroTimer.stop();
+        [[NX10MotionHub sharedInstance] setGyroConsumerHz:0];
+        NX10_GUARD_END
+    }
+
+    int _NX10DrainGyroSamples(NX10Vec3Sample* outBuffer, int maxCount) {
+        int drained = 0;
+        NX10_GUARD_BEGIN
+        drained = g_gyroBuffer.drain(outBuffer, maxCount);
+        NX10_GUARD_END
+        return drained;
+    }
+
+    bool _NX10GetLatestGyro(float* x, float* y, float* z) {
+        bool ok = false;
+        NX10_GUARD_BEGIN
+        ok = [[NX10MotionHub sharedInstance] getLatestGyroX:x y:y z:z];
+        NX10_GUARD_END
+        return ok;
+    }
+
     void _StartNativeGyro() {
-        [[NativeGyro sharedInstance] startGyro];
+        _NX10StartGyro(60);
     }
 
     void _StopNativeGyro() {
-        [[NativeGyro sharedInstance] stopGyro];
+        _NX10StopGyro();
     }
 
     struct NativeVector3 _GetNativeRotationRateUnbiased() {
-        return [[NativeGyro sharedInstance] getUnbiasedRotationRate];
+        struct NativeVector3 result = {0.0f, 0.0f, 0.0f};
+        _NX10GetLatestGyro(&result.x, &result.y, &result.z);
+        return result;
     }
 }

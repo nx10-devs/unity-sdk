@@ -4,6 +4,7 @@ namespace NX10
     #region Input Events
     public interface IInputEvent
     {
+        double timestampOffsetMs { get; }
         object[] ToArray();
     }
 

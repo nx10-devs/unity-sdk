@@ -122,6 +122,8 @@ namespace NX10
                 return;
             }
 
+            _telemetryManager?.FlushPendingSensorSamples();
+
             double snapshotMs = inferenceWindow != null
                 ? inferenceWindow.PruneAndCaptureTimestampMs()
                 : 0.0;

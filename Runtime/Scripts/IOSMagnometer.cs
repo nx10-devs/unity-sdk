@@ -23,7 +23,7 @@ namespace NX10
         public static bool IsAvailable()
         {
 #if UNITY_IOS && !UNITY_EDITOR
-            return _IsMagnetometerAvailable();
+            try { return _IsMagnetometerAvailable(); } catch { return false; }
 #else
             return false;
 #endif
@@ -32,22 +32,30 @@ namespace NX10
         public static void Start()
         {
 #if UNITY_IOS && !UNITY_EDITOR
-            _StartMagnetometer();
+            try { _StartMagnetometer(); } catch { }
 #endif
         }
 
         public static void Stop()
         {
 #if UNITY_IOS && !UNITY_EDITOR
-            _StopMagnetometer();
+            try { _StopMagnetometer(); } catch { }
 #endif
         }
 
         public static Vector3 GetRawData()
         {
 #if UNITY_IOS && !UNITY_EDITOR
-            _GetMagnetometerData(out float x, out float y, out float z);
-            return new Vector3(x, y, z);
+            try
+            {
+                _GetMagnetometerData(out float x, out float y, out float z);
+                Vector3 v = new Vector3(x, y, z);
+                return NativeSensorSampleValidator.IsValidVector(in v) ? v : Vector3.zero;
+            }
+            catch
+            {
+                return Vector3.zero;
+            }
 #else
             return Vector3.zero;
 #endif

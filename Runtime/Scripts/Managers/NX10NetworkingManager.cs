@@ -80,7 +80,7 @@ namespace NX10
                 new HeaderObject("Authorization", "Bearer " + token),
             };
 
-            if (CurrentSession.telemetryCompression.Value)
+            if (CurrentSession?.telemetryCompression == true)
             {
                 byte[] compressedData = await Task.Run(() =>
                 {
