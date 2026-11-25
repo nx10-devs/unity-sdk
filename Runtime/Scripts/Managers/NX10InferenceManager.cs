@@ -158,7 +158,7 @@ namespace NX10
                 { "is_ios", isIosTensor },
             };
 
-            LogInferenceInputsToFile(tensors);
+            //LogInferenceInputsToFile(tensors);
 
             _activeInferenceRoutine = StartCoroutine(
                 Service.Predict(
