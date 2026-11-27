@@ -130,7 +130,7 @@ namespace NX10
                 {
                     if (string.Equals(type.ToString(), NX10SchemaKeys.AdTypes.Interstitial, StringComparison.OrdinalIgnoreCase))
                     {
-                        timeOfLastInterstitial = DateTime.UtcNow;
+                        timeOfLastInterstitial = NX10SystemClock.UtcNow;
                     }
                 }
             }

@@ -31,6 +31,29 @@ namespace NX10
         private NX10SDKSession currentSession;
         public NX10SDKSession CurrentSession => currentSession;
 
+        internal const float MetricsRetryInitialDelaySeconds = 2f;
+        internal const float MetricsRetryMaxDelaySeconds = 60f;
+        internal const float MetricsRetryBackoffMultiplier = 2f;
+        internal const float MetricsRetryJitterFraction = 0.2f;
+
+        internal delegate IEnumerator MetricsHttpTransportDelegate(string uri, string bearerToken, Action<bool, string> onComplete);
+
+        internal MetricsHttpTransportDelegate MetricsTransportOverride { get; set; }
+        internal string MetricsEndpointOverride { get; set; }
+        internal Func<float, IEnumerator> MetricsRetryWaitOverride { get; set; }
+
+        private Coroutine _metricsRefreshRoutine;
+        private UnityWebRequest _activeMetricsWebRequest;
+        private int _metricsRefreshGeneration;
+        private bool _isMetricsRefreshPaused;
+
+        public bool IsRefreshingMetrics => _metricsRefreshRoutine != null;
+
+        internal void SetSessionForTesting(NX10SDKSession session)
+        {
+            currentSession = session;
+        }
+
         public void SendAttributes(Dictionary<string, object> currentGameAttributes)
         {
             List<HeaderObject> headers = new List<HeaderObject>()
@@ -71,8 +94,17 @@ namespace NX10
 
         public async void SendTelemetryData(string windowStartTimestamp, double windowEndOffset, List<IInputEvent> inputEvents)
         {
+            if (currentSession == null)
+            {
+                return;
+            }
+
             string token = currentSession.Token;
             string telemetryV2EndPoint = currentSession.GetEndpoint("telemetry", "v2");
+            if (string.IsNullOrEmpty(telemetryV2EndPoint))
+            {
+                return;
+            }
             IInputEvent[] inputEventsSnapshot = inputEvents.ToArray();
 
             List<HeaderObject> headers = new List<HeaderObject>()
@@ -80,7 +112,7 @@ namespace NX10
                 new HeaderObject("Authorization", "Bearer " + token),
             };
 
-            if (CurrentSession.telemetryCompression.Value)
+            if (CurrentSession?.telemetryCompression == true)
             {
                 byte[] compressedData = await Task.Run(() =>
                 {
@@ -126,6 +158,7 @@ namespace NX10
 
         public void StartSession(SessionConfig sessionConfig, Action<bool> sessionStartSuccess)
         {
+            CancelMetricsRefresh();
             currentSession = new NX10SDKSession();
             string apiKey = NX10RuntimeConfig.ApiKey;
             string endpoint = NX10RuntimeConfig.SessionStartEndpoint;
@@ -193,6 +226,235 @@ namespace NX10
             }
 
             currentSession.Initialize(response.data);
+        }
+
+        public void SetMetricsRefreshPaused(bool paused)
+        {
+            _isMetricsRefreshPaused = paused;
+        }
+
+        public void CancelMetricsRefresh()
+        {
+            _metricsRefreshGeneration++;
+
+            if (_metricsRefreshRoutine != null)
+            {
+                StopCoroutine(_metricsRefreshRoutine);
+                _metricsRefreshRoutine = null;
+            }
+
+            CleanupActiveMetricsWebRequest();
+        }
+
+        private void CleanupActiveMetricsWebRequest()
+        {
+            if (_activeMetricsWebRequest != null)
+            {
+                try { _activeMetricsWebRequest.Abort(); } catch { }
+                try { _activeMetricsWebRequest.Dispose(); } catch { }
+                _activeMetricsWebRequest = null;
+            }
+        }
+
+        /// <summary>
+        /// Refetches cloud macro metrics from /routes/metrics for the active session.
+        /// Retains existing session metrics on failure and retries with exponential backoff until success.
+        /// </summary>
+        public void RefreshMetrics(Func<bool> canContinue = null, Action<bool> onCompleted = null)
+        {
+            CancelMetricsRefresh();
+
+            Debug.Log("[NX10] Refreshing macro metrics...");    
+
+            NX10SDKSession targetSession = currentSession;
+            if (targetSession == null || string.IsNullOrEmpty(targetSession.Token))
+            {
+                onCompleted?.Invoke(false);
+                return;
+            }
+
+            string endpoint = !string.IsNullOrWhiteSpace(MetricsEndpointOverride)
+                ? MetricsEndpointOverride
+                : NX10RuntimeConfig.MetricsEndpoint;
+
+            if (string.IsNullOrWhiteSpace(endpoint))
+            {
+                Debug.LogWarning("[NX10] Cannot refresh macro metrics: MetricsEndpoint is empty.");
+                onCompleted?.Invoke(false);
+                return;
+            }
+
+            int generation = _metricsRefreshGeneration;
+            _metricsRefreshRoutine = StartCoroutine(RefreshMetricsRoutine(endpoint, targetSession, generation, canContinue, onCompleted));
+        }
+
+        internal IEnumerator RefreshMetricsRoutine(
+            string endpoint,
+            NX10SDKSession targetSession,
+            int generation,
+            Func<bool> canContinue = null,
+            Action<bool> onCompleted = null)
+        {
+            int failedAttempts = 0;
+
+            while (IsRefreshStillValid(targetSession, generation, canContinue))
+            {
+                while (_isMetricsRefreshPaused && IsRefreshStillValid(targetSession, generation, canContinue))
+                {
+                    yield return null;
+                }
+
+                if (!IsRefreshStillValid(targetSession, generation, canContinue))
+                {
+                    break;
+                }
+
+                bool requestSucceeded = false;
+                string responseBody = string.Empty;
+
+                if (MetricsTransportOverride != null)
+                {
+                    yield return MetricsTransportOverride(endpoint, targetSession.Token, (ok, body) =>
+                    {
+                        requestSucceeded = ok;
+                        responseBody = body;
+                    });
+                }
+                else
+                {
+                    yield return SendMetricsGetRequest(endpoint, targetSession.Token, (ok, body) =>
+                    {
+                        requestSucceeded = ok;
+                        responseBody = body;
+                    });
+                }
+
+                if (!IsRefreshStillValid(targetSession, generation, canContinue))
+                {
+                    break;
+                }
+
+                if (requestSucceeded && TryApplyMetricsResponse(targetSession, responseBody))
+                {
+                    if (generation == _metricsRefreshGeneration)
+                    {
+                        _metricsRefreshRoutine = null;
+                    }
+                    onCompleted?.Invoke(true);
+                    yield break;
+                }
+
+                failedAttempts++;
+                float delaySeconds = ComputeBackoffDelaySeconds(failedAttempts, UnityEngine.Random.value);
+
+                if (failedAttempts == 1)
+                {
+                    Debug.LogWarning($"[NX10] Macro metrics refresh failed; retaining existing values and retrying in {delaySeconds:F1}s.");
+                }
+
+                if (MetricsRetryWaitOverride != null)
+                {
+                    yield return MetricsRetryWaitOverride(delaySeconds);
+                }
+                else
+                {
+                    float elapsed = 0f;
+                    while (elapsed < delaySeconds && IsRefreshStillValid(targetSession, generation, canContinue))
+                    {
+                        if (!_isMetricsRefreshPaused)
+                        {
+                            elapsed += Time.unscaledDeltaTime;
+                        }
+                        yield return null;
+                    }
+                }
+            }
+
+            if (generation == _metricsRefreshGeneration)
+            {
+                _metricsRefreshRoutine = null;
+            }
+            onCompleted?.Invoke(false);
+        }
+
+        private bool IsRefreshStillValid(NX10SDKSession targetSession, int generation, Func<bool> canContinue)
+        {
+            return generation == _metricsRefreshGeneration &&
+                   targetSession != null &&
+                   ReferenceEquals(targetSession, currentSession) &&
+                   !string.IsNullOrEmpty(targetSession.Token) &&
+                   (canContinue == null || canContinue());
+        }
+
+        internal bool TryApplyMetricsResponse(NX10SDKSession targetSession, string responseJson)
+        {
+            if (targetSession == null ||
+                !ReferenceEquals(targetSession, currentSession) ||
+                string.IsNullOrWhiteSpace(responseJson))
+            {
+                return false;
+            }
+
+            try
+            {
+                MetricsRefreshResponse response = JsonConvert.DeserializeObject<MetricsRefreshResponse>(responseJson);
+                if (response?.data?.metrics == null)
+                {
+                    return false;
+                }
+
+                return targetSession.UpdateMetrics(response.data.metrics);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[NX10] Failed to parse metrics refresh response: {ex.Message}");
+                return false;
+            }
+        }
+
+        internal static float ComputeBackoffDelaySeconds(int failedAttemptCount, float jitterSampleZeroToOne = 0.5f)
+        {
+            int clampedExponent = Mathf.Clamp(failedAttemptCount - 1, 0, 10);
+            float baseDelay = Mathf.Min(
+                MetricsRetryMaxDelaySeconds,
+                MetricsRetryInitialDelaySeconds * Mathf.Pow(MetricsRetryBackoffMultiplier, clampedExponent));
+
+            float normalizedJitter = (Mathf.Clamp01(jitterSampleZeroToOne) * 2f) - 1f; // [-1, +1]
+            float jitteredDelay = baseDelay * (1f + (normalizedJitter * MetricsRetryJitterFraction));
+
+            return Mathf.Clamp(jitteredDelay, 0.5f, MetricsRetryMaxDelaySeconds);
+        }
+
+        private IEnumerator SendMetricsGetRequest(string uri, string bearerToken, Action<bool, string> onComplete)
+        {
+            CleanupActiveMetricsWebRequest();
+
+            UnityWebRequest request = new UnityWebRequest(uri, UnityWebRequest.kHttpVerbGET);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+            request.SetRequestHeader("Authorization", "Bearer " + bearerToken);
+
+            _activeMetricsWebRequest = request;
+
+            yield return request.SendWebRequest();
+
+            bool success = request.result == UnityWebRequest.Result.Success;
+            string responseText = success && request.downloadHandler != null
+                ? request.downloadHandler.text
+                : string.Empty;
+
+            if (ReferenceEquals(_activeMetricsWebRequest, request))
+            {
+                _activeMetricsWebRequest = null;
+            }
+
+            request.Dispose();
+            onComplete?.Invoke(success, responseText);
+        }
+
+        private void OnDestroy()
+        {
+            CancelMetricsRefresh();
         }
 
         private bool TryDeserialize<T>(string json, out T result)
@@ -334,7 +596,11 @@ namespace NX10
                 return;
             }
 
-            string eventsEndpoint = currentSession.GetEndpoint("events", "v1");
+            string eventsEndpoint = currentSession?.GetEndpoint("events", "v1");
+            if (string.IsNullOrEmpty(eventsEndpoint))
+            {
+                return;
+            }
             NX10EventsPayload eventsPayload = new NX10EventsPayload()
             {
                 eventName = eventName,
@@ -529,7 +795,7 @@ namespace NX10
             }
             else
             {
-                Debug.LogError("Post failed:");
+                Debug.LogError("GET failed:");
                 Debug.LogError("Result: " + request.result);
                 Debug.LogError("Error: " + request.error);
                 Debug.LogError("Response Code: " + request.responseCode);

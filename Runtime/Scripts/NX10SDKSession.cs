@@ -33,57 +33,94 @@ namespace NX10
 
         public void Initialize(SessionStartData data)
         {
+            if (data == null)
+            {
+                return;
+            }
+
             Token = data.token;
 
             _endpoints = data.endpoints ?? new List<EndpointInfo>();
             _ad_propensity_models = data.models?.adPropensity ?? new List<ModelDefinition>();
 
-            if(data.deviceConfig.sensor != null)
+            if (data.deviceConfig != null)
             {
-                gyroFrequencyHz = data.deviceConfig.sensor.gyroscopeSampleHz;
-                accelFrequencyHz = data.deviceConfig.sensor.accelerometerSampleHz;
-                touchFrequencyHz = data.deviceConfig.sensor.touchSampleHz;
-                acquisitionWindowSize = data.deviceConfig.sensor.acquisitionWindowSize;
-                magnetometerFrequencyHz = data.deviceConfig.sensor.magnetometerSampleHz;
-                screenBrightnessDelta = data.deviceConfig.sensor?.screenBrightnessDelta;
-                telemetryCompression = data.deviceConfig.sensor.compressTelemetry;
-            }
-           
-            if(data.deviceConfig.saaq != null)
-            {
-                saaqPollingPeriod = data.deviceConfig.saaq.saaqPollingPeriodSeconds;
-            }
+                if (data.deviceConfig.sensor != null)
+                {
+                    gyroFrequencyHz = data.deviceConfig.sensor.gyroscopeSampleHz;
+                    accelFrequencyHz = data.deviceConfig.sensor.accelerometerSampleHz;
+                    touchFrequencyHz = data.deviceConfig.sensor.touchSampleHz;
+                    acquisitionWindowSize = data.deviceConfig.sensor.acquisitionWindowSize;
+                    magnetometerFrequencyHz = data.deviceConfig.sensor.magnetometerSampleHz;
+                    screenBrightnessDelta = data.deviceConfig.sensor?.screenBrightnessDelta;
+                    telemetryCompression = data.deviceConfig.sensor.compressTelemetry;
+                }
 
-            if(data.metrics != null)
-            {
-                _metrics = data.metrics;
-            }   
+                if (data.deviceConfig.saaq != null)
+                {
+                    saaqPollingPeriod = data.deviceConfig.saaq.saaqPollingPeriodSeconds;
+                }
 
-            foreach (var metric in _metrics)
-            {
-                Debug.Log($"Metric: {metric.Key} = {metric.Value}");
-            }
+                string deviceModel = SystemInfo.deviceModel;
+                if (data.deviceConfig.device?.deviceModelToDpiMap != null &&
+                    data.deviceConfig.device.deviceModelToDpiMap.TryGetValue(deviceModel, out float value))
+                {
+                    dpi = value;
+                }
+                else
+                {
+                    dpi = Screen.dpi;
+                }
 
-            string deviceModel = SystemInfo.deviceModel;
-            if(data.deviceConfig.device.deviceModelToDpiMap.TryGetValue(deviceModel, out float value))
-            {
-                dpi = value;
+                if (data.deviceConfig.activity?.thresholds != null)
+                {
+                    if (data.deviceConfig.activity.thresholds.TryGetValue(stationaryThresholdKey, out float stationaryThreshold))
+                    {
+                        this.stationaryThreshold = stationaryThreshold;
+                    }
+
+                    if (data.deviceConfig.activity.thresholds.TryGetValue(movingMinThresholdKey, out float movingMinThreshold))
+                    {
+                        this.movingMinThreshold = movingMinThreshold;
+                    }
+                }
             }
             else
             {
                 dpi = Screen.dpi;
             }
 
-            if(data.deviceConfig.activity.thresholds.TryGetValue(stationaryThresholdKey, out float stationaryThreshold))
+            if (data.metrics != null)
             {
-                this.stationaryThreshold = stationaryThreshold;
+                UpdateMetrics(data.metrics);
+            }
+        }
+
+        /// <summary>
+        /// Replaces the session's cloud macro metrics when a valid refresh dictionary is received.
+        /// Retains existing metrics untouched if <paramref name="metrics"/> is null.
+        /// </summary>
+        public bool UpdateMetrics(Dictionary<string, float> metrics)
+        {
+            if (metrics == null)
+            {
+                return false;
             }
 
-            if (data.deviceConfig.activity.thresholds.TryGetValue(movingMinThresholdKey, out float movingMinThreshold))
+            var sanitized = new Dictionary<string, float>(metrics.Count);
+            foreach (var metric in metrics)
             {
-                this.movingMinThreshold = movingMinThreshold;
+                if (!string.IsNullOrEmpty(metric.Key) &&
+                    !float.IsNaN(metric.Value) &&
+                    !float.IsInfinity(metric.Value))
+                {
+                    sanitized[metric.Key] = metric.Value;
+                    Debug.Log($"Metric: {metric.Key} = {metric.Value}");
+                }
             }
 
+            _metrics = sanitized;
+            return true;
         }
 
         public float GetMetric(string metricName)
@@ -156,6 +193,7 @@ namespace NX10
             Token = null;
             _endpoints.Clear();
             _ad_propensity_models.Clear();
+            _metrics.Clear();
         }
     }
 }

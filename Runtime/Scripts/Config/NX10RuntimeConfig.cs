@@ -20,6 +20,7 @@ namespace NX10
 
         public static string ApiKey => Config != null ? Config.GetActiveKey() : string.Empty;
         public static string SessionStartEndpoint => Config != null ? Config.GetSessionStartEndPoint() : string.Empty;
+        public static string MetricsEndpoint => Config != null ? Config.GetMetricsEndPoint() : string.Empty;
         public static string IngestionPrefix => Config != null ? Config.GetControlPlanePrefix() : string.Empty;
         public static bool AutoTrackAppLifecycle => Config == null || Config.autoTrackAppLifecycle;
     }

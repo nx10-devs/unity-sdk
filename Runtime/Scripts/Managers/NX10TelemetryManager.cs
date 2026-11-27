@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 #if ENABLE_INPUT_SYSTEM
@@ -10,10 +11,26 @@ using UnityEngine.UI;
 using Gyroscope = UnityEngine.InputSystem.Gyroscope;
 #endif
 
+[assembly: InternalsVisibleTo("NX10.Tests")]
+
 namespace NX10
 {
+    internal static class NX10SystemClock
+    {
+        private static Func<DateTime> _utcNowOverride;
+
+        public static DateTime UtcNow => _utcNowOverride != null ? _utcNowOverride() : DateTime.UtcNow;
+
+        internal static void SetUtcNowForTesting(Func<DateTime> utcNowProvider)
+        {
+            _utcNowOverride = utcNowProvider;
+        }
+    }
+
     public class NX10TelemetryManager : MonoBehaviour
     {
+        public const double MacroFeatureInactivityThresholdSeconds = 300.0;
+
         public NativeGyro nativeGyro { get; private set; }
         public NativeScale nativeScale { get; private set; }
         public NativeAccelerometer nativeAccelerometer { get; private set; }
@@ -22,6 +39,7 @@ namespace NX10
 
         private bool canCollectTelemetryData;
         private bool isRunning;
+        private bool isPaused;
         private NX10TelemetryCollectionWindow currentCollectionWindow;
         private NX10TelemetryInferenceWindow currentInferenceWindow;
         private readonly List<Coroutine> activeWorkerCoroutines = new List<Coroutine>();
@@ -29,6 +47,12 @@ namespace NX10
 
         public int SessionEventAddCount { get; private set; }
         public DateTime? TimeOfLastInterstitial { get; private set; }
+        public DateTime? LastTelemetryActiveUtc => _lastTelemetryActiveUtc;
+
+        private DateTime? _lastTelemetryActiveUtc;
+        private bool _pauseManagedExternally;
+
+        internal Action onInactivityThresholdExceeded;
 
         public Action<string, double, List<IInputEvent>> sendTelemetryDataRequest;
 
@@ -96,7 +120,7 @@ namespace NX10
         {
             isRunning = true;
 
-            if (canCollectTelemetryData)
+            if (canCollectTelemetryData && !isPaused)
             {
                 StartSensorWorkers();
             }
@@ -110,22 +134,76 @@ namespace NX10
         private void OnDisable()
         {
             isRunning = false;
-            activeWorkerCoroutines.Clear();
+            StopSensorWorkers();
+        }
+
+        private void OnDestroy()
+        {
+            StopSensorWorkers();
+        }
+
+        internal void SetPauseManagedExternally(bool managedExternally)
+        {
+            _pauseManagedExternally = managedExternally;
+        }
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (_pauseManagedExternally)
+                return;
+
+            HandleApplicationPause(pauseStatus);
+        }
+
+        public void HandleApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus == isPaused)
+                return;
+
+            isPaused = pauseStatus;
+
+            if (!canCollectTelemetryData)
+            {
+                return;
+            }
+
+            if (pauseStatus)
+            {
+                StopSensorWorkers();
+                EndTelemetryCollectionWindow();
+                _lastTelemetryActiveUtc = NX10SystemClock.UtcNow;
+            }
+            else if (isRunning)
+            {
+                _lastTelemetryActiveUtc = NX10SystemClock.UtcNow;
+                StartTelemetryCollectionWindow();
+                StartSensorWorkers();
+            }
         }
 
         private void Update()
         {
+            if (!canCollectTelemetryData || isPaused)
+                return;
+
+            if (HasExceededInactivityThreshold())
+            {
+                onInactivityThresholdExceeded?.Invoke();
+            }
+
+            _lastTelemetryActiveUtc = NX10SystemClock.UtcNow;
+
             UpdateTelemetryCollectionWindow();
 
-            if (canCollectTelemetryData && currentCollectionWindow != null)
+            if (currentCollectionWindow != null)
             {
                 CheckAndCollectBrightnessData();
                 CheckAndCollectOrientationData();
             }
 
-            if(canCollectTelemetryData && currentInferenceWindow != null)
+            if (currentInferenceWindow != null)
             {
-                currentInferenceWindow?.PruneOldEvents();
+                currentInferenceWindow.PruneOldEvents();
             }
         }
 
@@ -151,7 +229,7 @@ namespace NX10
 
             while (isRunning)
             {
-                if (canCollectTelemetryData && currentCollectionWindow != null)
+                if (canCollectTelemetryData && !isPaused && currentCollectionWindow != null)
                 {
                     collectionMethod.Invoke();
                 }
@@ -235,11 +313,32 @@ namespace NX10
         {
             SessionEventAddCount = 0;
             TimeOfLastInterstitial = null;
+            _lastTelemetryActiveUtc = NX10SystemClock.UtcNow;
+        }
+
+        public bool HasExceededInactivityThreshold()
+        {
+            if (!_lastTelemetryActiveUtc.HasValue)
+                return false;
+
+            return (NX10SystemClock.UtcNow - _lastTelemetryActiveUtc.Value).TotalSeconds > MacroFeatureInactivityThresholdSeconds;
+        }
+
+        public void ResetDeploymentSessionFeatures()
+        {
+            SessionEventAddCount = 0;
+            TimeOfLastInterstitial = null;
+            _lastTelemetryActiveUtc = NX10SystemClock.UtcNow;
+
+            if (currentInferenceWindow != null)
+            {
+                StartTelemetryInferenceWindow();
+            }
         }
 
         public void SetTelemetryCollection(bool canCollect)
         {
-            if(!NX10Manager.Instance.IsSessionValid && canCollect)
+            if (!NX10Manager.Instance.IsSessionValid && canCollect)
             {
                 Debug.LogError("NX10 Manager not initialised, ensure it is before starting a collection window");
                 return;
@@ -248,19 +347,29 @@ namespace NX10
             if (!canOpenWindow)
                 return;
 
+            bool wasCollecting = canCollectTelemetryData;
             canCollectTelemetryData = canCollect;
 
             if (canCollect)
             {
+                _lastTelemetryActiveUtc = NX10SystemClock.UtcNow;
                 StartTelemetryInferenceWindow();
                 StartTelemetryCollectionWindow();
-                StartSensorWorkers();
+                if (!isPaused)
+                {
+                    StartSensorWorkers();
+                }
             }
             else
             {
                 StopSensorWorkers();
                 EndTelemetryCollectionWindow();
                 EndTelemetryInferenceWindow();
+
+                if (wasCollecting && !isPaused)
+                {
+                    _lastTelemetryActiveUtc = NX10SystemClock.UtcNow;
+                }
             }
         }
 
@@ -274,7 +383,7 @@ namespace NX10
                     type != null &&
                     string.Equals(type.ToString(), NX10SchemaKeys.AdTypes.Interstitial, StringComparison.OrdinalIgnoreCase))
                 {
-                    TimeOfLastInterstitial = DateTime.UtcNow;
+                    TimeOfLastInterstitial = NX10SystemClock.UtcNow;
                 }
 
                 SessionEventAddCount++;
@@ -300,7 +409,7 @@ namespace NX10
 
             currentInferenceWindow = new NX10TelemetryInferenceWindow()
             {
-                startTimestamp = DateTime.UtcNow,
+                startTimestamp = NX10SystemClock.UtcNow,
                 eventAddCount = SessionEventAddCount,
                 timeOfLastInterstitial = TimeOfLastInterstitial,
             };
@@ -350,7 +459,7 @@ namespace NX10
 
             currentCollectionWindow = new NX10TelemetryCollectionWindow()
             {
-                startTimestamp = DateTime.UtcNow,
+                startTimestamp = NX10SystemClock.UtcNow,
                 inputEvents = new List<IInputEvent>()
             };
         }

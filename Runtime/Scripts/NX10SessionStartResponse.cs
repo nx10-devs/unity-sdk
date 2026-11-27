@@ -11,6 +11,18 @@ namespace NX10
     }
 
     [Serializable]
+    public class MetricsRefreshResponse
+    {
+        public MetricsRefreshData data;
+    }
+
+    [Serializable]
+    public class MetricsRefreshData
+    {
+        public Dictionary<string, float> metrics;
+    }
+
+    [Serializable]
     public class SessionStartData
     {
         public string token;

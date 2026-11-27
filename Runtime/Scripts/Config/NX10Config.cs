@@ -18,6 +18,9 @@ namespace NX10
         private const string stagingEndpoint = "https://control-plane.affectstack-stage.com/routes/sessions/start";
         private const string productionEndpoint = "https://control-plane.affectstack.com/routes/sessions/start";
 
+        private const string stagingMetricsEndpoint = "https://control-plane.affectstack-stage.com/routes/metrics";
+        private const string productionMetricsEndpoint = "https://control-plane.affectstack.com/routes/metrics";
+
         private const string stagingControlPlanePrefix = "https://control-plane.affectstack-stage.com/routes/";
         private const string productionControlPlancePrefix = "https://control-plane.affectstack.com/routes/";
 
@@ -47,6 +50,20 @@ namespace NX10
 #endif
 
             return target == KeyType.Staging ? stagingEndpoint : productionEndpoint;
+        }
+
+        public string GetMetricsEndPoint()
+        {
+            KeyType target;
+#if UNITY_EDITOR
+            target = editorTarget;
+#elif DEVELOPMENT_BUILD
+            target = devBuildTarget;
+#else
+            target = releaseBuildTarget;
+#endif
+
+            return target == KeyType.Staging ? stagingMetricsEndpoint : productionMetricsEndpoint;
         }
 
         public string GetActiveKey()

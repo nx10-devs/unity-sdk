@@ -16,7 +16,7 @@ namespace NX10
 
         public TimeSpan Offset()
         {
-            return DateTime.UtcNow - startTimestamp;
+            return NX10SystemClock.UtcNow - startTimestamp;
         }
 
         public void Dispose()

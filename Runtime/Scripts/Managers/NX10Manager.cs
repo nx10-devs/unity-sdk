@@ -64,17 +64,50 @@ namespace NX10
 
         protected void Awake()
         {
+            if (_instance == null)
+            {
+                _instance = this;
+            }
+
             networkingManager = GetComponentInChildren<NX10NetworkingManager>();
             telemetryManager = GetComponentInChildren<NX10TelemetryManager>();
             attributesManager = GetComponentInChildren<NX10AttributesManager>();
             inferenceManager = GetComponentInChildren<NX10InferenceManager>();
 
-            telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
-            attributesManager.sendAttributesRequest += SendAttributeRequest;
+            if (telemetryManager != null)
+            {
+                telemetryManager.SetPauseManagedExternally(true);
+                telemetryManager.sendTelemetryDataRequest += SendTelemetryData;
+                telemetryManager.onInactivityThresholdExceeded += HandleDeploymentSessionInactivityExceeded;
+            }
+
+            if (attributesManager != null)
+            {
+                attributesManager.sendAttributesRequest += SendAttributeRequest;
+            }
 
             AutoTrackAppLifecycle = NX10RuntimeConfig.AutoTrackAppLifecycle;
 
-            inferenceManager.Initialise(telemetryManager, networkingManager);
+            inferenceManager?.Initialise(telemetryManager, networkingManager);
+        }
+
+        private void OnDestroy()
+        {
+            if (telemetryManager != null)
+            {
+                telemetryManager.sendTelemetryDataRequest -= SendTelemetryData;
+                telemetryManager.onInactivityThresholdExceeded -= HandleDeploymentSessionInactivityExceeded;
+            }
+
+            if (attributesManager != null)
+            {
+                attributesManager.sendAttributesRequest -= SendAttributeRequest;
+            }
+
+            if (_instance == this)
+            {
+                _instance = null;
+            }
         }
 
         private void OnApplicationPause(bool pauseStatus)
@@ -84,10 +117,14 @@ namespace NX10
                 if (!_isAppBackgrounded)
                 {
                     _isAppBackgrounded = true;
+                    networkingManager?.SetMetricsRefreshPaused(true);
+
                     if (AutoTrackAppLifecycle && IsSessionValid)
                     {
                         EventsInternal.AppBackgrounded();
                     }
+
+                    telemetryManager?.HandleApplicationPause(true);
                 }
             }
             else
@@ -95,11 +132,42 @@ namespace NX10
                 if (_isAppBackgrounded)
                 {
                     _isAppBackgrounded = false;
+                    networkingManager?.SetMetricsRefreshPaused(false);
+
+                    if (IsSessionValid)
+                    {
+                        CheckAndRefreshMacroFeaturesIfInactive();
+                    }
+
+                    telemetryManager?.HandleApplicationPause(false);
+
                     if (AutoTrackAppLifecycle && IsSessionValid)
                     {
                         EventsInternal.AppForegrounded();
                     }
                 }
+            }
+        }
+
+        internal bool CheckAndRefreshMacroFeaturesIfInactive()
+        {
+            if (!IsSessionValid || telemetryManager == null || !telemetryManager.HasExceededInactivityThreshold())
+            {
+                return false;
+            }
+
+            HandleDeploymentSessionInactivityExceeded();
+            return true;
+        }
+
+        private void HandleDeploymentSessionInactivityExceeded()
+        {
+            telemetryManager?.ResetDeploymentSessionFeatures();
+            inferenceManager?.OnDeploymentSessionRestarted();
+
+            if (IsSessionValid && networkingManager != null)
+            {
+                networkingManager.RefreshMetrics(() => IsSessionValid);
             }
         }
 
@@ -118,8 +186,17 @@ namespace NX10
 
         public string GetCurrentTimestamp()
         {
-            return DateTime.UtcNow
+            return NX10SystemClock.UtcNow
                 .ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+        }
+
+        internal void SetSessionInitializedForTesting(NX10SDKSession session)
+        {
+            networkingManager?.SetSessionForTesting(session);
+            Initialised = session != null;
+            SessionExpired = false;
+            telemetryManager?.OnSessionStarted();
+            inferenceManager?.OnSessionStarted();
         }
 
         private void SendAttributeRequest(Dictionary<string, object> attributes)
@@ -236,6 +313,8 @@ namespace NX10
                 return;
             }
 
+            CheckAndRefreshMacroFeaturesIfInactive();
+
             inferenceManager.RunInference((result =>
             {
                 float threshold = networkingManager.CurrentSession.GetAdPropensityThreshold(
@@ -249,6 +328,7 @@ namespace NX10
         public void StopSession()
         {
             SessionExpired = true;
+            networkingManager?.CancelMetricsRefresh();
             StopTelemetry();
         }
 
@@ -392,6 +472,11 @@ namespace NX10
 
         public void StartTelemetry()
         {
+            if (IsSessionValid)
+            {
+                CheckAndRefreshMacroFeaturesIfInactive();
+            }
+
             telemetryManager.SetTelemetryCollection(true);
         }
 

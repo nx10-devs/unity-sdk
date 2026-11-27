@@ -81,12 +81,17 @@ namespace NX10
             _telemetryManager = telemetryManager;
             _networkingManager = networkingManager;
 
-            sessionStartTime = DateTime.UtcNow;
+            sessionStartTime = NX10SystemClock.UtcNow;
         }
 
         public void OnSessionStarted()
         {
-            sessionStartTime = DateTime.UtcNow;
+            sessionStartTime = NX10SystemClock.UtcNow;
+        }
+
+        public void OnDeploymentSessionRestarted()
+        {
+            sessionStartTime = NX10SystemClock.UtcNow;
         }
 
         public async Task<bool> InitializeModelAsync(string modelUrl)
@@ -126,39 +131,9 @@ namespace NX10
                 ? inferenceWindow.PruneAndCaptureTimestampMs()
                 : 0.0;
 
-            Tensor<float> accTensor = GetAccelTensor(snapshotMs);
-            Tensor<float> gyroTensor = GetGyroTensor(snapshotMs);
-            Tensor<float> magTensor = GetMagTensor(snapshotMs);
-            Tensor<float> touchTensor = GetTouchTensor(snapshotMs);
+            Dictionary<string, Tensor> tensors = BuildInputTensors(snapshotMs);
 
-            Tensor<float> priorInterstitialTensor = GetPriorInterstitialTensor();
-            Tensor<float> priorInterstitialQuitTensor = GetPriorInterstitialQuitTensor();
-            Tensor<float> priorSessionsTensor = GetPriorSessionsTensor();
-            Tensor<float> historicalMedianActiveSecondsTensor = GetHistoricalMedianActiveSecondsTensor();
-            Tensor<float> secondsSincePrevIntTensor = GetTimeSincePrevIntTensor();
-            Tensor<float> currentSessionEventAddPriorCountTensor = GetCurrentSessionEventAddPriorCountTensor();
-            Tensor<float> elapsdedSessionSecondsTensor = GetSessionTimeSecondsTensor();
-            Tensor<float> historialMedianEventAddPerMinTensor = GetHistoricalMedianEventAddPerMinTensor();
-            Tensor<float> isIosTensor = GetIsIosTensor();
-
-            Dictionary<string, Tensor> tensors = new Dictionary<string, Tensor>()
-            {
-                { "acc_raw", accTensor }, 
-                { "gyro_raw", gyroTensor },
-                { "touch_raw", touchTensor },
-                { "mag_raw", magTensor },
-                { "prior_interstitial_count", priorInterstitialTensor },
-                { "prior_interstitial_quit_count", priorInterstitialQuitTensor },
-                { "prior_sessions_count", priorSessionsTensor },
-                { "historical_median_active_seconds", historicalMedianActiveSecondsTensor },
-                { "seconds_since_previous_interstitial", secondsSincePrevIntTensor },
-                { "current_session_event_add_prior_count", currentSessionEventAddPriorCountTensor },
-                { "elapsed_session_seconds", elapsdedSessionSecondsTensor },
-                { "historical_median_event_add_per_active_minute", historialMedianEventAddPerMinTensor },
-                { "is_ios", isIosTensor },
-            };
-
-            //LogInferenceInputsToFile(tensors);
+            LogInferenceInputsToFile(tensors);
 
             _activeInferenceRoutine = StartCoroutine(
                 Service.Predict(
@@ -178,12 +153,73 @@ namespace NX10
             );
         }
 
+        internal Dictionary<string, Tensor> BuildInputTensors(double snapshotMs)
+        {
+            Tensor<float> accTensor = GetAccelTensor(snapshotMs);
+            Tensor<float> gyroTensor = GetGyroTensor(snapshotMs);
+            Tensor<float> magTensor = GetMagTensor(snapshotMs);
+            Tensor<float> touchTensor = GetTouchTensor(snapshotMs);
+
+            Tensor<float> priorInterstitialTensor = GetPriorInterstitialTensor();
+            Tensor<float> priorInterstitialQuitTensor = GetPriorInterstitialQuitTensor();
+            Tensor<float> priorSessionsTensor = GetPriorSessionsTensor();
+            Tensor<float> historicalMedianActiveSecondsTensor = GetHistoricalMedianActiveSecondsTensor();
+            Tensor<float> secondsSincePrevIntTensor = GetTimeSincePrevIntTensor();
+            Tensor<float> currentSessionEventAddPriorCountTensor = GetCurrentSessionEventAddPriorCountTensor();
+            Tensor<float> elapsdedSessionSecondsTensor = GetSessionTimeSecondsTensor();
+            Tensor<float> historialMedianEventAddPerMinTensor = GetHistoricalMedianEventAddPerMinTensor();
+            Tensor<float> isIosTensor = GetIsIosTensor();
+
+            return new Dictionary<string, Tensor>()
+            {
+                { "acc_raw", accTensor },
+                { "gyro_raw", gyroTensor },
+                { "touch_raw", touchTensor },
+                { "mag_raw", magTensor },
+                { "prior_interstitial_count", priorInterstitialTensor },
+                { "prior_interstitial_quit_count", priorInterstitialQuitTensor },
+                { "prior_sessions_count", priorSessionsTensor },
+                { "historical_median_active_seconds", historicalMedianActiveSecondsTensor },
+                { "seconds_since_previous_interstitial", secondsSincePrevIntTensor },
+                { "current_session_event_add_prior_count", currentSessionEventAddPriorCountTensor },
+                { "elapsed_session_seconds", elapsdedSessionSecondsTensor },
+                { "historical_median_event_add_per_active_minute", historialMedianEventAddPerMinTensor },
+                { "is_ios", isIosTensor },
+            };
+        }
+
+        internal Dictionary<string, float[]> CaptureTensorArraysForTesting(double snapshotMs = 0.0)
+        {
+            Dictionary<string, Tensor> tensors = BuildInputTensors(snapshotMs);
+            var snapshot = new Dictionary<string, float[]>(tensors.Count);
+
+            try
+            {
+                foreach (var kvp in tensors)
+                {
+                    if (kvp.Value is Tensor<float> floatTensor)
+                    {
+                        snapshot[kvp.Key] = floatTensor.DownloadToArray();
+                    }
+                }
+            }
+            finally
+            {
+                foreach (var tensor in tensors.Values)
+                {
+                    tensor?.Dispose();
+                }
+            }
+
+            return snapshot;
+        }
+
         private Tensor<float> GetHistoricalMedianEventAddPerMinTensor()
         {
-            float priorInterstitialCount = currentSession.GetMetric(historicalMedianEventAddPerMinKey);
+            float value = currentSession != null ? currentSession.GetMetric(historicalMedianEventAddPerMinKey) : 0f;
             float[] tensorArray = new float[1]
             {
-                priorInterstitialCount
+                value
             };
 
             return new Tensor<float>(new TensorShape(1), tensorArray);
@@ -191,10 +227,10 @@ namespace NX10
 
         private Tensor<float> GetHistoricalMedianActiveSecondsTensor()
         {
-            float priorInterstitialCount = currentSession.GetMetric(historicalMedianActiveSecondsKey);
+            float value = currentSession != null ? currentSession.GetMetric(historicalMedianActiveSecondsKey) : 0f;
             float[] tensorArray = new float[1]
             {
-                priorInterstitialCount
+                value
             };
 
             return new Tensor<float>(new TensorShape(1), tensorArray);
@@ -202,7 +238,7 @@ namespace NX10
 
         private Tensor<float> GetPriorInterstitialTensor()
         {
-            float priorInterstitialCount = currentSession.GetMetric(interstitalCountKey);
+            float priorInterstitialCount = currentSession != null ? currentSession.GetMetric(interstitalCountKey) : 0f;
             float[] tensorArray = new float[1]
             {
                 priorInterstitialCount
@@ -213,7 +249,7 @@ namespace NX10
 
         private Tensor<float> GetPriorInterstitialQuitTensor()
         {
-            float priorInterstitialQuitCount = currentSession.GetMetric(interstitalQuitCountKey);
+            float priorInterstitialQuitCount = currentSession != null ? currentSession.GetMetric(interstitalQuitCountKey) : 0f;
             float[] tensorArray = new float[1]
             {
                 priorInterstitialQuitCount
@@ -224,7 +260,7 @@ namespace NX10
 
         private Tensor<float> GetPriorSessionsTensor()
         {
-            float priorSessionsCount = currentSession.GetMetric(completedSessionCountKey);
+            float priorSessionsCount = currentSession != null ? currentSession.GetMetric(completedSessionCountKey) : 0f;
             float[] tensorArray = new float[1]
             {
                 priorSessionsCount
@@ -255,10 +291,10 @@ namespace NX10
 
             if (lastInterstitial != null)
             {
-                TimeSpan spanSinceLastInt = DateTime.UtcNow - lastInterstitial.Value;
+                TimeSpan spanSinceLastInt = NX10SystemClock.UtcNow - lastInterstitial.Value;
                 float[] tensorArray = new float[1]
                 {
-                    (float)spanSinceLastInt.TotalSeconds
+                    Mathf.Max(0f, (float)spanSinceLastInt.TotalSeconds)
                 };
 
                 return new Tensor<float>(new TensorShape(1), tensorArray);
@@ -269,10 +305,10 @@ namespace NX10
 
         private Tensor<float> GetSessionTimeSecondsTensor()
         {
-            TimeSpan sessionSpan = DateTime.UtcNow - sessionStartTime;
+            TimeSpan sessionSpan = NX10SystemClock.UtcNow - sessionStartTime;
             float[] tensorArray = new float[1]
             {
-                (float)sessionSpan.TotalSeconds
+                Mathf.Max(0f, (float)sessionSpan.TotalSeconds)
             };
 
             return new Tensor<float>(new TensorShape(1), tensorArray);
